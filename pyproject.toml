@@ -1,0 +1,21 @@
+[project]
+name = "smart-media-manager"
+version = "0.1.4"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "filetype>=1.2.0",
+    "puremagic>=1.30",
+    "pydantic>=2.11.9",
+]
+
+[project.scripts]
+smart-media-manager = "smart_media_manager.cli:run"
+
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["smart_media_manager"]
