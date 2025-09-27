@@ -4,6 +4,7 @@ import argparse
 import datetime as dt
 import logging
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -19,6 +20,10 @@ import puremagic
 
 
 LOG = logging.getLogger("smart_media_manager")
+
+SAFE_NAME_PATTERN = re.compile(r"[^A-Za-z0-9_.-]")
+MAX_APPLESCRIPT_ARGS = 50
+MAX_APPLESCRIPT_CHARS = 20000
 
 IMAGE_EXTENSION_MAP = {
     "jpeg": ".jpg",
@@ -139,6 +144,8 @@ class MediaFile:
     compatible: bool = False
     video_codec: Optional[str] = None
     audio_codec: Optional[str] = None
+    original_suffix: str = ""
+    backup_path: Optional[Path] = None
 
 
 @dataclass
@@ -268,6 +275,7 @@ def detect_media(path: Path) -> Optional[MediaFile]:
                 extension=extension,
                 format_name=format_name,
                 compatible=compatible,
+                original_suffix=path.suffix,
             )
 
     probe = ffprobe(path)
@@ -280,6 +288,7 @@ def detect_media(path: Path) -> Optional[MediaFile]:
                 extension=extension,
                 format_name="unknown",
                 compatible=False,
+                original_suffix=path.suffix,
             )
         return None
 
@@ -335,6 +344,7 @@ def detect_media(path: Path) -> Optional[MediaFile]:
         video_codec=video_codec,
         audio_codec=audio_codec,
         compatible=compatible,
+        original_suffix=path.suffix,
     )
 
 
@@ -529,17 +539,31 @@ def move_to_staging(media_files: Iterable[MediaFile], staging: Path) -> None:
         LOG.info("Moving %s -> %s", media.source, destination)
         shutil.move(str(media.source), str(destination))
         media.stage_path = destination
+        media.backup_path = None
+
+
+def create_stage_backup(path: Path) -> Path:
+    backup = path.with_name(f"{path.name}.bak")
+    counter = 1
+    while backup.exists():
+        backup = path.with_name(f"{path.name}.bak{counter}")
+        counter += 1
+    path.rename(backup)
+    return backup
 
 
 def convert_image(media: MediaFile) -> None:
     assert media.stage_path is not None
-    parent = media.stage_path.parent
-    target = next_available_name(parent, media.stage_path.stem, ".jpg")
+    original_stage = media.stage_path
+    backup_path = create_stage_backup(original_stage)
+    media.backup_path = backup_path
+    parent = backup_path.parent
+    target = next_available_name(parent, original_stage.stem, ".jpg")
     cmd = [
         "ffmpeg",
         "-y",
         "-i",
-        str(media.stage_path),
+        str(backup_path),
         "-map_metadata",
         "0",
         "-c:v",
@@ -549,7 +573,6 @@ def convert_image(media: MediaFile) -> None:
         str(target),
     ]
     run_checked(cmd)
-    media.stage_path.unlink()
     media.stage_path = target
     media.extension = ".jpg"
     media.format_name = "jpeg"
@@ -558,13 +581,16 @@ def convert_image(media: MediaFile) -> None:
 
 def convert_video(media: MediaFile) -> None:
     assert media.stage_path is not None
-    parent = media.stage_path.parent
-    target = next_available_name(parent, media.stage_path.stem, ".mp4")
+    original_stage = media.stage_path
+    backup_path = create_stage_backup(original_stage)
+    media.backup_path = backup_path
+    parent = backup_path.parent
+    target = next_available_name(parent, original_stage.stem, ".mp4")
     cmd = [
         "ffmpeg",
         "-y",
         "-i",
-        str(media.stage_path),
+        str(backup_path),
         "-map_metadata",
         "0",
         "-map",
@@ -588,13 +614,66 @@ def convert_video(media: MediaFile) -> None:
         cmd.append("-an")
     cmd.append(str(target))
     run_checked(cmd)
-    media.stage_path.unlink()
     media.stage_path = target
     media.extension = ".mp4"
     media.format_name = "mp4"
     media.video_codec = "h264"
     media.audio_codec = "aac" if media.audio_codec else None
     media.compatible = True
+
+
+def remove_backups(media_files: Iterable[MediaFile]) -> None:
+    for media in media_files:
+        if media.backup_path and media.backup_path.exists():
+            with suppress(OSError):
+                media.backup_path.unlink()
+        media.backup_path = None
+
+
+def resolve_restore_path(path: Path) -> Path:
+    if not path.exists():
+        return path
+    return next_available_name(path.parent, path.stem, path.suffix)
+
+
+def revert_media_files(media_files: Iterable[MediaFile], staging: Optional[Path]) -> None:
+    for media in media_files:
+        original = media.source
+        try:
+            if media.backup_path and media.backup_path.exists():
+                if media.stage_path and media.stage_path.exists():
+                    with suppress(OSError):
+                        media.stage_path.unlink()
+                restore_path = resolve_restore_path(original)
+                restore_path.parent.mkdir(parents=True, exist_ok=True)
+                media.backup_path.rename(restore_path)
+                media.backup_path = None
+                media.stage_path = None
+            elif media.stage_path and media.stage_path.exists():
+                restore_path = resolve_restore_path(original)
+                restore_path.parent.mkdir(parents=True, exist_ok=True)
+                media.stage_path.rename(restore_path)
+                media.stage_path = None
+        except Exception as exc:  # noqa: BLE001
+            LOG.warning("Failed to restore %s: %s", original, exc)
+    if staging and staging.exists():
+        shutil.rmtree(staging, ignore_errors=True)
+
+
+def sanitize_stage_paths(media_files: Iterable[MediaFile], staging: Path) -> None:
+    for media in media_files:
+        if not media.stage_path or not media.stage_path.exists():
+            continue
+        stem = media.stage_path.stem
+        safe_stem = SAFE_NAME_PATTERN.sub("_", stem)
+        if not safe_stem:
+            safe_stem = "media"
+        if safe_stem == stem:
+            continue
+        target = next_available_name(staging, safe_stem, media.stage_path.suffix)
+        LOG.info("Sanitizing filename %s -> %s", media.stage_path.name, target.name)
+        media.stage_path.rename(target)
+        media.stage_path = target
 
 
 def ensure_compatibility(media_files: Iterable[MediaFile]) -> None:
@@ -627,7 +706,7 @@ on run argv
     tell application "Photos"
         activate
         repeat with itemPath in argv
-            set mediaAlias to POSIX file itemPath
+            set mediaAlias to my alias_from_posix(itemPath)
             set importedItems to import mediaAlias with skip check duplicates
             if importedItems is missing value then
                 set importedItems to {}
@@ -637,29 +716,60 @@ on run argv
     end tell
     return importedCount
 end run
+
+on alias_from_posix(itemPath)
+    set posixPath to itemPath as text
+    try
+        return POSIX file posixPath
+    on error errMsg number errNum
+        error "Unable to resolve path: " & posixPath number -1728
+    end try
+end alias_from_posix
 """
-    cmd = ["osascript", "-", *[str(path) for path in paths]]
-    result = subprocess.run(
-        cmd,
-        input=script,
-        text=True,
-        capture_output=True,
-        check=False,
-    )
-    if result.returncode != 0:
-        raise RuntimeError(f"AppleScript import failed: {result.stderr.strip()}")
-    try:
-        return int(result.stdout.strip())
-    except ValueError as exc:
-        raise RuntimeError("Unexpected response from AppleScript import.") from exc
+    batches: list[list[str]] = []
+    current_batch: list[str] = []
+    current_length = 0
+    for path in paths:
+        arg = str(path)
+        prospective = current_length + len(arg) + 1
+        if (
+            current_batch
+            and (
+                len(current_batch) >= MAX_APPLESCRIPT_ARGS
+                or prospective > MAX_APPLESCRIPT_CHARS
+            )
+        ):
+            batches.append(current_batch)
+            current_batch = []
+            current_length = 0
+        current_batch.append(arg)
+        current_length += len(arg) + 1
+    if current_batch:
+        batches.append(current_batch)
+
+    total_imported = 0
+    for batch in batches:
+        cmd = ["osascript", "-", *batch]
+        result = subprocess.run(
+            cmd,
+            input=script,
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+        if result.returncode != 0:
+            raise RuntimeError(f"AppleScript import failed: {result.stderr.strip()}")
+        try:
+            total_imported += int(result.stdout.strip())
+        except ValueError as exc:
+            raise RuntimeError("Unexpected response from AppleScript import.") from exc
+    return total_imported
 
 
 def cleanup_staging(staging: Path) -> None:
     if staging.exists():
         LOG.info("Deleting staging folder %s", staging)
         shutil.rmtree(staging)
-
-
 def configure_logging() -> None:
     logging.basicConfig(level=logging.INFO, format="%(message)s")
 
@@ -676,6 +786,9 @@ def validate_root(path: Path) -> Path:
 def main() -> int:
     configure_logging()
     args = parse_args()
+    media_files: list[MediaFile] = []
+    staging_root: Optional[Path] = None
+    skip_log: Optional[Path] = None
     try:
         root = validate_root(args.path)
         for dependency in ("ffprobe", "ffmpeg", "osascript"):
@@ -693,20 +806,33 @@ def main() -> int:
         staging_root.mkdir(parents=True, exist_ok=False)
         move_to_staging(media_files, staging_root)
         ensure_compatibility(media_files)
-        import_paths = [media.stage_path for media in media_files if media.stage_path]
-        import_paths = sorted({path for path in import_paths if path})
+        sanitize_stage_paths(media_files, staging_root)
+
+        import_paths: list[Path] = []
+        missing_media: list[MediaFile] = []
+        for media in media_files:
+            if media.stage_path and media.stage_path.exists():
+                import_paths.append(media.stage_path.resolve())
+            else:
+                missing_media.append(media)
+
+        if missing_media:
+            missing_listing = ", ".join(str((m.stage_path or m.source)) for m in missing_media[:5])
+            raise RuntimeError(f"Missing staged file(s): {missing_listing}")
+
         LOG.info("Importing %d file(s) into Apple Photos...", len(import_paths))
         imported_count = import_into_photos(import_paths)
         if imported_count != len(import_paths):
             raise RuntimeError(
                 f"Apple Photos reported {imported_count} imported item(s) out of {len(import_paths)}."
             )
+        remove_backups(media_files)
         LOG.info("Successfully imported %d media file(s) into Apple Photos.", imported_count)
         if args.delete:
             cleanup_staging(staging_root)
         else:
             LOG.info("Staging folder retained at %s", staging_root)
-        if skip_log.exists():
+        if skip_log and skip_log.exists():
             if skip_log.stat().st_size == 0:
                 skip_log.unlink()
             else:
@@ -714,6 +840,9 @@ def main() -> int:
         return 0
     except Exception as exc:  # noqa: BLE001
         LOG.error("Error: %s", exc)
+        revert_media_files(media_files, staging_root)
+        if skip_log and skip_log.exists() and skip_log.stat().st_size == 0:
+            skip_log.unlink()
         return 1
 
 
