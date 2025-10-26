@@ -15,9 +15,12 @@ This repository uses GitHub Actions for CI/CD with optimized integration for Cla
 ### File: `.github/workflows/ci.yml`
 
 This workflow runs on:
-- Every push to `main` branch
-- Every pull request to `main`
-- Manual trigger via `workflow_dispatch`
+- **Push to `main`** - Automatically on code changes (excludes .md, docs/, LICENSE)
+- **Pull requests** - Automatically on PRs to `main` (excludes documentation)
+- **Manual trigger** - Via GitHub UI or `gh` CLI with selectable run type
+- **Issue comments** - Triggered by comments (for future automation)
+
+**No scheduled/cron jobs** - All triggers are event-driven and on-demand.
 
 ### Jobs
 
