@@ -3,12 +3,6 @@ revision = 3
 requires-python = ">=3.12"
 
 [[package]]
-name = "binwalk"
-version = "2.1.0"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/6e/a8/b52eb5fb66f4b582aa21f3b236bcd479bb2d2f602b639d5632a1b080e747/binwalk-2.1.0.tar.gz", hash = "sha256:218c8045c6cb3ed6e21814fb89cdb913808b02dfe5a6cc30f85f4a59e8129f6b", size = 2373, upload-time = "2015-01-22T07:31:34.356Z" }
-
-[[package]]
 name = "chardet"
 version = "4.0.0"
 source = { registry = "https://pypi.org/simple" }
@@ -209,7 +203,6 @@ name = "smart-media-manager"
 version = "0.3.1a1"
 source = { editable = "." }
 dependencies = [
-    { name = "binwalk" },
     { name = "filetype" },
     { name = "hachoir" },
     { name = "isbinary" },
@@ -231,7 +224,6 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "binwalk", specifier = "==2.1.0" },
     { name = "filetype", specifier = ">=1.2.0" },
     { name = "hachoir", specifier = ">=3.3.0" },
     { name = "isbinary", specifier = ">=1.0.1" },

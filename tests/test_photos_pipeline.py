@@ -11,6 +11,7 @@ if str(ROOT) not in sys.path:
 
 from smart_media_manager.cli import (  # noqa: E402
     MediaFile,
+    RunStatistics,
     SkipLogger,
     enforce_safe_fallback,
     ensure_compatibility,
@@ -43,7 +44,8 @@ def test_png_import_pipeline(monkeypatch, tmp_path: Path) -> None:
     monkeypatch.setattr("smart_media_manager.cli.detect_media", fake_detect)
 
     skip_log = tmp_path / "skip.log"
-    media_files = gather_media_files(source_dir, recursive=False, follow_symlinks=False, skip_logger=SkipLogger(skip_log))
+    stats = RunStatistics()
+    media_files = gather_media_files(source_dir, recursive=False, follow_symlinks=False, skip_logger=SkipLogger(skip_log), stats=stats)
 
     assert len(media_files) == 1
     media = media_files[0]
@@ -52,7 +54,7 @@ def test_png_import_pipeline(monkeypatch, tmp_path: Path) -> None:
     staging_root = tmp_path / "staging"
     staging_root.mkdir()
     move_to_staging(media_files, staging_root)
-    ensure_compatibility(media_files, SkipLogger(skip_log))
+    ensure_compatibility(media_files, SkipLogger(skip_log), stats)
 
     assert media_files[0].stage_path is not None
     assert media_files[0].stage_path.exists()
@@ -72,7 +74,8 @@ def test_pdf_vector_skipped(monkeypatch, tmp_path: Path) -> None:
     monkeypatch.setattr("smart_media_manager.cli.detect_media", fake_detect)
 
     skip_log = tmp_path / "skip.log"
-    media_files = gather_media_files(source_dir, recursive=False, follow_symlinks=False, skip_logger=SkipLogger(skip_log))
+    stats = RunStatistics()
+    media_files = gather_media_files(source_dir, recursive=False, follow_symlinks=False, skip_logger=SkipLogger(skip_log), stats=stats)
 
     assert media_files == []
     assert skip_log.exists()
@@ -87,7 +90,8 @@ def test_corrupt_png_skipped(tmp_path: Path) -> None:
     corrupt_path.write_bytes(b"\x89PNG\r\n\x1a\n\x00")
 
     skip_log = tmp_path / "skip.log"
-    media_files = gather_media_files(source_dir, recursive=False, follow_symlinks=False, skip_logger=SkipLogger(skip_log))
+    stats = RunStatistics()
+    media_files = gather_media_files(source_dir, recursive=False, follow_symlinks=False, skip_logger=SkipLogger(skip_log), stats=stats)
 
     assert media_files == []
     assert skip_log.exists()
@@ -131,15 +135,16 @@ def test_enforce_safe_fallback_assigns_actions(monkeypatch, tmp_path: Path) -> N
 
     called = {}
 
-    def fake_ensure(media_files, _logger):
+    def fake_ensure(media_files, _logger, _stats):
         called["count"] = called.get("count", 0) + 1
 
     monkeypatch.setattr("smart_media_manager.cli.ensure_compatibility", fake_ensure)
 
     skip_log = tmp_path / "skip.log"
-    enforce_safe_fallback([media_image, media_video], SkipLogger(skip_log))
+    stats = RunStatistics()
+    enforce_safe_fallback([media_image, media_video], SkipLogger(skip_log), stats)
 
-    assert media_image.action == "convert_to_tiff"
+    assert media_image.action == "convert_to_png"
     assert media_video.action == "transcode_to_hevc_mp4"
     assert media_image.metadata.get("safe_fallback") is True
     assert media_video.metadata.get("safe_fallback") is True
@@ -155,7 +160,8 @@ def test_typescript_file_is_skipped(tmp_path: Path) -> None:
 
     skip_log = tmp_path / "skip.log"
     logger = SkipLogger(skip_log)
-    media_files = gather_media_files(source_dir, recursive=False, follow_symlinks=False, skip_logger=logger)
+    stats = RunStatistics()
+    media_files = gather_media_files(source_dir, recursive=False, follow_symlinks=False, skip_logger=logger, stats=stats)
 
     assert media_files == []
     assert skip_log.exists()
@@ -172,7 +178,8 @@ def test_media_with_wrong_extension_is_normalised(tmp_path: Path) -> None:
 
     skip_log = tmp_path / "skip.log"
     logger = SkipLogger(skip_log)
-    media_files = gather_media_files(source_dir, recursive=False, follow_symlinks=False, skip_logger=logger)
+    stats = RunStatistics()
+    media_files = gather_media_files(source_dir, recursive=False, follow_symlinks=False, skip_logger=logger, stats=stats)
 
     assert len(media_files) == 1
     media = media_files[0]

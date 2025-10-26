@@ -17,7 +17,7 @@ def test_match_rule_psd_unknown_defaults_to_convert():
     )
     assert rule is not None
     assert rule.rule_id == "R-IMG-009"
-    assert rule.action == "convert_to_tiff"
+    assert rule.action == "convert_to_png"
 
 
 def test_match_rule_accepts_dotted_puremagic_extension():
