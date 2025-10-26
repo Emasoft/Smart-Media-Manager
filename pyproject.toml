@@ -1,14 +1,25 @@
 [project]
 name = "smart-media-manager"
-version = "0.1.5"
+version = "0.3.1a1"
 description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "filetype>=1.2.0",
     "puremagic>=1.30",
-    "pydantic>=2.11.9",
+    "isbinary>=1.0.1",
+    "python-magic>=0.4.27",
+    "pyfsig>=1.1.1",
+    "hachoir>=3.3.0",
+    "binwalk==2.1.0",
+    "pillow>=12.0.0",
 ]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.4.2"]
+
+[dependency-groups]
+dev = ["pytest>=8.4.2"]
 
 [project.scripts]
 smart-media-manager = "smart_media_manager.cli:run"
@@ -19,3 +30,6 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
 include = ["smart_media_manager"]
+
+[tool.uv]
+default-groups = ["dev"]

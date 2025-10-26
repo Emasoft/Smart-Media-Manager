@@ -5,6 +5,22 @@ build/
 dist/
 wheels/
 *.egg-info
+.coverage
+.pytest_cache/
+
+# OS cruft
+.DS_Store
+smart_media_manager/.DS_Store
+
+# Project artifacts that should never be committed
+FOUND_MEDIA_FILES_*/
+smm_skipped_files_*.log
+AGENTS.md
+CLAUDE.md
+docs_dev/
+*.log
+*.tmp
 
 # Virtual environments
 .venv
+.env
