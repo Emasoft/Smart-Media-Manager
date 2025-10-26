@@ -1,0 +1,211 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: Test Python ${{ matrix.python-version }}
+    runs-on: macos-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.12", "3.13"]
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@v5
+      with:
+        enable-cache: true
+        cache-dependency-glob: "uv.lock"
+
+    - name: Set up Python ${{ matrix.python-version }}
+      run: uv python install ${{ matrix.python-version }}
+
+    - name: Install dependencies
+      run: uv sync --extra dev
+
+    - name: Run tests with pytest
+      run: |
+        uv run pytest -v --tb=short --color=yes 2>&1 | tee pytest-output.txt
+      continue-on-error: true
+
+    - name: Generate test report
+      if: always()
+      run: |
+        echo "## Test Results for Python ${{ matrix.python-version }}" >> $GITHUB_STEP_SUMMARY
+        echo '```' >> $GITHUB_STEP_SUMMARY
+        cat pytest-output.txt >> $GITHUB_STEP_SUMMARY
+        echo '```' >> $GITHUB_STEP_SUMMARY
+
+    - name: Upload test results
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: pytest-results-${{ matrix.python-version }}
+        path: pytest-output.txt
+        retention-days: 30
+
+  lint:
+    name: Lint and Format Check
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@v5
+      with:
+        enable-cache: true
+
+    - name: Set up Python
+      run: uv python install 3.12
+
+    - name: Install dependencies
+      run: uv sync --extra dev
+
+    - name: Run ruff check
+      run: |
+        echo "## Ruff Check Results" >> $GITHUB_STEP_SUMMARY
+        uv run ruff check smart_media_manager/ tests/ --output-format=github 2>&1 | tee ruff-check.txt
+        echo '```' >> $GITHUB_STEP_SUMMARY
+        cat ruff-check.txt >> $GITHUB_STEP_SUMMARY
+        echo '```' >> $GITHUB_STEP_SUMMARY
+      continue-on-error: true
+
+    - name: Check formatting
+      run: |
+        echo "## Ruff Format Check" >> $GITHUB_STEP_SUMMARY
+        uv run ruff format --check --line-length=320 smart_media_manager/ tests/ 2>&1 | tee ruff-format.txt
+        echo '```' >> $GITHUB_STEP_SUMMARY
+        cat ruff-format.txt >> $GITHUB_STEP_SUMMARY
+        echo '```' >> $GITHUB_STEP_SUMMARY
+      continue-on-error: true
+
+    - name: Upload lint results
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: lint-results
+        path: |
+          ruff-check.txt
+          ruff-format.txt
+        retention-days: 30
+
+  type-check:
+    name: Type Check with mypy
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@v5
+      with:
+        enable-cache: true
+
+    - name: Set up Python
+      run: uv python install 3.12
+
+    - name: Install dependencies
+      run: uv sync --extra dev
+
+    - name: Run mypy
+      run: |
+        echo "## MyPy Type Check Results" >> $GITHUB_STEP_SUMMARY
+        uv run mypy smart_media_manager/ --pretty --show-error-codes 2>&1 | tee mypy-output.txt || true
+        echo '```' >> $GITHUB_STEP_SUMMARY
+        cat mypy-output.txt >> $GITHUB_STEP_SUMMARY
+        echo '```' >> $GITHUB_STEP_SUMMARY
+      continue-on-error: true
+
+    - name: Upload mypy results
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: mypy-results
+        path: mypy-output.txt
+        retention-days: 30
+
+  security:
+    name: Security Scan
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Run gitleaks
+      uses: gitleaks/gitleaks-action@v2
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      continue-on-error: true
+
+    - name: Security scan summary
+      if: always()
+      run: |
+        echo "## Security Scan Completed" >> $GITHUB_STEP_SUMMARY
+        echo "Check the Actions tab for detailed results" >> $GITHUB_STEP_SUMMARY
+
+  build:
+    name: Build Package
+    runs-on: ubuntu-latest
+    needs: [test, lint]
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@v5
+      with:
+        enable-cache: true
+
+    - name: Set up Python
+      run: uv python install 3.12
+
+    - name: Install dependencies
+      run: uv sync
+
+    - name: Build package
+      run: |
+        uv build
+        ls -lh dist/
+
+    - name: Check build artifacts
+      run: |
+        echo "## Build Artifacts" >> $GITHUB_STEP_SUMMARY
+        echo '```' >> $GITHUB_STEP_SUMMARY
+        ls -lh dist/ >> $GITHUB_STEP_SUMMARY
+        echo '```' >> $GITHUB_STEP_SUMMARY
+
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: dist
+        path: dist/
+        retention-days: 30
+
+  summary:
+    name: Generate Summary
+    runs-on: ubuntu-latest
+    needs: [test, lint, type-check, security, build]
+    if: always()
+
+    steps:
+    - name: Generate workflow summary
+      run: |
+        echo "# CI Pipeline Summary" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "## Jobs Status" >> $GITHUB_STEP_SUMMARY
+        echo "- Test: ${{ needs.test.result }}" >> $GITHUB_STEP_SUMMARY
+        echo "- Lint: ${{ needs.lint.result }}" >> $GITHUB_STEP_SUMMARY
+        echo "- Type Check: ${{ needs.type-check.result }}" >> $GITHUB_STEP_SUMMARY
+        echo "- Security: ${{ needs.security.result }}" >> $GITHUB_STEP_SUMMARY
+        echo "- Build: ${{ needs.build.result }}" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "All artifacts are available in the Actions tab for 30 days." >> $GITHUB_STEP_SUMMARY
