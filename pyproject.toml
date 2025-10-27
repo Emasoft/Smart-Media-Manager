@@ -10,7 +10,6 @@ dependencies = [
     "isbinary>=1.0.1",
     "python-magic>=0.4.27",
     "pyfsig>=1.1.1",
-    "hachoir>=3.3.0",
     "pillow>=12.0.0",
 ]
 
