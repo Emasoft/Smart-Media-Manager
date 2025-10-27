@@ -27,3 +27,6 @@ docs_dev/
 
 # Test results (logs are preserved locally but not committed)
 tests/results/
+
+# Serena MCP working directory
+.serena/
