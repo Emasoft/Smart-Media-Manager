@@ -25,9 +25,10 @@ Smart Media Manager normalizes filenames, validates files via multiple signature
 ## ✦ Highlights
 
 - **Deterministic detection pipeline** — Powered by libmagic, PureMagic, PyFSig, binwalk, and ffprobe consensus voting plus RAW refinement
-- **Self-healing conversions** — Including PNG/HEIC transcodes, HEVC rewraps, GIF/APNG animation handling, and safe fallbacks when Apple Photos rejects a batch
+- **Fail-fast conversions** — Direct source→target conversion with automatic cleanup on failure (v0.4.0: backup system removed for simplicity)
+- **Extension preservation** — File extensions are never changed unless the detected format differs (v0.4.0: fixes .mp4 → .mov renaming bug)
 - **Dependency bootstrapper** — Installs Homebrew formulas (`ffmpeg`, `libheif`, `imagemagick`, etc.) and RAW codecs only when the current camera family needs them
-- **Apple Photos automation** — Batched AppleScript commands with retry logic and metadata preservation using `exiftool`
+- **Apple Photos automation** — Batched AppleScript commands with rate-limiting and retry logic, metadata preservation using `exiftool`
 - **Comprehensive statistics** — Color-coded summary with detailed metrics for scanned, converted, imported, and skipped files
 - **Interactive retry** — Prompt to retry failed imports without re-running the entire pipeline
 - **Transparent skip logging** — Corrupt files, archives, vector artwork, and unsupported assets are called out with remediation guidance

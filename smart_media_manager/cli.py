@@ -1724,16 +1724,23 @@ def detect_media(path: Path) -> tuple[Optional[MediaFile], Optional[str]]:
         raw_media.metadata.update(metadata)
         return raw_media, None
 
-    preferred_extension = rule.extensions[0] if rule.extensions else None
+    original_extension = ensure_dot_extension(path.suffix)
     consensus_extension = (
         ensure_dot_extension(consensus.extension) if consensus else None
     )
-    extension = (
-        preferred_extension
-        or consensus_extension
-        or ensure_dot_extension(path.suffix)
-        or ".media"
-    )
+    preferred_extension = rule.extensions[0] if rule.extensions else None
+
+    # NEVER change extension unless format detected differs from file extension
+    # Priority: always keep original if valid, only use detected format if no extension or wrong extension
+    if original_extension and rule.extensions and original_extension in rule.extensions:
+        # Original extension is valid for the detected format - keep it!
+        extension = original_extension
+    elif original_extension:
+        # File has extension but it doesn't match detected format - use detected format
+        extension = consensus_extension or preferred_extension or original_extension or ".media"
+    else:
+        # File has no extension - use detected format
+        extension = consensus_extension or preferred_extension or ".media"
     if detected_kind == "image":
         media = MediaFile(
             source=path,
