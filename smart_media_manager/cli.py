@@ -1326,6 +1326,10 @@ def extract_container(format_name: str) -> str:
 
 
 def is_skippable_file(path: Path) -> Optional[str]:
+    # Skip backup files created during conversion
+    if path.name.endswith(".bak") or ".bak" in path.suffixes:
+        return "backup file (created during conversion)"
+
     try:
         if path.stat().st_size == 0:
             return "file is empty"
