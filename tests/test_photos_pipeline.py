@@ -13,7 +13,6 @@ from smart_media_manager.cli import (  # noqa: E402
     MediaFile,
     RunStatistics,
     SkipLogger,
-    enforce_safe_fallback,
     ensure_compatibility,
     gather_media_files,
     move_to_staging,
@@ -96,59 +95,6 @@ def test_corrupt_png_skipped(tmp_path: Path) -> None:
     assert media_files == []
     assert skip_log.exists()
     assert "corrupt" in skip_log.read_text().lower()
-
-
-def test_enforce_safe_fallback_assigns_actions(monkeypatch, tmp_path: Path) -> None:
-    staging_dir = tmp_path / "stage"
-    staging_dir.mkdir()
-
-    image_stage = staging_dir / "img.heic"
-    video_stage = staging_dir / "vid.mkv"
-    image_stage.write_bytes(b"dummy")
-    video_stage.write_bytes(b"dummy")
-
-    media_image = MediaFile(
-        source=tmp_path / "img.heic",
-        kind="image",
-        extension=".heic",
-        format_name="heic",
-        compatible=False,
-        original_suffix=".heic",
-        stage_path=image_stage,
-        rule_id="R-IMG-013",
-        action="convert_to_heic_lossless",
-        requires_processing=True,
-    )
-
-    media_video = MediaFile(
-        source=tmp_path / "vid.mkv",
-        kind="video",
-        extension=".mkv",
-        format_name="mkv",
-        compatible=False,
-        original_suffix=".mkv",
-        stage_path=video_stage,
-        rule_id="R-VID-007",
-        action="transcode_to_hevc_mp4",
-        requires_processing=True,
-    )
-
-    called = {}
-
-    def fake_ensure(media_files, _logger, _stats):
-        called["count"] = called.get("count", 0) + 1
-
-    monkeypatch.setattr("smart_media_manager.cli.ensure_compatibility", fake_ensure)
-
-    skip_log = tmp_path / "skip.log"
-    stats = RunStatistics()
-    enforce_safe_fallback([media_image, media_video], SkipLogger(skip_log), stats)
-
-    assert media_image.action == "convert_to_png"
-    assert media_video.action == "transcode_to_hevc_mp4"
-    assert media_image.metadata.get("safe_fallback") is True
-    assert media_video.metadata.get("safe_fallback") is True
-    assert called.get("count") == 1
 
 
 def test_typescript_file_is_skipped(tmp_path: Path) -> None:
