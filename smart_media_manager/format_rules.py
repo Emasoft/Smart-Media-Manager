@@ -27,7 +27,6 @@ class FormatRule:
     libmagic: tuple[str, ...]
     puremagic: tuple[str, ...]
     pyfsig: tuple[str, ...]
-    hachoir: tuple[str, ...]
     binwalk: tuple[str, ...]
     rawpy: tuple[str, ...]
     ffprobe: tuple[str, ...]
@@ -44,7 +43,6 @@ def _rule(
     libmagic: Iterable[str] = (),
     puremagic: Iterable[str] = (),
     pyfsig: Iterable[str] = (),
-    hachoir: Iterable[str] = (),
     binwalk: Iterable[str] = (),
     rawpy: Iterable[str] = (),
     ffprobe: Iterable[str] = (),
@@ -59,7 +57,6 @@ def _rule(
         libmagic=tuple(sorted({ident.lower() for ident in libmagic})),
         puremagic=tuple(sorted({ident.lower() for ident in puremagic})),
         pyfsig=tuple(sorted({ident.lower() for ident in pyfsig})),
-        hachoir=tuple(sorted({ident.lower() for ident in hachoir})),
         binwalk=tuple(sorted({ident.lower() for ident in binwalk})),
         rawpy=tuple(sorted({ident.lower() for ident in rawpy})),
         ffprobe=tuple(sorted({ident.lower() for ident in ffprobe})),
@@ -69,11 +66,63 @@ def _rule(
 
 
 FORMAT_RULES: tuple[FormatRule, ...] = (
-    _rule(rule_id="R-IMG-001", category="image", action="import", extensions=[".jpg", ".jpeg"], libmagic=["image/jpeg", "jpeg image data"], puremagic=["jpeg", "image/jpeg"], pyfsig=["jpeg image file"], hachoir=["jpeg"], binwalk=["jpeg image data"], notes="Standard JPEG"),
-    _rule(rule_id="R-IMG-002", category="image", action="import", extensions=[".png"], libmagic=["image/png"], puremagic=["png", "image/png"], pyfsig=["png image"], hachoir=["png"], binwalk=["png image"], notes="Portable Network Graphics"),
-    _rule(rule_id="R-IMG-003", category="image", action="import", extensions=[".heic", ".heif"], libmagic=["image/heic", "iso media, heif"], puremagic=["heic", "image/heic"], pyfsig=["iso base media (heic)"], hachoir=["heif"], binwalk=["heif"], notes="HEIF/HEIC"),
-    _rule(rule_id="R-IMG-004", category="image", action="import", extensions=[".gif"], libmagic=["image/gif"], puremagic=["gif", "image/gif"], pyfsig=["gif image"], hachoir=["gif"], binwalk=["gif image data"], conditions={"animated": False}, notes="Static GIF"),
-    _rule(rule_id="R-IMG-005", category="image", action="import", extensions=[".gif"], libmagic=["image/gif"], puremagic=["gif", "image/gif"], pyfsig=["gif image"], hachoir=["gif"], binwalk=["gif image data"], conditions={"animated": True, "max_size_mb": 100}, notes="Animated GIF under Apple size limit"),
+    _rule(
+        rule_id="R-IMG-001",
+        category="image",
+        action="import",
+        extensions=[".jpg", ".jpeg"],
+        libmagic=["image/jpeg", "jpeg image data"],
+        puremagic=["jpeg", "image/jpeg"],
+        pyfsig=["jpeg image file"],
+        binwalk=["jpeg image data"],
+        notes="Standard JPEG",
+    ),
+    _rule(
+        rule_id="R-IMG-002",
+        category="image",
+        action="import",
+        extensions=[".png"],
+        libmagic=["image/png"],
+        puremagic=["png", "image/png"],
+        pyfsig=["png image"],
+        binwalk=["png image"],
+        notes="Portable Network Graphics",
+    ),
+    _rule(
+        rule_id="R-IMG-003",
+        category="image",
+        action="import",
+        extensions=[".heic", ".heif"],
+        libmagic=["image/heic", "iso media, heif"],
+        puremagic=["heic", "image/heic"],
+        pyfsig=["iso base media (heic)"],
+        binwalk=["heif"],
+        notes="HEIF/HEIC",
+    ),
+    _rule(
+        rule_id="R-IMG-004",
+        category="image",
+        action="import",
+        extensions=[".gif"],
+        libmagic=["image/gif"],
+        puremagic=["gif", "image/gif"],
+        pyfsig=["gif image"],
+        binwalk=["gif image data"],
+        conditions={"animated": False},
+        notes="Static GIF",
+    ),
+    _rule(
+        rule_id="R-IMG-005",
+        category="image",
+        action="import",
+        extensions=[".gif"],
+        libmagic=["image/gif"],
+        puremagic=["gif", "image/gif"],
+        pyfsig=["gif image"],
+        binwalk=["gif image data"],
+        conditions={"animated": True, "max_size_mb": 100},
+        notes="Animated GIF under Apple size limit",
+    ),
     _rule(
         rule_id="R-IMG-006",
         category="image",
@@ -82,12 +131,21 @@ FORMAT_RULES: tuple[FormatRule, ...] = (
         libmagic=["image/gif"],
         puremagic=["gif", "image/gif"],
         pyfsig=["gif image"],
-        hachoir=["gif"],
         binwalk=["gif image data"],
         conditions={"animated": True, "min_size_mb": 100},
         notes="Animated GIF above Photos limit",
     ),
-    _rule(rule_id="R-IMG-007", category="image", action="import", extensions=[".tif", ".tiff"], libmagic=["image/tiff"], puremagic=["tiff", "image/tiff"], pyfsig=["tiff image"], hachoir=["tiff"], binwalk=["tiff image data"], notes="Tagged Image File Format"),
+    _rule(
+        rule_id="R-IMG-007",
+        category="image",
+        action="import",
+        extensions=[".tif", ".tiff"],
+        libmagic=["image/tiff"],
+        puremagic=["tiff", "image/tiff"],
+        pyfsig=["tiff image"],
+        binwalk=["tiff image data"],
+        notes="Tagged Image File Format",
+    ),
     _rule(
         rule_id="R-IMG-008",
         category="image",
@@ -96,7 +154,6 @@ FORMAT_RULES: tuple[FormatRule, ...] = (
         libmagic=["application/photoshop"],
         puremagic=["psd", "image/vnd.adobe.photoshop"],
         pyfsig=["adobe photoshop image"],
-        hachoir=["psd"],
         binwalk=["photoshop image data"],
         conditions={"psd_color_mode": "rgb"},
         notes="Adobe Photoshop (RGB)",
@@ -109,36 +166,172 @@ FORMAT_RULES: tuple[FormatRule, ...] = (
         libmagic=["application/photoshop"],
         puremagic=["psd", "image/vnd.adobe.photoshop"],
         pyfsig=["adobe photoshop image"],
-        hachoir=["psd"],
         binwalk=["photoshop image data"],
         conditions={"psd_color_mode": "non-rgb"},
         notes="PSD CMYK/multichannel",
     ),
-    _rule(rule_id="R-IMG-010", category="image", action="convert_to_png", extensions=[".webp"], libmagic=["image/webp"], puremagic=["webp", "image/webp"], pyfsig=["google webp image"], hachoir=["webp"], binwalk=["webp"], notes="WebP still"),
-    _rule(rule_id="R-IMG-011", category="image", action="convert_animation_to_hevc_mp4", extensions=[".webp"], libmagic=["image/webp"], puremagic=["webp", "image/webp"], pyfsig=["google webp image"], hachoir=["webp"], binwalk=["webp"], conditions={"animated": True}, notes="Animated WebP"),
-    _rule(rule_id="R-IMG-012", category="image", action="convert_to_png", extensions=[".avif"], libmagic=["image/avif"], puremagic=["avif", "image/avif"], pyfsig=["avif image"], hachoir=["avif"], binwalk=["avif"], notes="AVIF still"),
-    _rule(rule_id="R-IMG-013", category="image", action="convert_to_heic_lossless", extensions=[".jxl"], libmagic=["image/jxl"], puremagic=["jxl", "image/jxl"], pyfsig=["jpeg xl image"], hachoir=["jpeg xl"], binwalk=["jpeg xl"], notes="JPEG XL"),
-    _rule(rule_id="R-IMG-014", category="image", action="convert_animation_to_hevc_mp4", extensions=[".png"], libmagic=["image/png"], puremagic=["png", "image/png"], pyfsig=["png image"], hachoir=["png"], binwalk=["png image"], conditions={"animated": True}, notes="Animated PNG (APNG)"),
-    _rule(rule_id="R-IMG-015", category="image", action="import", extensions=[".bmp"], libmagic=["image/bmp"], puremagic=["bmp", "image/bmp"], pyfsig=["bmp image"], hachoir=["bmp"], binwalk=["pc bitmap"], notes="Bitmap"),
+    _rule(
+        rule_id="R-IMG-010",
+        category="image",
+        action="convert_to_png",
+        extensions=[".webp"],
+        libmagic=["image/webp"],
+        puremagic=["webp", "image/webp"],
+        pyfsig=["google webp image"],
+        binwalk=["webp"],
+        notes="WebP still",
+    ),
+    _rule(
+        rule_id="R-IMG-011",
+        category="image",
+        action="convert_animation_to_hevc_mp4",
+        extensions=[".webp"],
+        libmagic=["image/webp"],
+        puremagic=["webp", "image/webp"],
+        pyfsig=["google webp image"],
+        binwalk=["webp"],
+        conditions={"animated": True},
+        notes="Animated WebP",
+    ),
+    _rule(
+        rule_id="R-IMG-012",
+        category="image",
+        action="convert_to_png",
+        extensions=[".avif"],
+        libmagic=["image/avif"],
+        puremagic=["avif", "image/avif"],
+        pyfsig=["avif image"],
+        binwalk=["avif"],
+        notes="AVIF still",
+    ),
+    _rule(
+        rule_id="R-IMG-013",
+        category="image",
+        action="convert_to_heic_lossless",
+        extensions=[".jxl"],
+        libmagic=["image/jxl"],
+        puremagic=["jxl", "image/jxl"],
+        pyfsig=["jpeg xl image"],
+        binwalk=["jpeg xl"],
+        notes="JPEG XL",
+    ),
+    _rule(
+        rule_id="R-IMG-014",
+        category="image",
+        action="convert_animation_to_hevc_mp4",
+        extensions=[".png"],
+        libmagic=["image/png"],
+        puremagic=["png", "image/png"],
+        pyfsig=["png image"],
+        binwalk=["png image"],
+        conditions={"animated": True},
+        notes="Animated PNG (APNG)",
+    ),
+    _rule(
+        rule_id="R-IMG-015",
+        category="image",
+        action="import",
+        extensions=[".bmp"],
+        libmagic=["image/bmp"],
+        puremagic=["bmp", "image/bmp"],
+        pyfsig=["bmp image"],
+        binwalk=["pc bitmap"],
+        notes="Bitmap",
+    ),
     _rule(
         rule_id="R-IMG-016",
         category="vector",
         action="skip_vector",
-        extensions=[".svg", ".ai", ".eps", ".ps", ".pdf", ".wmf", ".emf", ".drw", ".tex"],
+        extensions=[
+            ".svg",
+            ".ai",
+            ".eps",
+            ".ps",
+            ".pdf",
+            ".wmf",
+            ".emf",
+            ".drw",
+            ".tex",
+        ],
         libmagic=["image/svg+xml", "application/postscript", "application/pdf"],
         puremagic=["svg", "postscript", "pdf"],
         pyfsig=["postscript document", "pdf document", "svg document"],
-        hachoir=["pdf", "postscript", "svg"],
         binwalk=["pdf document", "postscript"],
         notes="Vector formats unsupported by Photos",
     ),
     # RAW rules
-    _rule(rule_id="R-RAW-001", category="raw", action="import", extensions=[".crw", ".cr2", ".cr3", ".crm", ".crx"], libmagic=["image/x-canon-cr2", "application/octet-stream"], puremagic=["cr2"], pyfsig=["canon cr2 raw image"], hachoir=["canon raw"], binwalk=["canon raw"], rawpy=["canon"], notes="Canon RAW"),
-    _rule(rule_id="R-RAW-002", category="raw", action="import", extensions=[".nef", ".nrw"], libmagic=["image/x-nikon-nef"], puremagic=["nef"], pyfsig=["nikon nef raw image"], hachoir=["nikon raw"], binwalk=["nikon raw"], rawpy=["nikon"], notes="Nikon RAW"),
-    _rule(rule_id="R-RAW-003", category="raw", action="import", extensions=[".arw", ".srf", ".sr2"], libmagic=["image/x-sony-arw"], puremagic=["arw"], pyfsig=["sony arw raw image"], hachoir=["sony raw"], binwalk=["sony raw"], rawpy=["sony"], notes="Sony RAW"),
-    _rule(rule_id="R-RAW-004", category="raw", action="import", extensions=[".raf"], libmagic=["image/x-fuji-raf"], puremagic=["raf"], pyfsig=["fujifilm raf raw image"], hachoir=["fuji raw"], binwalk=["fujifilm raw"], rawpy=["fujifilm"], notes="Fujifilm RAW"),
-    _rule(rule_id="R-RAW-005", category="raw", action="import", extensions=[".orf"], libmagic=["image/x-olympus-orf"], puremagic=["orf"], pyfsig=["olympus orf raw image"], hachoir=["olympus raw"], binwalk=["olympus raw"], rawpy=["olympus"], notes="Olympus RAW"),
-    _rule(rule_id="R-RAW-006", category="raw", action="import", extensions=[".rw2", ".raw"], libmagic=["image/x-panasonic-rw2"], puremagic=["rw2"], pyfsig=["panasonic rw2 raw image"], hachoir=["panasonic raw"], binwalk=["panasonic raw"], rawpy=["panasonic"], notes="Panasonic RAW"),
+    _rule(
+        rule_id="R-RAW-001",
+        category="raw",
+        action="import",
+        extensions=[".crw", ".cr2", ".cr3", ".crm", ".crx"],
+        libmagic=["image/x-canon-cr2", "application/octet-stream"],
+        puremagic=["cr2"],
+        pyfsig=["canon cr2 raw image"],
+        binwalk=["canon raw"],
+        rawpy=["canon"],
+        notes="Canon RAW",
+    ),
+    _rule(
+        rule_id="R-RAW-002",
+        category="raw",
+        action="import",
+        extensions=[".nef", ".nrw"],
+        libmagic=["image/x-nikon-nef"],
+        puremagic=["nef"],
+        pyfsig=["nikon nef raw image"],
+        binwalk=["nikon raw"],
+        rawpy=["nikon"],
+        notes="Nikon RAW",
+    ),
+    _rule(
+        rule_id="R-RAW-003",
+        category="raw",
+        action="import",
+        extensions=[".arw", ".srf", ".sr2"],
+        libmagic=["image/x-sony-arw"],
+        puremagic=["arw"],
+        pyfsig=["sony arw raw image"],
+        binwalk=["sony raw"],
+        rawpy=["sony"],
+        notes="Sony RAW",
+    ),
+    _rule(
+        rule_id="R-RAW-004",
+        category="raw",
+        action="import",
+        extensions=[".raf"],
+        libmagic=["image/x-fuji-raf"],
+        puremagic=["raf"],
+        pyfsig=["fujifilm raf raw image"],
+        binwalk=["fujifilm raw"],
+        rawpy=["fujifilm"],
+        notes="Fujifilm RAW",
+    ),
+    _rule(
+        rule_id="R-RAW-005",
+        category="raw",
+        action="import",
+        extensions=[".orf"],
+        libmagic=["image/x-olympus-orf"],
+        puremagic=["orf"],
+        pyfsig=["olympus orf raw image"],
+        binwalk=["olympus raw"],
+        rawpy=["olympus"],
+        notes="Olympus RAW",
+    ),
+    _rule(
+        rule_id="R-RAW-006",
+        category="raw",
+        action="import",
+        extensions=[".rw2", ".raw"],
+        libmagic=["image/x-panasonic-rw2"],
+        puremagic=["rw2"],
+        pyfsig=["panasonic rw2 raw image"],
+        binwalk=["panasonic raw"],
+        rawpy=["panasonic"],
+        notes="Panasonic RAW",
+    ),
     _rule(
         rule_id="R-RAW-007",
         category="raw",
@@ -147,7 +340,6 @@ FORMAT_RULES: tuple[FormatRule, ...] = (
         libmagic=["image/x-pentax-pef", "image/x-adobe-dng"],
         puremagic=["pef", "dng"],
         pyfsig=["pentax pef raw image", "adobe dng"],
-        hachoir=["pentax raw", "dng"],
         binwalk=["pentax raw", "dng image"],
         rawpy=["pentax", "ricoh", "adobe"],
         notes="Pentax/Adobe DNG",
@@ -160,15 +352,57 @@ FORMAT_RULES: tuple[FormatRule, ...] = (
         libmagic=["image/x-hasselblad-3fr"],
         puremagic=["3fr", "iiq"],
         pyfsig=["hasselblad raw", "phaseone raw"],
-        hachoir=["hasselblad raw"],
         binwalk=["hasselblad raw"],
         rawpy=["hasselblad", "phase one"],
         notes="Medium-format RAW",
     ),
-    _rule(rule_id="R-RAW-009", category="raw", action="import", extensions=[".x3f"], libmagic=["image/x-sigma-x3f"], puremagic=["x3f"], pyfsig=["sigma x3f raw"], hachoir=["sigma raw"], binwalk=["sigma raw"], rawpy=["sigma"], notes="Sigma RAW"),
-    _rule(rule_id="R-RAW-010", category="raw", action="import", extensions=[".gpr"], libmagic=["image/x-gopro-gpr"], puremagic=["gpr"], pyfsig=["gopro gpr raw"], hachoir=["gopro raw"], binwalk=["gopro raw"], rawpy=["gopro"], notes="GoPro RAW"),
-    _rule(rule_id="R-RAW-011", category="raw", action="import", extensions=[".dng"], libmagic=["image/x-adobe-dng"], puremagic=["dng"], pyfsig=["adobe dng"], hachoir=["dng"], binwalk=["dng image"], rawpy=["dji"], notes="DJI DNG"),
-    _rule(rule_id="R-RAW-012", category="raw", action="skip_raw_unsupported", extensions=[".raw", ".unknown"], libmagic=["application/octet-stream"], puremagic=["None"], pyfsig=["Unknown file type"], hachoir=["unknown"], binwalk=["unknown"], notes="Unknown RAW"),
+    _rule(
+        rule_id="R-RAW-009",
+        category="raw",
+        action="import",
+        extensions=[".x3f"],
+        libmagic=["image/x-sigma-x3f"],
+        puremagic=["x3f"],
+        pyfsig=["sigma x3f raw"],
+        binwalk=["sigma raw"],
+        rawpy=["sigma"],
+        notes="Sigma RAW",
+    ),
+    _rule(
+        rule_id="R-RAW-010",
+        category="raw",
+        action="import",
+        extensions=[".gpr"],
+        libmagic=["image/x-gopro-gpr"],
+        puremagic=["gpr"],
+        pyfsig=["gopro gpr raw"],
+        binwalk=["gopro raw"],
+        rawpy=["gopro"],
+        notes="GoPro RAW",
+    ),
+    _rule(
+        rule_id="R-RAW-011",
+        category="raw",
+        action="import",
+        extensions=[".dng"],
+        libmagic=["image/x-adobe-dng"],
+        puremagic=["dng"],
+        pyfsig=["adobe dng"],
+        binwalk=["dng image"],
+        rawpy=["dji"],
+        notes="DJI DNG",
+    ),
+    _rule(
+        rule_id="R-RAW-012",
+        category="raw",
+        action="skip_raw_unsupported",
+        extensions=[".raw", ".unknown"],
+        libmagic=["application/octet-stream"],
+        puremagic=["None"],
+        pyfsig=["Unknown file type"],
+        binwalk=["unknown"],
+        notes="Unknown RAW",
+    ),
     # Video rules
     _rule(
         rule_id="R-VID-001a",
@@ -178,9 +412,15 @@ FORMAT_RULES: tuple[FormatRule, ...] = (
         libmagic=["video/mp4", "video/x-m4v", "iso media, mp4 base media"],
         puremagic=["m4v", "video/x-m4v"],
         pyfsig=["iso base media"],
-        hachoir=["quicktime"],
         binwalk=["mpeg-4 part 14"],
-        ffprobe=["video:h264", "audio:aac", "audio:ac3", "audio:eac3", "audio:alac", "audio:pcm"],
+        ffprobe=[
+            "video:h264",
+            "audio:aac",
+            "audio:ac3",
+            "audio:eac3",
+            "audio:alac",
+            "audio:pcm",
+        ],
         notes="M4V with compatible codecs - remux to MP4",
     ),
     _rule(
@@ -191,9 +431,15 @@ FORMAT_RULES: tuple[FormatRule, ...] = (
         libmagic=["video/mp4", "iso media, mp4 base media"],
         puremagic=["mp4", "video/mp4"],
         pyfsig=["iso base media"],
-        hachoir=["quicktime"],
         binwalk=["mpeg-4 part 14"],
-        ffprobe=["video:h264", "audio:aac", "audio:ac3", "audio:eac3", "audio:alac", "audio:pcm"],
+        ffprobe=[
+            "video:h264",
+            "audio:aac",
+            "audio:ac3",
+            "audio:eac3",
+            "audio:alac",
+            "audio:pcm",
+        ],
         notes="H.264 + AAC/AC-3/E-AC-3/ALAC/PCM",
     ),
     _rule(
@@ -204,12 +450,22 @@ FORMAT_RULES: tuple[FormatRule, ...] = (
         libmagic=["video/h265", "iso media, mp4 base media"],
         puremagic=["hevc", "video/h265"],
         pyfsig=["iso base media"],
-        hachoir=["quicktime"],
         binwalk=["hevc"],
         ffprobe=["video:hevc", "audio:aac", "audio:ac3", "audio:eac3", "audio:alac"],
         notes="HEVC + AAC/AC-3/E-AC-3/ALAC",
     ),
-    _rule(rule_id="R-VID-003", category="video", action="import", extensions=[".mp4", ".mov", ".qt"], libmagic=["video/mp4"], puremagic=["mp4", "video/mp4"], pyfsig=["iso base media"], hachoir=["quicktime"], binwalk=["dolby vision"], ffprobe=["video:hevc", "dolby_vision", "audio:eac3"], notes="Dolby Vision + Atmos"),
+    _rule(
+        rule_id="R-VID-003",
+        category="video",
+        action="import",
+        extensions=[".mp4", ".mov", ".qt"],
+        libmagic=["video/mp4"],
+        puremagic=["mp4", "video/mp4"],
+        pyfsig=["iso base media"],
+        binwalk=["dolby vision"],
+        ffprobe=["video:hevc", "dolby_vision", "audio:eac3"],
+        notes="Dolby Vision + Atmos",
+    ),
     _rule(
         rule_id="R-VID-004",
         category="video",
@@ -218,7 +474,6 @@ FORMAT_RULES: tuple[FormatRule, ...] = (
         libmagic=["video/mp4", "iso media, mp4 base media"],
         puremagic=["mp4", "video/mp4"],
         pyfsig=["iso base media"],
-        hachoir=["quicktime"],
         binwalk=["mpeg-4 part 14"],
         ffprobe=["video:vp9", "video:av1", "video:mpeg2video"],
         notes="Unsupported video codec inside MP4",
@@ -231,13 +486,21 @@ FORMAT_RULES: tuple[FormatRule, ...] = (
         libmagic=["video/mp4"],
         puremagic=["mp4", "video/mp4"],
         pyfsig=["iso base media"],
-        hachoir=["quicktime"],
         binwalk=["mpeg-4 part 14"],
         ffprobe=["audio:opus", "audio:dts", "audio:truehd"],
         notes="Unsupported audio codec inside MP4/MOV",
     ),
     _rule(
-        rule_id="R-VID-006", category="video", action="rewrap_to_mp4", extensions=[".mkv"], libmagic=["video/x-matroska"], puremagic=["mkv", "video/x-matroska"], pyfsig=["matroska data"], hachoir=["matroska"], binwalk=["matroska"], ffprobe=["video:h264", "video:hevc"], notes="Matroska container with compatible codecs"
+        rule_id="R-VID-006",
+        category="video",
+        action="rewrap_to_mp4",
+        extensions=[".mkv"],
+        libmagic=["video/x-matroska"],
+        puremagic=["mkv", "video/x-matroska"],
+        pyfsig=["matroska data"],
+        binwalk=["matroska"],
+        ffprobe=["video:h264", "video:hevc"],
+        notes="Matroska container with compatible codecs",
     ),
     _rule(
         rule_id="R-VID-007",
@@ -247,16 +510,61 @@ FORMAT_RULES: tuple[FormatRule, ...] = (
         libmagic=["video/x-matroska", "video/webm"],
         puremagic=["webm", "video/webm"],
         pyfsig=["matroska data", "webm"],
-        hachoir=["matroska", "webm"],
         binwalk=["webm"],
         ffprobe=["video:vp9", "audio:opus"],
         notes="VP9/Opus containers",
     ),
-    _rule(rule_id="R-VID-008", category="video", action="transcode_to_hevc_mp4", extensions=[".avi"], libmagic=["video/x-msvideo"], puremagic=["avi", "video/x-msvideo"], pyfsig=["riff avi"], hachoir=["avi"], binwalk=["avi"], notes="AVI container"),
-    _rule(rule_id="R-VID-009", category="video", action="transcode_to_hevc_mp4", extensions=[".wmv"], libmagic=["video/x-ms-wmv"], puremagic=["wmv", "video/x-ms-wmv"], pyfsig=["asf/wmv"], hachoir=["asf"], binwalk=["microsoft asf"], notes="Windows Media"),
-    _rule(rule_id="R-VID-010", category="video", action="transcode_to_hevc_mp4", extensions=[".flv"], libmagic=["video/x-flv"], puremagic=["flv", "video/x-flv"], pyfsig=["flash video"], hachoir=["flv"], binwalk=["flv"], notes="Flash Video"),
-    _rule(rule_id="R-VID-011", category="video", action="rewrap_or_transcode_to_mp4", extensions=[".3gp", ".3g2"], libmagic=["video/3gpp", "video/3gpp2"], puremagic=["3gp", "3g2"], pyfsig=["3gpp multimedia"], hachoir=["3gpp"], binwalk=["3gp"], notes="3GPP container"),
-    _rule(rule_id="R-VID-012", category="video", action="skip_unknown_video", extensions=[".unknown"], notes="Unhandled/legacy video"),
+    _rule(
+        rule_id="R-VID-008",
+        category="video",
+        action="transcode_to_hevc_mp4",
+        extensions=[".avi"],
+        libmagic=["video/x-msvideo"],
+        puremagic=["avi", "video/x-msvideo"],
+        pyfsig=["riff avi"],
+        binwalk=["avi"],
+        notes="AVI container",
+    ),
+    _rule(
+        rule_id="R-VID-009",
+        category="video",
+        action="transcode_to_hevc_mp4",
+        extensions=[".wmv"],
+        libmagic=["video/x-ms-wmv"],
+        puremagic=["wmv", "video/x-ms-wmv"],
+        pyfsig=["asf/wmv"],
+        binwalk=["microsoft asf"],
+        notes="Windows Media",
+    ),
+    _rule(
+        rule_id="R-VID-010",
+        category="video",
+        action="transcode_to_hevc_mp4",
+        extensions=[".flv"],
+        libmagic=["video/x-flv"],
+        puremagic=["flv", "video/x-flv"],
+        pyfsig=["flash video"],
+        binwalk=["flv"],
+        notes="Flash Video",
+    ),
+    _rule(
+        rule_id="R-VID-011",
+        category="video",
+        action="rewrap_or_transcode_to_mp4",
+        extensions=[".3gp", ".3g2"],
+        libmagic=["video/3gpp", "video/3gpp2"],
+        puremagic=["3gp", "3g2"],
+        pyfsig=["3gpp multimedia"],
+        binwalk=["3gp"],
+        notes="3GPP container",
+    ),
+    _rule(
+        rule_id="R-VID-012",
+        category="video",
+        action="skip_unknown_video",
+        extensions=[".unknown"],
+        notes="Unhandled/legacy video",
+    ),
 )
 
 
@@ -298,23 +606,23 @@ def match_rule(
         if value is None:
             return set()
         if isinstance(value, str):
-            value = value.lower()
-            result = {value}
-            if value.startswith(".") and "/" not in value:
-                stripped = value.lstrip(".")
+            value_lower = value.lower()
+            str_result = {value_lower}
+            if value_lower.startswith(".") and "/" not in value_lower:
+                stripped = value_lower.lstrip(".")
                 if stripped:
-                    result.add(stripped)
-            return result
-        result: set[str] = set()
+                    str_result.add(stripped)
+            return str_result
+        iter_result: set[str] = set()
         for entry in value:
             if entry:
                 lowered = entry.lower()
-                result.add(lowered)
+                iter_result.add(lowered)
                 if lowered.startswith(".") and "/" not in lowered:
                     stripped = lowered.lstrip(".")
                     if stripped:
-                        result.add(stripped)
-        return result
+                        iter_result.add(stripped)
+        return iter_result
 
     libmagic_set = normalise_iter(libmagic)
     puremagic_set = normalise_iter(puremagic)
@@ -342,16 +650,30 @@ def match_rule(
             if bool(conditions["animated"]) != animated:
                 continue
         if "max_size_mb" in conditions and size_bytes is not None:
-            if size_bytes / (1024 * 1024) > float(conditions["max_size_mb"]):
+            max_size_mb = conditions["max_size_mb"]
+            if isinstance(max_size_mb, (int, float)) and size_bytes / (
+                1024 * 1024
+            ) > float(max_size_mb):
                 continue
         if "min_size_mb" in conditions and size_bytes is not None:
-            if size_bytes / (1024 * 1024) < float(conditions["min_size_mb"]):
+            min_size_mb = conditions["min_size_mb"]
+            if isinstance(min_size_mb, (int, float)) and size_bytes / (
+                1024 * 1024
+            ) < float(min_size_mb):
                 continue
         if "psd_color_mode" in conditions and psd_color_mode is not None:
             required_mode = conditions["psd_color_mode"]
-            if required_mode == "rgb" and psd_color_mode.lower() != "rgb":
+            if (
+                isinstance(required_mode, str)
+                and required_mode == "rgb"
+                and psd_color_mode.lower() != "rgb"
+            ):
                 continue
-            if required_mode == "non-rgb" and psd_color_mode.lower() == "rgb":
+            if (
+                isinstance(required_mode, str)
+                and required_mode == "non-rgb"
+                and psd_color_mode.lower() == "rgb"
+            ):
                 continue
 
         return rule
