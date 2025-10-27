@@ -1,5 +1,6 @@
 from smart_media_manager.format_rules import match_rule
 
+
 def test_match_rule_png():
     rule = match_rule(extension=".png", libmagic=["image/png"], puremagic=["png"], pyfsig=["png image"])
     assert rule is not None
