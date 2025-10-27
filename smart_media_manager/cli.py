@@ -43,10 +43,11 @@ _FILE_LOG_HANDLER: Optional[logging.Handler] = None
 LOG_SUBDIR = ".smm_logs"
 
 SAFE_NAME_PATTERN = re.compile(r"[^A-Za-z0-9_.-]")
-MAX_APPLESCRIPT_ARGS = 200
+MAX_APPLESCRIPT_ARGS = 100  # Reduced from 200 to prevent Photos.app rate-limiting errors
 MAX_APPLESCRIPT_CHARS = 20000
 MAX_SAFE_STEM_LENGTH = 120
 APPLE_PHOTOS_IMPORT_TIMEOUT = 600  # seconds
+PHOTOS_BATCH_DELAY = 3  # seconds - delay AFTER batch completes, before starting next batch
 
 BINWALK_EXECUTABLE = shutil.which("binwalk")
 
@@ -2456,6 +2457,7 @@ on run argv
     set failedPaths to {}
     tell application "Photos"
         activate
+        delay 2
         repeat with itemPath in argv
             try
                 set mediaAlias to my alias_from_posix(itemPath)
@@ -2512,7 +2514,8 @@ end alias_from_posix
     total_imported = 0
     failed: list[tuple[MediaFile, str]] = []
     progress = ProgressReporter(len(staged_media), "Importing into Photos")
-    for batch_media, batch_args in batches:
+    num_batches = len(batches)
+    for batch_num, (batch_media, batch_args) in enumerate(batches, start=1):
         cmd = ["osascript", "-", *batch_args]
         reason: Optional[str] = None
         try:
@@ -2587,6 +2590,16 @@ end alias_from_posix
                     stats.refused_filenames.append((media.source, reason))
 
         progress.update(len(batch_media))
+
+        # Log batch completion for user visibility
+        batch_failed = len([m for m in batch_media if any(m == f[0] for f in failed)])
+        batch_success = len(batch_media) - batch_failed
+        LOG.info("Batch %d/%d: %d imported, %d failed", batch_num, num_batches, batch_success, batch_failed)
+
+        # Add delay between batches to prevent Photos.app rate-limiting
+        if batch_num < num_batches:
+            time.sleep(PHOTOS_BATCH_DELAY)
+
     progress.finish()
     stats.total_imported = total_imported
     return total_imported, failed
