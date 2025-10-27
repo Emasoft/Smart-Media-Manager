@@ -821,6 +821,8 @@ def refine_video_media(media: MediaFile) -> tuple[Optional[MediaFile], Optional[
     ffprobe_path = shutil.which("ffprobe")
     if not ffprobe_path:
         return media, None
+    
+    # Get video stream info including codec_tag for Dolby Vision detection
     cmd = [
         ffprobe_path,
         "-v",
@@ -828,7 +830,7 @@ def refine_video_media(media: MediaFile) -> tuple[Optional[MediaFile], Optional[
         "-select_streams",
         "v:0",
         "-show_entries",
-        "stream=codec_name,width,height,duration",
+        "stream=codec_name,codec_tag_string,width,height,duration,pix_fmt,profile",
         "-of",
         "default=noprint_wrappers=1",
         str(media.source),
@@ -836,7 +838,21 @@ def refine_video_media(media: MediaFile) -> tuple[Optional[MediaFile], Optional[
     result = subprocess.run(cmd, capture_output=True, text=True)
     if result.returncode != 0:
         return None, "video validation failed"
+    
     media.metadata["ffprobe_info"] = result.stdout.strip()
+    
+    # CRITICAL: Check for Dolby Vision which is NOT compatible with Photos
+    # Dolby Vision uses codec tags: dvhe, dvh1, dvav, dva1
+    # These appear as HEVC but with special HDR metadata that Photos rejects
+    output_lower = result.stdout.lower()
+    if any(tag in output_lower for tag in ["dvhe", "dvh1", "dvav", "dva1", "dolby"]):
+        return None, "Dolby Vision HEVC not compatible with Photos (requires standard HEVC transcode)"
+    
+    # Check for 10-bit color depth which may also cause issues
+    # 10-bit formats: yuv420p10le, yuv422p10le, yuv444p10le
+    if "10le" in output_lower or "10be" in output_lower:
+        return None, "10-bit color depth not fully compatible with Photos (requires 8-bit transcode)"
+    
     return media, None
 
 
