@@ -24,3 +24,6 @@ docs_dev/
 # Virtual environments
 .venv
 .env
+
+# Test results (logs are preserved locally but not committed)
+tests/results/
