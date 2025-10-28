@@ -43,15 +43,11 @@ _FILE_LOG_HANDLER: Optional[logging.Handler] = None
 LOG_SUBDIR = ".smm_logs"
 
 SAFE_NAME_PATTERN = re.compile(r"[^A-Za-z0-9_.-]")
-MAX_APPLESCRIPT_ARGS = (
-    100  # Reduced from 200 to prevent Photos.app rate-limiting errors
-)
+MAX_APPLESCRIPT_ARGS = 100  # Reduced from 200 to prevent Photos.app rate-limiting errors
 MAX_APPLESCRIPT_CHARS = 20000
 MAX_SAFE_STEM_LENGTH = 120
 APPLE_PHOTOS_IMPORT_TIMEOUT = 600  # seconds
-PHOTOS_BATCH_DELAY = (
-    3  # seconds - delay AFTER batch completes, before starting next batch
-)
+PHOTOS_BATCH_DELAY = 3  # seconds - delay AFTER batch completes, before starting next batch
 
 BINWALK_EXECUTABLE = shutil.which("binwalk")
 
@@ -189,7 +185,23 @@ IMAGE_EXTENSION_MAP = {
 
 COMPATIBLE_IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".heic", ".tiff", ".gif"}
 COMPATIBLE_VIDEO_CONTAINERS = {"mp4", "mov", "quicktime", "m4v"}
-COMPATIBLE_VIDEO_CODECS = {"h264", "hevc", "avc1", "h265"}
+COMPATIBLE_VIDEO_CODECS = {
+    # H.264 / AVC
+    "h264",
+    "avc1",
+    # HEVC / H.265
+    "hevc",
+    "h265",
+    "hvc1",
+    # Apple ProRes Family (all variants supported by Photos)
+    "apco",  # ProRes 422 Proxy
+    "apcs",  # ProRes 422 LT
+    "apcn",  # ProRes 422
+    "apch",  # ProRes 422 HQ
+    "ap4h",  # ProRes 4444
+    "ap4x",  # ProRes 4444 XQ
+    # Note: ProRes RAW cannot be imported (requires Final Cut Pro)
+}
 COMPATIBLE_AUDIO_CODECS = {
     "aac",
     "mp3",
@@ -436,60 +448,32 @@ class RunStatistics:
         print(f"{BOLD}{BLUE}Media Detection:{RESET}")
         print(f"  Media files detected:       {self.total_media_detected:>6}")
         print(f"  Compatible (no conversion): {GREEN}{self.media_compatible:>6}{RESET}")
-        print(
-            f"  Incompatible:               {YELLOW}{self.media_incompatible:>6}{RESET}"
-        )
-        print(
-            f"    └─ With conversion rule:  {self.incompatible_with_conversion_rule:>6}\n"
-        )
+        print(f"  Incompatible:               {YELLOW}{self.media_incompatible:>6}{RESET}")
+        print(f"    └─ With conversion rule:  {self.incompatible_with_conversion_rule:>6}\n")
 
         # Conversion section
         if self.conversion_attempted > 0:
             print(f"{BOLD}{BLUE}Conversion:{RESET}")
             print(f"  Attempted:                  {self.conversion_attempted:>6}")
-            print(
-                f"  Succeeded:                  {GREEN}{self.conversion_succeeded:>6}{RESET}"
-            )
-            print(
-                f"  Failed:                     {RED}{self.conversion_failed:>6}{RESET}\n"
-            )
+            print(f"  Succeeded:                  {GREEN}{self.conversion_succeeded:>6}{RESET}")
+            print(f"  Failed:                     {RED}{self.conversion_failed:>6}{RESET}\n")
 
         # Import section
         print(f"{BOLD}{BLUE}Apple Photos Import:{RESET}")
-        print(
-            f"  Imported (after conversion):{GREEN}{self.imported_after_conversion:>6}{RESET}"
-        )
-        print(
-            f"  Imported (direct):          {GREEN}{self.imported_without_conversion:>6}{RESET}"
-        )
-        print(
-            f"  Total imported:             {BOLD}{GREEN}{self.total_imported:>6}{RESET}"
-        )
-        print(
-            f"  Refused by Apple Photos:    {RED}{self.refused_by_apple_photos:>6}{RESET}"
-        )
+        print(f"  Imported (after conversion):{GREEN}{self.imported_after_conversion:>6}{RESET}")
+        print(f"  Imported (direct):          {GREEN}{self.imported_without_conversion:>6}{RESET}")
+        print(f"  Total imported:             {BOLD}{GREEN}{self.total_imported:>6}{RESET}")
+        print(f"  Refused by Apple Photos:    {RED}{self.refused_by_apple_photos:>6}{RESET}")
 
         if self.total_imported + self.refused_by_apple_photos > 0:
-            success_rate = (
-                self.total_imported
-                / (self.total_imported + self.refused_by_apple_photos)
-            ) * 100
-            color = (
-                GREEN if success_rate >= 95 else YELLOW if success_rate >= 80 else RED
-            )
-            print(
-                f"  Success rate:               {color}{success_rate:>5.1f}%{RESET}\n"
-            )
+            success_rate = (self.total_imported / (self.total_imported + self.refused_by_apple_photos)) * 100
+            color = GREEN if success_rate >= 95 else YELLOW if success_rate >= 80 else RED
+            print(f"  Success rate:               {color}{success_rate:>5.1f}%{RESET}\n")
         else:
             print()
 
         # Skipped section
-        total_skipped = (
-            self.skipped_errors
-            + self.skipped_unknown_format
-            + self.skipped_corrupt_or_empty
-            + self.skipped_other
-        )
+        total_skipped = self.skipped_errors + self.skipped_unknown_format + self.skipped_corrupt_or_empty + self.skipped_other
         if total_skipped > 0:
             print(f"{BOLD}{BLUE}Skipped Files:{RESET}")
             print(f"  Due to errors:              {self.skipped_errors:>6}")
@@ -505,9 +489,7 @@ class RunStatistics:
                 print(f"  • {path.name}")
                 print(f"    Reason: {reason}")
             if len(self.refused_filenames) > 10:
-                print(
-                    f"  ... and {len(self.refused_filenames) - 10} more (see log for full list)\n"
-                )
+                print(f"  ... and {len(self.refused_filenames) - 10} more (see log for full list)\n")
             else:
                 print()
 
@@ -545,10 +527,7 @@ class RunStatistics:
             self.refused_by_apple_photos,
         )
         if self.total_imported + self.refused_by_apple_photos > 0:
-            success_rate = (
-                self.total_imported
-                / (self.total_imported + self.refused_by_apple_photos)
-            ) * 100
+            success_rate = (self.total_imported / (self.total_imported + self.refused_by_apple_photos)) * 100
             LOG.info("Success rate: %.1f%%", success_rate)
         LOG.info(
             "Skipped: errors=%d, unknown=%d, corrupt=%d, other=%d",
@@ -585,9 +564,7 @@ def find_executable(*candidates: str) -> Optional[str]:
 def resolve_imagemagick_command() -> str:
     cmd = find_executable("magick", "convert")
     if not cmd:
-        raise RuntimeError(
-            "ImageMagick (magick/convert) not found. Please install imagemagick."
-        )
+        raise RuntimeError("ImageMagick (magick/convert) not found. Please install imagemagick.")
     return cmd
 
 
@@ -743,9 +720,7 @@ def get_rawpy() -> Optional[Any]:
     return module
 
 
-def refine_raw_media(
-    path: Path, extension_candidates: Iterable[Optional[str]]
-) -> tuple[Optional[MediaFile], Optional[str]]:
+def refine_raw_media(path: Path, extension_candidates: Iterable[Optional[str]]) -> tuple[Optional[MediaFile], Optional[str]]:
     rawpy_module = get_rawpy()
     if rawpy_module is None:
         return None, "rawpy unavailable"
@@ -792,30 +767,30 @@ def refine_image_media(media: MediaFile) -> tuple[Optional[MediaFile], Optional[
     path = media.source
 
     # JPEG: Check SOI and EOI markers (2 reads, <1ms)
-    if media.extension in ('.jpg', '.jpeg'):
+    if media.extension in (".jpg", ".jpeg"):
         try:
-            with open(path, 'rb') as f:
+            with open(path, "rb") as f:
                 # Check Start of Image marker (FFD8)
                 soi = f.read(2)
-                if soi != b'\xff\xd8':
+                if soi != b"\xff\xd8":
                     return None, "invalid JPEG: missing SOI marker (FFD8)"
 
                 # Check End of Image marker (FFD9)
                 if path.stat().st_size >= 4:  # Must have at least SOI + EOI
                     f.seek(-2, 2)
                     eoi = f.read()
-                    if eoi != b'\xff\xd9':
+                    if eoi != b"\xff\xd9":
                         return None, "truncated JPEG: missing EOI marker (FFD9)"
         except OSError as e:
             return None, f"cannot read JPEG markers: {e}"
 
     # PNG: Check signature and IEND chunk (2 reads, <1ms)
-    elif media.extension == '.png':
+    elif media.extension == ".png":
         try:
-            with open(path, 'rb') as f:
+            with open(path, "rb") as f:
                 # Check PNG signature
                 sig = f.read(8)
-                if sig != b'\x89PNG\r\n\x1a\n':
+                if sig != b"\x89PNG\r\n\x1a\n":
                     return None, "invalid PNG: missing signature"
 
                 # Check for IEND chunk at end (last 12 bytes)
@@ -823,10 +798,19 @@ def refine_image_media(media: MediaFile) -> tuple[Optional[MediaFile], Optional[
                 if file_size >= 20:  # Minimum valid PNG size
                     f.seek(-12, 2)
                     chunk_data = f.read(12)
-                    if b'IEND' not in chunk_data:
+                    if b"IEND" not in chunk_data:
                         return None, "truncated PNG: missing IEND chunk"
         except OSError as e:
             return None, f"cannot read PNG chunks: {e}"
+
+    # SPECIAL CHECK: PSD color mode validation
+    # Apple Photos only supports RGB PSD, not CMYK or other modes
+    if media.extension == ".psd":
+        psd_color_mode = media.metadata.get("psd_color_mode", "unknown")
+        if psd_color_mode == "cmyk":
+            return None, "CMYK PSD not supported by Photos (requires RGB TIFF conversion)"
+        elif psd_color_mode in ("lab", "multichannel", "duotone"):
+            return None, f"{psd_color_mode.upper()} PSD not supported by Photos (requires RGB TIFF conversion)"
 
     # COMPREHENSIVE CHECK: Actually decode the image (catches all corruption)
     # This is still fast (<10ms for most images) but thorough
@@ -860,19 +844,27 @@ def refine_image_media(media: MediaFile) -> tuple[Optional[MediaFile], Optional[
 
 
 def refine_video_media(media: MediaFile) -> tuple[Optional[MediaFile], Optional[str]]:
+    """
+    Validate video file compatibility with Apple Photos.
+
+    Checks:
+    - Video codec and codec tag (Dolby Vision, avc3/hev1, 10-bit)
+    - Audio codec compatibility (FLAC, Opus, DTS, etc.)
+    - Audio sample rate (must be standard rate)
+    - Audio channel configuration
+    """
     ffprobe_path = shutil.which("ffprobe")
     if not ffprobe_path:
         return media, None
-    
-    # Get video stream info including codec_tag for Dolby Vision detection
+
+    # Get BOTH video and audio stream info
+    # Note: Don't fail if audio stream missing, just get what's available
     cmd = [
         ffprobe_path,
         "-v",
         "error",
-        "-select_streams",
-        "v:0",
         "-show_entries",
-        "stream=codec_name,codec_tag_string,width,height,duration,pix_fmt,profile",
+        "stream=codec_name,codec_tag_string,width,height,duration,pix_fmt,profile,sample_rate,channels,channel_layout",
         "-of",
         "default=noprint_wrappers=1",
         str(media.source),
@@ -880,27 +872,105 @@ def refine_video_media(media: MediaFile) -> tuple[Optional[MediaFile], Optional[
     result = subprocess.run(cmd, capture_output=True, text=True)
     if result.returncode != 0:
         return None, "video validation failed"
-    
-    media.metadata["ffprobe_info"] = result.stdout.strip()
-    
-    # CRITICAL: Check for Dolby Vision which is NOT compatible with Photos
-    # Dolby Vision uses codec tags: dvhe, dvh1, dvav, dva1
-    # These appear as HEVC but with special HDR metadata that Photos rejects
-    output_lower = result.stdout.lower()
-    if any(tag in output_lower for tag in ["dvhe", "dvh1", "dvav", "dva1", "dolby"]):
+
+    output = result.stdout.strip()
+    output_lower = output.lower()
+    media.metadata["ffprobe_info"] = output
+
+    # === VIDEO STREAM VALIDATION ===
+
+    # CRITICAL: Check for incompatible codec tags
+    # Apple requires parameter sets in container (stsd), not in-stream
+    # Look for codec_tag_string field specifically to avoid false positives
+    codec_tag_string = ""
+    for line in output.split("\n"):
+        if "codec_tag_string=" in line.lower():
+            codec_tag_string = line.split("=")[1].strip().lower()
+            break
+
+    incompatible_tags = {
+        "avc3": "H.264 with in-stream parameters (avc3) not compatible; requires avc1",
+        "hev1": "HEVC with in-stream parameters (hev1) not compatible; requires hvc1",
+        "dvhe": "Dolby Vision with in-stream parameters (dvhe) not compatible; requires dvh1",
+    }
+
+    for tag, error_msg in incompatible_tags.items():
+        if tag in codec_tag_string:
+            return None, error_msg
+
+    # Check for Dolby Vision (even dvh1 may have import issues)
+    # Only check codec tag, not entire output (to avoid false positives)
+    if any(tag in codec_tag_string for tag in ["dvh1", "dvav", "dva1"]):
         return None, "Dolby Vision HEVC not compatible with Photos (requires standard HEVC transcode)"
-    
-    # Check for 10-bit color depth which may also cause issues
-    # 10-bit formats: yuv420p10le, yuv422p10le, yuv444p10le
+
+    # Also check for "dolby" in entire output as a backup check
+    if "dolby" in output_lower and "vision" in output_lower:
+        return None, "Dolby Vision HEVC not compatible with Photos (requires standard HEVC transcode)"
+
+    # Check for 10-bit color depth
     if "10le" in output_lower or "10be" in output_lower:
         return None, "10-bit color depth not fully compatible with Photos (requires 8-bit transcode)"
-    
+
+    # === AUDIO STREAM VALIDATION ===
+
+    # Extract audio codec (if present)
+    audio_codec_match = None
+    for line in output.split("\n"):
+        if "codec_name=" in line.lower() and "video" not in line.lower():
+            audio_codec_match = line.split("=")[1].strip().lower()
+            break
+
+    if audio_codec_match:
+        # Check for unsupported audio codecs
+        unsupported_audio = {
+            "flac": "FLAC audio not supported by Photos (requires AAC transcode)",
+            "opus": "Opus audio not supported by Photos (requires AAC transcode)",
+            "dts": "DTS audio not supported by Photos (requires AC-3/EAC-3 transcode)",
+            "dts-hd": "DTS-HD audio not supported by Photos (requires AC-3/EAC-3 transcode)",
+            "truehd": "Dolby TrueHD audio not supported by Photos (requires AC-3/EAC-3 transcode)",
+            "vorbis": "Vorbis audio not supported by Photos (requires AAC transcode)",
+        }
+
+        for unsupported_codec, error_msg in unsupported_audio.items():
+            if unsupported_codec in audio_codec_match:
+                return None, error_msg
+
+        # Extract and validate sample rate
+        sample_rate = None
+        for line in output.split("\n"):
+            if "sample_rate=" in line.lower():
+                try:
+                    sample_rate = int(line.split("=")[1].strip())
+                except (ValueError, IndexError):
+                    pass
+                break
+
+        if sample_rate:
+            # Apple Photos standard sample rates (Hz)
+            # https://support.apple.com/guide/music/choose-import-settings-mus2965/mac
+            standard_rates = {
+                8000,
+                11025,
+                12000,  # Low quality
+                16000,
+                22050,
+                24000,  # Medium quality
+                32000,  # Broadcast
+                44100,  # CD quality (standard)
+                48000,  # Professional video (preferred)
+                88200,
+                96000,  # Hi-res
+                176400,
+                192000,  # Ultra hi-res
+            }
+
+            if sample_rate not in standard_rates:
+                return None, f"Unsupported audio sample rate {sample_rate} Hz (requires resampling to 48000 Hz)"
+
     return media, None
 
 
-def run_command_with_progress(
-    command: list[str], message: str, env: Optional[dict[str, str]] = None
-) -> None:
+def run_command_with_progress(command: list[str], message: str, env: Optional[dict[str, str]] = None) -> None:
     bar_length = 28
     start = time.time()
     with subprocess.Popen(
@@ -943,85 +1013,59 @@ def ensure_homebrew() -> str:
     possible_paths = ["/opt/homebrew/bin/brew", "/usr/local/bin/brew"]
     for candidate in possible_paths:
         if Path(candidate).exists():
-            os.environ["PATH"] = (
-                f"{Path(candidate).parent}:{os.environ.get('PATH', '')}"
-            )
+            os.environ["PATH"] = f"{Path(candidate).parent}:{os.environ.get('PATH', '')}"
             _BREW_PATH_CACHE = str(Path(candidate))
             return _BREW_PATH_CACHE
     brew_path = shutil.which("brew")
     if not brew_path:
-        raise RuntimeError(
-            "Homebrew installation succeeded but brew binary not found in PATH."
-        )
+        raise RuntimeError("Homebrew installation succeeded but brew binary not found in PATH.")
     _BREW_PATH_CACHE = brew_path
     return brew_path
 
 
 def brew_package_installed(brew_path: str, package: str) -> bool:
     check_cmd = [brew_path, "list", package]
-    result = subprocess.run(
-        check_cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
-    )
+    result = subprocess.run(check_cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     return result.returncode == 0
 
 
 def ensure_brew_package(brew_path: str, package: str) -> None:
     if not brew_package_installed(brew_path, package):
         try:
-            run_command_with_progress(
-                [brew_path, "install", "--quiet", package], f"Installing {package}"
-            )
+            run_command_with_progress([brew_path, "install", "--quiet", package], f"Installing {package}")
         except RuntimeError as exc:  # pragma: no cover - depends on user env
-            raise RuntimeError(
-                f"Failed to install {package} via Homebrew. Install it manually (brew install {package}) or rerun with --skip-bootstrap."
-            ) from exc
+            raise RuntimeError(f"Failed to install {package} via Homebrew. Install it manually (brew install {package}) or rerun with --skip-bootstrap.") from exc
     else:
         try:
-            run_command_with_progress(
-                [brew_path, "upgrade", "--quiet", package], f"Updating {package}"
-            )
+            run_command_with_progress([brew_path, "upgrade", "--quiet", package], f"Updating {package}")
         except RuntimeError as exc:  # pragma: no cover - depends on user env
-            raise RuntimeError(
-                f"Failed to update {package} via Homebrew. Try 'brew upgrade {package}' manually or rerun with --skip-bootstrap."
-            ) from exc
+            raise RuntimeError(f"Failed to update {package} via Homebrew. Try 'brew upgrade {package}' manually or rerun with --skip-bootstrap.") from exc
 
 
 def brew_cask_installed(brew_path: str, cask: str) -> bool:
     check_cmd = [brew_path, "list", "--cask", cask]
-    result = subprocess.run(
-        check_cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
-    )
+    result = subprocess.run(check_cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     return result.returncode == 0
 
 
 def ensure_brew_cask(brew_path: str, cask: str) -> None:
     if not brew_cask_installed(brew_path, cask):
         try:
-            run_command_with_progress(
-                [brew_path, "install", "--cask", "--quiet", cask], f"Installing {cask}"
-            )
+            run_command_with_progress([brew_path, "install", "--cask", "--quiet", cask], f"Installing {cask}")
         except RuntimeError as exc:  # pragma: no cover
-            raise RuntimeError(
-                f"Failed to install {cask} via Homebrew. Install it manually (brew install --cask {cask}) or rerun with --skip-bootstrap."
-            ) from exc
+            raise RuntimeError(f"Failed to install {cask} via Homebrew. Install it manually (brew install --cask {cask}) or rerun with --skip-bootstrap.") from exc
     else:
         try:
-            run_command_with_progress(
-                [brew_path, "upgrade", "--cask", "--quiet", cask], f"Updating {cask}"
-            )
+            run_command_with_progress([brew_path, "upgrade", "--cask", "--quiet", cask], f"Updating {cask}")
         except RuntimeError as exc:  # pragma: no cover
-            raise RuntimeError(
-                f"Failed to update {cask} via Homebrew. Try 'brew upgrade --cask {cask}' manually or rerun with --skip-bootstrap."
-            ) from exc
+            raise RuntimeError(f"Failed to update {cask} via Homebrew. Try 'brew upgrade --cask {cask}' manually or rerun with --skip-bootstrap.") from exc
 
 
 def pip_package_installed(package: str) -> bool:
     if package in _PIP_PACKAGE_CACHE:
         return True
     check_cmd = [sys.executable, "-m", "pip", "show", package]
-    result = subprocess.run(
-        check_cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
-    )
+    result = subprocess.run(check_cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     if result.returncode == 0:
         _PIP_PACKAGE_CACHE.add(package)
         return True
@@ -1064,9 +1108,7 @@ def copy_metadata_from_source(source: Path, target: Path) -> None:
         str(target),
     ]
     try:
-        subprocess.run(
-            cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
-        )
+        subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     except Exception:
         LOG.debug("Exiftool metadata copy failed for %s -> %s", source, target)
 
@@ -1074,9 +1116,7 @@ def copy_metadata_from_source(source: Path, target: Path) -> None:
 def ensure_raw_dependencies_for_files(media_files: Iterable[MediaFile]) -> None:
     required_groups: set[str] = set()
     for media in media_files:
-        required_groups.update(
-            collect_raw_groups_from_extensions([media.extension, media.original_suffix])
-        )
+        required_groups.update(collect_raw_groups_from_extensions([media.extension, media.original_suffix]))
     if not required_groups:
         return
     install_raw_dependency_groups(required_groups)
@@ -1140,14 +1180,9 @@ def kind_from_description(description: Optional[str]) -> Optional[str]:
     if not description:
         return None
     lowered = description.lower()
-    if "disk image" not in lowered and any(
-        word in lowered for word in ("image", "jpeg", "jpg", "png", "photo", "bitmap")
-    ):
+    if "disk image" not in lowered and any(word in lowered for word in ("image", "jpeg", "jpg", "png", "photo", "bitmap")):
         return "image"
-    if any(
-        word in lowered
-        for word in ("video", "movie", "mpeg", "quicktime", "mp4", "h264", "h.264")
-    ):
+    if any(word in lowered for word in ("video", "movie", "mpeg", "quicktime", "mp4", "h264", "h.264")):
         return "video"
     if any(word in lowered for word in ("audio", "sound", "mp3", "aac", "alac")):
         return "audio"
@@ -1227,11 +1262,7 @@ def choose_vote_by_priority(
 
 
 def select_consensus_vote(votes: list[FormatVote]) -> Optional[FormatVote]:
-    valid_votes = [
-        vote
-        for vote in votes
-        if not vote.error and (vote.mime or vote.extension or vote.description)
-    ]
+    valid_votes = [vote for vote in votes if not vote.error and (vote.mime or vote.extension or vote.description)]
     if not valid_votes:
         return None
 
@@ -1242,14 +1273,8 @@ def select_consensus_vote(votes: list[FormatVote]) -> Optional[FormatVote]:
             mime_weights[mime_val] = mime_weights.get(mime_val, 0.0) + vote_weight(vote)
     if mime_weights:
         top_weight = max(mime_weights.values())
-        top_mimes = {
-            mime
-            for mime, weight in mime_weights.items()
-            if math.isclose(weight, top_weight, rel_tol=1e-9, abs_tol=1e-9)
-        }
-        choice = choose_vote_by_priority(
-            valid_votes, lambda v: normalize_mime_value(v.mime) in top_mimes
-        )
+        top_mimes = {mime for mime, weight in mime_weights.items() if math.isclose(weight, top_weight, rel_tol=1e-9, abs_tol=1e-9)}
+        choice = choose_vote_by_priority(valid_votes, lambda v: normalize_mime_value(v.mime) in top_mimes)
         if choice:
             return choice
 
@@ -1260,14 +1285,8 @@ def select_consensus_vote(votes: list[FormatVote]) -> Optional[FormatVote]:
             ext_weights[ext_val] = ext_weights.get(ext_val, 0.0) + vote_weight(vote)
     if ext_weights:
         top_weight = max(ext_weights.values())
-        top_exts = {
-            ext
-            for ext, weight in ext_weights.items()
-            if math.isclose(weight, top_weight, rel_tol=1e-9, abs_tol=1e-9)
-        }
-        choice = choose_vote_by_priority(
-            valid_votes, lambda v: ensure_dot_extension(v.extension) in top_exts
-        )
+        top_exts = {ext for ext, weight in ext_weights.items() if math.isclose(weight, top_weight, rel_tol=1e-9, abs_tol=1e-9)}
+        choice = choose_vote_by_priority(valid_votes, lambda v: ensure_dot_extension(v.extension) in top_exts)
         if choice:
             return choice
 
@@ -1278,20 +1297,13 @@ def select_consensus_vote(votes: list[FormatVote]) -> Optional[FormatVote]:
     )
 
 
-def determine_media_kind(
-    votes: list[FormatVote], consensus: Optional[FormatVote]
-) -> Optional[str]:
+def determine_media_kind(votes: list[FormatVote], consensus: Optional[FormatVote]) -> Optional[str]:
     kind_weights: dict[str, float] = {}
     candidate_votes: list[FormatVote] = []
     for vote in votes:
         if vote.error:
             continue
-        inferred = (
-            vote.kind
-            or kind_from_mime(vote.mime)
-            or kind_from_extension(vote.extension)
-            or kind_from_description(vote.description)
-        )
+        inferred = vote.kind or kind_from_mime(vote.mime) or kind_from_extension(vote.extension) or kind_from_description(vote.description)
         if inferred:
             weight = vote_weight(vote)
             kind_weights[inferred] = kind_weights.get(inferred, 0.0) + weight
@@ -1299,45 +1311,20 @@ def determine_media_kind(
 
     if kind_weights:
         top_weight = max(kind_weights.values())
-        top_kinds = {
-            kind
-            for kind, weight in kind_weights.items()
-            if math.isclose(weight, top_weight, rel_tol=1e-9, abs_tol=1e-9)
-        }
+        top_kinds = {kind for kind, weight in kind_weights.items() if math.isclose(weight, top_weight, rel_tol=1e-9, abs_tol=1e-9)}
         if consensus:
-            consensus_kind = (
-                consensus.kind
-                or kind_from_mime(consensus.mime)
-                or kind_from_extension(consensus.extension)
-                or kind_from_description(consensus.description)
-            )
+            consensus_kind = consensus.kind or kind_from_mime(consensus.mime) or kind_from_extension(consensus.extension) or kind_from_description(consensus.description)
             if consensus_kind and consensus_kind in top_kinds:
                 return consensus_kind
         choice = choose_vote_by_priority(
             candidate_votes,
-            lambda v: (
-                v.kind
-                or kind_from_mime(v.mime)
-                or kind_from_extension(v.extension)
-                or kind_from_description(v.description)
-            )
-            in top_kinds,
+            lambda v: (v.kind or kind_from_mime(v.mime) or kind_from_extension(v.extension) or kind_from_description(v.description)) in top_kinds,
         )
         if choice:
-            return (
-                choice.kind
-                or kind_from_mime(choice.mime)
-                or kind_from_extension(choice.extension)
-                or kind_from_description(choice.description)
-            )
+            return choice.kind or kind_from_mime(choice.mime) or kind_from_extension(choice.extension) or kind_from_description(choice.description)
 
     if consensus:
-        return (
-            consensus.kind
-            or kind_from_mime(consensus.mime)
-            or kind_from_extension(consensus.extension)
-            or kind_from_description(consensus.description)
-        )
+        return consensus.kind or kind_from_mime(consensus.mime) or kind_from_extension(consensus.extension) or kind_from_description(consensus.description)
     return None
 
 
@@ -1348,9 +1335,7 @@ def votes_error_summary(votes: list[FormatVote]) -> str:
     return "detectors could not agree on a media format"
 
 
-def collect_format_votes(
-    path: Path, puremagic_signature: Optional[Signature] = None
-) -> list[FormatVote]:
+def collect_format_votes(path: Path, puremagic_signature: Optional[Signature] = None) -> list[FormatVote]:
     return [
         classify_with_libmagic(path),
         classify_with_puremagic(path, puremagic_signature),
@@ -1386,9 +1371,7 @@ def classify_with_libmagic(path: Path) -> FormatVote:
         return FormatVote(tool="libmagic", error=str(exc))
 
 
-def classify_with_puremagic(
-    path: Path, signature: Optional[Signature] = None
-) -> FormatVote:
+def classify_with_puremagic(path: Path, signature: Optional[Signature] = None) -> FormatVote:
     if signature is None:
         signature = safe_puremagic_guess(path)
     if signature.is_empty():
@@ -1453,11 +1436,7 @@ def classify_with_binwalk(path: Path) -> FormatVote:
     description = None
     for line in result.stdout.splitlines():
         stripped = line.strip()
-        if (
-            not stripped
-            or stripped.upper().startswith("DECIMAL")
-            or stripped.startswith("--")
-        ):
+        if not stripped or stripped.upper().startswith("DECIMAL") or stripped.startswith("--"):
             continue
         parts = stripped.split(None, 2)
         if len(parts) == 3:
@@ -1476,9 +1455,7 @@ def classify_with_binwalk(path: Path) -> FormatVote:
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(
-        description="Scan and import media into Apple Photos, fixing extensions and compatibility."
-    )
+    parser = argparse.ArgumentParser(description="Scan and import media into Apple Photos, fixing extensions and compatibility.")
     parser.add_argument(
         "path",
         nargs="?",
@@ -1588,13 +1565,19 @@ def is_video_corrupt_or_truncated(path: Path) -> tuple[bool, Optional[str]]:
     # Timeout after 5 seconds to prevent hanging
     cmd = [
         "ffmpeg",
-        "-v", "error",
-        "-err_detect", "explode",  # Exit on first error
-        "-t", "5",  # Only decode first 5 seconds
-        "-i", str(path),
-        "-vframes", "60",  # Max 60 frames (2.5s at 24fps)
-        "-f", "null",
-        "-"
+        "-v",
+        "error",
+        "-err_detect",
+        "explode",  # Exit on first error
+        "-t",
+        "5",  # Only decode first 5 seconds
+        "-i",
+        str(path),
+        "-vframes",
+        "60",  # Max 60 frames (2.5s at 24fps)
+        "-f",
+        "null",
+        "-",
     ]
 
     try:
@@ -1637,15 +1620,7 @@ def is_video_corrupt_or_truncated(path: Path) -> tuple[bool, Optional[str]]:
     if duration > 10:
         # Try to seek near end and decode a few frames
         seek_time = max(0, duration - 2)
-        cmd_end = [
-            "ffmpeg",
-            "-v", "error",
-            "-ss", str(seek_time),
-            "-i", str(path),
-            "-vframes", "5",
-            "-f", "null",
-            "-"
-        ]
+        cmd_end = ["ffmpeg", "-v", "error", "-ss", str(seek_time), "-i", str(path), "-vframes", "5", "-f", "null", "-"]
 
         try:
             result_end = subprocess.run(cmd_end, capture_output=True, text=True, timeout=3)
@@ -1746,11 +1721,7 @@ def detect_media(path: Path) -> tuple[Optional[MediaFile], Optional[str]]:
     pyfsig_vote = vote_for("pyfsig")
     binwalk_vote = vote_for("binwalk")
 
-    libmagic_values = (
-        [val for val in (libmagic_vote.mime, libmagic_vote.description) if val]
-        if libmagic_vote
-        else []
-    )
+    libmagic_values = [val for val in (libmagic_vote.mime, libmagic_vote.description) if val] if libmagic_vote else []
     puremagic_values: list[str] = []
     if puremagic_vote:
         if puremagic_vote.mime:
@@ -1769,9 +1740,7 @@ def detect_media(path: Path) -> tuple[Optional[MediaFile], Optional[str]]:
             pyfsig_values.append(pyfsig_vote.extension)
             if pyfsig_vote.extension.startswith("."):
                 pyfsig_values.append(pyfsig_vote.extension.lstrip("."))
-    binwalk_values = (
-        [binwalk_vote.description] if binwalk_vote and binwalk_vote.description else []
-    )
+    binwalk_values = [binwalk_vote.description] if binwalk_vote and binwalk_vote.description else []
 
     video_codec = None
     audio_codec = None
@@ -1854,9 +1823,7 @@ def detect_media(path: Path) -> tuple[Optional[MediaFile], Optional[str]]:
 
     if rule.category == "raw":
         raw_extensions = [path.suffix] + list(rule.extensions)
-        install_raw_dependency_groups(
-            collect_raw_groups_from_extensions(raw_extensions)
-        )
+        install_raw_dependency_groups(collect_raw_groups_from_extensions(raw_extensions))
         raw_media, raw_reason = refine_raw_media(path, raw_extensions)
         if not raw_media:
             return None, raw_reason or "unsupported raw format"
@@ -1868,9 +1835,7 @@ def detect_media(path: Path) -> tuple[Optional[MediaFile], Optional[str]]:
         return raw_media, None
 
     original_extension = ensure_dot_extension(path.suffix)
-    consensus_extension = (
-        ensure_dot_extension(consensus.extension) if consensus else None
-    )
+    consensus_extension = ensure_dot_extension(consensus.extension) if consensus else None
     preferred_extension = rule.extensions[0] if rule.extensions else None
 
     # NEVER change extension unless format detected differs from file extension
@@ -2075,11 +2040,7 @@ def gather_media_files(
         name = entry.name
         if name.startswith("FOUND_MEDIA_FILES_"):
             return True
-        if (
-            name == LOG_SUBDIR
-            or name.startswith("smm_run_")
-            or name.startswith("smm_skipped_files_")
-        ):
+        if name == LOG_SUBDIR or name.startswith("smm_run_") or name.startswith("smm_skipped_files_"):
             return True
         if name == ".DS_Store":
             return True
@@ -2088,12 +2049,8 @@ def gather_media_files(
     def iter_candidate_files() -> list[Path]:
         candidates: list[Path] = []
         if recursive:
-            for dirpath, dirnames, filenames in os.walk(
-                root, followlinks=follow_symlinks
-            ):
-                dirnames[:] = [
-                    d for d in dirnames if not should_ignore(Path(dirpath) / d)
-                ]
+            for dirpath, dirnames, filenames in os.walk(root, followlinks=follow_symlinks):
+                dirnames[:] = [d for d in dirnames if not should_ignore(Path(dirpath) / d)]
                 for filename in filenames:
                     entry = Path(dirpath) / filename
                     if should_ignore(entry):
@@ -2127,10 +2084,7 @@ def gather_media_files(
             skip_logger.log(file_path, skippable_reason)
             if "text file" in skippable_reason.lower():
                 stats.total_text_files += 1
-            elif (
-                "empty" in skippable_reason.lower()
-                or "corrupt" in skippable_reason.lower()
-            ):
+            elif "empty" in skippable_reason.lower() or "corrupt" in skippable_reason.lower():
                 stats.skipped_corrupt_or_empty += 1
             else:
                 stats.skipped_other += 1
@@ -2152,10 +2106,7 @@ def gather_media_files(
             return
         if reject_reason:
             skip_logger.log(file_path, reject_reason)
-            if (
-                "unknown" in reject_reason.lower()
-                or "not recognised" in reject_reason.lower()
-            ):
+            if "unknown" in reject_reason.lower() or "not recognised" in reject_reason.lower():
                 stats.skipped_unknown_format += 1
             elif "corrupt" in reject_reason.lower() or "empty" in reject_reason.lower():
                 stats.skipped_corrupt_or_empty += 1
@@ -2165,12 +2116,7 @@ def gather_media_files(
 
         suffix = normalize_extension(file_path.suffix)
         signatures = [safe_filetype_guess(file_path), safe_puremagic_guess(file_path)]
-        if (
-            suffix
-            and (suffix in ALL_IMAGE_EXTENSIONS or suffix in VIDEO_EXTENSION_HINTS)
-        ) or any(
-            is_image_signature(sig) or is_video_signature(sig) for sig in signatures
-        ):
+        if (suffix and (suffix in ALL_IMAGE_EXTENSIONS or suffix in VIDEO_EXTENSION_HINTS)) or any(is_image_signature(sig) or is_video_signature(sig) for sig in signatures):
             skip_logger.log(file_path, "corrupt or unsupported media")
             stats.skipped_corrupt_or_empty += 1
 
@@ -2236,9 +2182,7 @@ def move_to_staging(media_files: Iterable[MediaFile], staging: Path) -> None:
         shutil.move(str(media.source), str(destination))
         media.stage_path = destination
         if media.requires_processing:
-            original_target = next_available_name(
-                originals_dir, stem, media.original_suffix or media.extension
-            )
+            original_target = next_available_name(originals_dir, stem, media.original_suffix or media.extension)
             try:
                 shutil.copy2(destination, original_target)
                 media.metadata["original_archive"] = str(original_target)
@@ -2543,9 +2487,7 @@ def convert_animation_to_hevc_mp4(media: MediaFile) -> None:
     if media.stage_path is None:
         raise RuntimeError("Stage path missing for animation conversion")
     original_stage = media.stage_path  # Source file to convert in-place
-    target = next_available_name(
-        original_stage.parent, original_stage.stem, ".mp4"
-    )  # Target extension is .mp4
+    target = next_available_name(original_stage.parent, original_stage.stem, ".mp4")  # Target extension is .mp4
     ffmpeg = ensure_ffmpeg_path()
     cmd = [
         ffmpeg,
@@ -2565,9 +2507,7 @@ def convert_animation_to_hevc_mp4(media: MediaFile) -> None:
         "-an",  # Remove audio tracks
         str(target),
     ]
-    run_command_with_progress(
-        cmd, "Converting animation to HEVC"
-    )  # No try-except, fail fast
+    run_command_with_progress(cmd, "Converting animation to HEVC")  # No try-except, fail fast
     original_stage.unlink()  # Delete original file after successful conversion
     media.stage_path = target  # Update to new converted file
     media.extension = ".mp4"  # Target extension
@@ -2837,9 +2777,7 @@ def resolve_restore_path(path: Path) -> Path:
     return next_available_name(path.parent, path.stem, path.suffix)
 
 
-def revert_media_files(
-    media_files: Iterable[MediaFile], staging: Optional[Path]
-) -> None:
+def revert_media_files(media_files: Iterable[MediaFile], staging: Optional[Path]) -> None:
     for media in media_files:
         original = media.source
         try:
@@ -2854,9 +2792,7 @@ def revert_media_files(
         shutil.rmtree(staging, ignore_errors=True)
 
 
-def sanitize_stage_paths(
-    media_files: Iterable[MediaFile], staging: Path, run_token: str
-) -> None:
+def sanitize_stage_paths(media_files: Iterable[MediaFile], staging: Path, run_token: str) -> None:
     for index, media in enumerate(media_files, start=1):
         if not media.stage_path or not media.stage_path.exists():
             continue
@@ -2870,9 +2806,7 @@ def sanitize_stage_paths(
         media.stage_path = target
 
 
-def ensure_compatibility(
-    media_files: list[MediaFile], skip_logger: SkipLogger, stats: RunStatistics
-) -> None:
+def ensure_compatibility(media_files: list[MediaFile], skip_logger: SkipLogger, stats: RunStatistics) -> None:
     retained: list[MediaFile] = []
     progress = ProgressReporter(len(media_files), "Ensuring compatibility")
 
@@ -2935,9 +2869,7 @@ def ensure_compatibility(
                 stats.conversion_succeeded += 1
             else:
                 # Default: keep and log unknown action
-                skip_logger.log(
-                    media.source, f"unhandled action {media.action}, treating as import"
-                )
+                skip_logger.log(media.source, f"unhandled action {media.action}, treating as import")
                 media.requires_processing = False
                 media.compatible = True
         except Exception as exc:  # noqa: BLE001
@@ -2959,17 +2891,11 @@ def run_checked(cmd: list[str]) -> None:
     result = subprocess.run(cmd, capture_output=True, text=True, check=False)
     if result.returncode != 0:
         LOG.error("Command failed: %s", result.stderr.strip())
-        raise RuntimeError(
-            f"Command '{cmd[0]}' failed with exit code {result.returncode}."
-        )
+        raise RuntimeError(f"Command '{cmd[0]}' failed with exit code {result.returncode}.")
 
 
-def import_into_photos(
-    media_files: list[MediaFile], stats: RunStatistics
-) -> tuple[int, list[tuple[MediaFile, str]]]:
-    staged_media = [
-        media for media in media_files if media.stage_path and media.stage_path.exists()
-    ]
+def import_into_photos(media_files: list[MediaFile], stats: RunStatistics) -> tuple[int, list[tuple[MediaFile, str]]]:
+    staged_media = [media for media in media_files if media.stage_path and media.stage_path.exists()]
     if not staged_media:
         return 0, []
     script = """
@@ -3022,10 +2948,7 @@ end alias_from_posix
     for media in staged_media:
         arg = str(media.stage_path)
         prospective = current_length + len(arg) + 1
-        if current_batch and (
-            len(current_batch) >= MAX_APPLESCRIPT_ARGS
-            or prospective > MAX_APPLESCRIPT_CHARS
-        ):
+        if current_batch and (len(current_batch) >= MAX_APPLESCRIPT_ARGS or prospective > MAX_APPLESCRIPT_CHARS):
             batches.append((current_media, current_batch))
             current_batch = []
             current_media = []
@@ -3079,9 +3002,7 @@ end alias_from_posix
                 total_imported += batch_imported
 
                 # Build a map of stage_path to media
-                media_by_path = {
-                    str(m.stage_path): m for m in batch_media if m.stage_path
-                }
+                media_by_path = {str(m.stage_path): m for m in batch_media if m.stage_path}
 
                 # Process failures reported by AppleScript
                 for i in range(1, len(parts)):
@@ -3092,9 +3013,7 @@ end alias_from_posix
                         if media_obj:
                             failed.append((media_obj, error_part))
                             stats.refused_by_apple_photos += 1
-                            stats.refused_filenames.append(
-                                (media_obj.source, error_part)
-                            )
+                            stats.refused_filenames.append((media_obj.source, error_part))
                     else:
                         # No error message, just failed to import
                         media_obj = media_by_path.get(failed_info)
@@ -3106,14 +3025,10 @@ end alias_from_posix
                                 )
                             )
                             stats.refused_by_apple_photos += 1
-                            stats.refused_filenames.append(
-                                (media_obj.source, "import returned 0 items")
-                            )
+                            stats.refused_filenames.append((media_obj.source, "import returned 0 items"))
 
                 # Track successful imports
-                successful_media = [
-                    m for m in batch_media if m not in [f[0] for f in failed]
-                ]
+                successful_media = [m for m in batch_media if m not in [f[0] for f in failed]]
                 for media in successful_media:
                     if media.requires_processing:
                         stats.imported_after_conversion += 1
@@ -3153,11 +3068,7 @@ def prompt_retry_failed_imports() -> bool:
     """Prompt the user whether to retry failed Apple Photos imports."""
     while True:
         try:
-            response = (
-                input("\nWould you like to retry importing the failed files? (y/n): ")
-                .strip()
-                .lower()
-            )
+            response = input("\nWould you like to retry importing the failed files? (y/n): ").strip().lower()
             if response in ("y", "yes"):
                 return True
             elif response in ("n", "no"):
@@ -3212,9 +3123,7 @@ def main() -> int:
     configure_logging()
     args = parse_args()
     LOG.info("smart-media-manager %s", __version__)
-    skip_bootstrap = args.skip_bootstrap or bool(
-        os.environ.get("SMART_MEDIA_MANAGER_SKIP_BOOTSTRAP")
-    )
+    skip_bootstrap = args.skip_bootstrap or bool(os.environ.get("SMART_MEDIA_MANAGER_SKIP_BOOTSTRAP"))
     if skip_bootstrap:
         LOG.info("Skipping dependency bootstrap (manual mode).")
     else:
@@ -3236,9 +3145,7 @@ def main() -> int:
         if skip_log.exists():
             skip_log.unlink()
         skip_logger = SkipLogger(skip_log)
-        media_files = gather_media_files(
-            root, args.recursive, args.follow_symlinks, skip_logger, stats
-        )
+        media_files = gather_media_files(root, args.recursive, args.follow_symlinks, skip_logger, stats)
         if not media_files:
             LOG.info("No media files detected.")
             if skip_logger and not skip_logger.has_entries() and skip_log.exists():
@@ -3251,16 +3158,10 @@ def main() -> int:
         ensure_compatibility(media_files, skip_logger, stats)
         sanitize_stage_paths(media_files, staging_root, run_ts)
 
-        missing_media: list[MediaFile] = [
-            media
-            for media in media_files
-            if not media.stage_path or not media.stage_path.exists()
-        ]
+        missing_media: list[MediaFile] = [media for media in media_files if not media.stage_path or not media.stage_path.exists()]
 
         if missing_media:
-            missing_listing = ", ".join(
-                str((m.stage_path or m.source)) for m in missing_media[:5]
-            )
+            missing_listing = ", ".join(str((m.stage_path or m.source)) for m in missing_media[:5])
             raise RuntimeError(f"Missing staged file(s): {missing_listing}")
 
         staged_count = len(media_files)
@@ -3268,14 +3169,10 @@ def main() -> int:
         imported_count, failed_imports = import_into_photos(media_files, stats)
         if failed_imports:
             if skip_logger is None:
-                skip_logger = SkipLogger(
-                    skip_log or root / f"smm_skipped_files_{run_ts}.log"
-                )
+                skip_logger = SkipLogger(skip_log or root / f"smm_skipped_files_{run_ts}.log")
             for media, reason in failed_imports:
                 skip_logger.log(media.source, f"Apple Photos import failed: {reason}")
-            LOG.warning(
-                "Apple Photos rejected %d file(s); see skip log.", len(failed_imports)
-            )
+            LOG.warning("Apple Photos rejected %d file(s); see skip log.", len(failed_imports))
 
         # Print statistics summary
         stats.print_summary()
@@ -3287,17 +3184,13 @@ def main() -> int:
             print(f"\nRetrying {len(failed_imports)} failed import(s)...")
             failed_media = [media for media, _ in failed_imports]
             retry_imported, retry_failed = import_into_photos(failed_media, stats)
-            LOG.info(
-                "Retry: imported %d, still failed %d", retry_imported, len(retry_failed)
-            )
+            LOG.info("Retry: imported %d, still failed %d", retry_imported, len(retry_failed))
             if retry_imported > 0:
                 print(f"Successfully imported {retry_imported} file(s) on retry.")
             if retry_failed:
                 print(f"{len(retry_failed)} file(s) still failed after retry.")
                 for media, reason in retry_failed:
-                    skip_logger.log(
-                        media.source, f"Apple Photos import retry failed: {reason}"
-                    )
+                    skip_logger.log(media.source, f"Apple Photos import retry failed: {reason}")
             # Update final statistics
             stats.print_summary()
             stats.log_summary()
@@ -3355,11 +3248,7 @@ class ProgressReporter:
         bar_len = 30
         filled = int(bar_len * percent)
         bar = "#" * filled + "-" * (bar_len - filled)
-        eta = (
-            "--:--"
-            if remaining == float("inf")
-            else time.strftime("%M:%S", time.gmtime(int(remaining)))
-        )
+        eta = "--:--" if remaining == float("inf") else time.strftime("%M:%S", time.gmtime(int(remaining)))
         sys.stdout.write(f"\r{self.label}: [{bar}] {percent * 100:5.1f}% ETA {eta}")
         sys.stdout.flush()
 

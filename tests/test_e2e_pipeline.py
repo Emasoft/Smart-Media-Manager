@@ -185,8 +185,7 @@ def test_non_media_files_skipped(tmp_path: Path) -> None:
     media_files = gather_media_files(source_dir, recursive=False, follow_symlinks=False, skip_logger=skip_logger, stats=stats)
 
     # Non-media files should not appear in media_files list
-    assert all(m.extension not in (".docx", ".html", ".log", ".txt") for m in media_files), \
-        "Non-media files should be skipped"
+    assert all(m.extension not in (".docx", ".html", ".log", ".txt") for m in media_files), "Non-media files should be skipped"
 
 
 def test_mp4_video_detection(tmp_path: Path) -> None:
@@ -211,9 +210,7 @@ def test_mp4_video_detection(tmp_path: Path) -> None:
 
     mp4 = mp4_media[0]
     # MP4 action depends on codec - should be one of these
-    valid_actions = {"import", "rewrap_to_mp4", "rewrap_or_transcode_to_mp4",
-                     "transcode_to_hevc_mp4", "transcode_video_to_lossless_hevc",
-                     "transcode_audio_to_aac_or_eac3"}
+    valid_actions = {"import", "rewrap_to_mp4", "rewrap_or_transcode_to_mp4", "transcode_to_hevc_mp4", "transcode_video_to_lossless_hevc", "transcode_audio_to_aac_or_eac3"}
     assert mp4.action in valid_actions, f"MP4 should have valid action, got: {mp4.action}"
     assert mp4.kind == "video", "MP4 should be detected as video"
     assert mp4.extension == ".mp4", "MP4 file should keep .mp4 extension"
@@ -241,8 +238,7 @@ def test_mkv_video_detection(tmp_path: Path) -> None:
 
     mkv = mkv_media[0]
     # MKV needs container change - should rewrap or transcode
-    valid_actions = {"rewrap_to_mp4", "transcode_to_hevc_mp4",
-                     "transcode_video_to_lossless_hevc", "rewrap_or_transcode_to_mp4"}
+    valid_actions = {"rewrap_to_mp4", "transcode_to_hevc_mp4", "transcode_video_to_lossless_hevc", "rewrap_or_transcode_to_mp4"}
     assert mkv.action in valid_actions, f"MKV should be converted, got: {mkv.action}"
     assert mkv.requires_processing is True, "MKV should require processing"
 

@@ -163,9 +163,21 @@ def test_mp4_h264_direct_import(tmp_path: Path) -> None:
     if not mp4_samples:
         pytest.skip("No MP4 samples found")
 
+    # Find a non-Dolby Vision MP4 (glob order is unpredictable)
+    # Use 001.mp4 if available, otherwise find first non-dolby file
+    h264_file = SAMPLES_DIR / "001.mp4"
+    if not h264_file.exists():
+        # Find first MP4 that's not Dolby Vision
+        for mp4 in mp4_samples:
+            if "dolby" not in mp4.name.lower():
+                h264_file = mp4
+                break
+        else:
+            pytest.skip("No non-Dolby Vision MP4 samples found")
+
     source_dir = tmp_path / "input"
     source_dir.mkdir()
-    shutil.copy(mp4_samples[0], source_dir / "test.mp4")
+    shutil.copy(h264_file, source_dir / "test.mp4")
 
     stats = RunStatistics()
     skip_logger = SkipLogger(tmp_path / "skip.log")
@@ -304,8 +316,7 @@ def test_mkv_h264_requires_rewrap_to_mp4(tmp_path: Path) -> None:
     assert mkv.kind == "video"
 
     # MKV with compatible codec should rewrap, incompatible codec should transcode
-    assert mkv.action in ("rewrap_to_mp4", "transcode_to_hevc_mp4", "rewrap_or_transcode_to_mp4"), \
-        f"MKV should require rewrap or transcode, got: {mkv.action}"
+    assert mkv.action in ("rewrap_to_mp4", "transcode_to_hevc_mp4", "rewrap_or_transcode_to_mp4"), f"MKV should require rewrap or transcode, got: {mkv.action}"
 
     staging_dir = tmp_path / "staging"
     staging_dir.mkdir()
@@ -432,8 +443,7 @@ def test_jpeg_with_wrong_extension(tmp_path: Path) -> None:
     assert len(media_files) >= 1
     jpeg = media_files[0]
     # Should be detected as JPEG despite wrong extension
-    assert jpeg.extension in (".jpg", ".jpeg"), \
-        f"Should detect as JPEG despite .png extension, got: {jpeg.extension}"
+    assert jpeg.extension in (".jpg", ".jpeg"), f"Should detect as JPEG despite .png extension, got: {jpeg.extension}"
 
     staging_dir = tmp_path / "staging"
     staging_dir.mkdir()
@@ -470,8 +480,7 @@ def test_png_with_no_extension(tmp_path: Path) -> None:
     assert len(media_files) >= 1
     png = media_files[0]
     # Should be detected as PNG despite no extension
-    assert png.extension == ".png", \
-        f"Should detect as PNG despite no extension, got: {png.extension}"
+    assert png.extension == ".png", f"Should detect as PNG despite no extension, got: {png.extension}"
 
     staging_dir = tmp_path / "staging"
     staging_dir.mkdir()
@@ -508,8 +517,7 @@ def test_mp4_with_wrong_extension(tmp_path: Path) -> None:
     assert len(media_files) >= 1
     mp4 = media_files[0]
     # Should be detected as MP4 despite .avi extension
-    assert mp4.extension == ".mp4", \
-        f"Should detect as MP4 despite .avi extension, got: {mp4.extension}"
+    assert mp4.extension == ".mp4", f"Should detect as MP4 despite .avi extension, got: {mp4.extension}"
 
     staging_dir = tmp_path / "staging"
     staging_dir.mkdir()

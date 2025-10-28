@@ -70,9 +70,7 @@ def test_import_single_jpeg_to_photos(tmp_path: Path) -> None:
     # Scan and stage
     stats = RunStatistics()
     skip_logger = SkipLogger(tmp_path / "skip.log")
-    media_files = gather_media_files(
-        source_dir, recursive=False, follow_symlinks=False, skip_logger=skip_logger, stats=stats
-    )
+    media_files = gather_media_files(source_dir, recursive=False, follow_symlinks=False, skip_logger=skip_logger, stats=stats)
 
     assert len(media_files) == 1, "Should find exactly one JPEG"
     jpeg = media_files[0]
@@ -119,9 +117,7 @@ def test_import_multiple_images_to_photos(tmp_path: Path) -> None:
     # Scan and stage
     stats = RunStatistics()
     skip_logger = SkipLogger(tmp_path / "skip.log")
-    media_files = gather_media_files(
-        source_dir, recursive=False, follow_symlinks=False, skip_logger=skip_logger, stats=stats
-    )
+    media_files = gather_media_files(source_dir, recursive=False, follow_symlinks=False, skip_logger=skip_logger, stats=stats)
 
     assert len(media_files) >= 1, f"Should find at least 1 image, found {len(media_files)}"
 
@@ -137,8 +133,7 @@ def test_import_multiple_images_to_photos(tmp_path: Path) -> None:
     imported_count, failed_list = import_into_photos(media_files, stats)
 
     # Verify import succeeded
-    assert imported_count == len(media_files), \
-        f"Should import {len(media_files)} files, imported {imported_count}"
+    assert imported_count == len(media_files), f"Should import {len(media_files)} files, imported {imported_count}"
     assert len(failed_list) == 0, f"Should have no failures, got: {failed_list}"
 
 
@@ -162,9 +157,7 @@ def test_import_mp4_video_to_photos(tmp_path: Path) -> None:
     # Scan and stage
     stats = RunStatistics()
     skip_logger = SkipLogger(tmp_path / "skip.log")
-    media_files = gather_media_files(
-        source_dir, recursive=False, follow_symlinks=False, skip_logger=skip_logger, stats=stats
-    )
+    media_files = gather_media_files(source_dir, recursive=False, follow_symlinks=False, skip_logger=skip_logger, stats=stats)
 
     assert len(media_files) == 1, "Should find exactly one MP4"
     mp4 = media_files[0]
@@ -207,9 +200,7 @@ def test_import_webp_converts_and_imports(tmp_path: Path) -> None:
     # Scan and stage
     stats = RunStatistics()
     skip_logger = SkipLogger(tmp_path / "skip.log")
-    media_files = gather_media_files(
-        source_dir, recursive=False, follow_symlinks=False, skip_logger=skip_logger, stats=stats
-    )
+    media_files = gather_media_files(source_dir, recursive=False, follow_symlinks=False, skip_logger=skip_logger, stats=stats)
 
     assert len(media_files) == 1, "Should find exactly one WebP"
     webp = media_files[0]
@@ -263,9 +254,7 @@ def test_import_mixed_media_batch(tmp_path: Path) -> None:
     # Scan and stage
     stats = RunStatistics()
     skip_logger = SkipLogger(tmp_path / "skip.log")
-    media_files = gather_media_files(
-        source_dir, recursive=False, follow_symlinks=False, skip_logger=skip_logger, stats=stats
-    )
+    media_files = gather_media_files(source_dir, recursive=False, follow_symlinks=False, skip_logger=skip_logger, stats=stats)
 
     assert len(media_files) >= 1, f"Should find at least 1 file, found {len(media_files)}"
 
@@ -281,8 +270,7 @@ def test_import_mixed_media_batch(tmp_path: Path) -> None:
     imported_count, failed_list = import_into_photos(media_files, stats)
 
     # Verify import succeeded
-    assert imported_count == len(media_files), \
-        f"Should import all {len(media_files)} files, imported {imported_count}"
+    assert imported_count == len(media_files), f"Should import all {len(media_files)} files, imported {imported_count}"
     assert len(failed_list) == 0, f"Should have no failures, got: {failed_list}"
 
 
@@ -311,9 +299,7 @@ def test_import_handles_unsupported_format(tmp_path: Path) -> None:
     # Scan and stage
     stats = RunStatistics()
     skip_logger = SkipLogger(tmp_path / "skip.log")
-    media_files = gather_media_files(
-        source_dir, recursive=False, follow_symlinks=False, skip_logger=skip_logger, stats=stats
-    )
+    media_files = gather_media_files(source_dir, recursive=False, follow_symlinks=False, skip_logger=skip_logger, stats=stats)
 
     # PDF should be filtered out during scanning
     # Only valid media should remain
@@ -332,6 +318,5 @@ def test_import_handles_unsupported_format(tmp_path: Path) -> None:
     # Import should succeed for valid files
     imported_count, failed_list = import_into_photos(valid_media, stats)
 
-    assert imported_count == len(valid_media), \
-        f"Should import all {len(valid_media)} valid files"
+    assert imported_count == len(valid_media), f"Should import all {len(valid_media)} valid files"
     assert len(failed_list) == 0, "Should have no failures for valid files"
