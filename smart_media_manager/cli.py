@@ -1628,14 +1628,18 @@ def classify_with_binwalk(path: Path) -> FormatVote:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Scan and import media into Apple Photos, fixing extensions and compatibility."
+        prog="smart-media-manager",
+        description="Scan and import media into Apple Photos, fixing extensions and compatibility.",
+        epilog="Examples:\n  %(prog)s /path/to/media --recursive\n  %(prog)s /path/to/image.jpg --file\n  %(prog)s  # scans current directory",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     parser.add_argument(
         "path",
         nargs="?",
         default=Path.cwd(),
         type=Path,
-        help="Path to scan: folder (default behavior) or single file (with --file flag).",
+        metavar="PATH",
+        help="Directory to scan (default: current directory) or file path with --file flag",
     )
     parser.add_argument(
         "--file",
