@@ -126,6 +126,104 @@ def test_log_directory_exclusion():
         return True
 
 
+def test_no_code_duplication():
+    """Test that output_dir logic is not duplicated in cli.py."""
+    print("\n" + "=" * 70)
+    print("Testing for Code Duplication")
+    print("=" * 70)
+
+    with open(Path(__file__).parent / "smart_media_manager" / "cli.py") as f:
+        cli_content = f.read()
+
+    # Check that "root.parent if is_single_file else root" appears only once
+    duplication_pattern = "root.parent if is_single_file else root"
+    count = cli_content.count(duplication_pattern)
+
+    print("\nChecking for duplicated directory calculation pattern:")
+    print(f"  Pattern: '{duplication_pattern}'")
+    print(f"  Occurrences: {count}")
+
+    if count > 1:
+        print(f"✗ FAILED: Pattern appears {count} times (should be 1)")
+        print("  This indicates code duplication that should be refactored")
+        return False
+    elif count == 1:
+        print("✓ Pattern appears exactly once (stored in output_dir variable)")
+        return True
+    else:
+        print("✗ FAILED: Pattern not found (might have been renamed)")
+        return False
+
+
+def test_output_dir_usage_consistency():
+    """Test that output_dir is used consistently throughout main()."""
+    print("\n" + "=" * 70)
+    print("Testing output_dir Usage Consistency")
+    print("=" * 70)
+
+    with open(Path(__file__).parent / "smart_media_manager" / "cli.py") as f:
+        cli_content = f.read()
+
+    # Extract main() function
+    import re
+
+    main_match = re.search(r"def main\(\).*?(?=\ndef |\Z)", cli_content, re.DOTALL)
+    if not main_match:
+        print("✗ Could not find main() function")
+        return False
+
+    main_content = main_match.group(0)
+
+    # Check that output_dir is defined
+    if "output_dir = root.parent if is_single_file else root" not in main_content:
+        print("✗ output_dir variable not found in main()")
+        return False
+
+    # Check that skip_log uses output_dir
+    if "skip_log = output_dir /" in main_content:
+        print("✓ skip_log uses output_dir")
+    else:
+        print("✗ skip_log does not use output_dir")
+        return False
+
+    # Check that staging_root uses output_dir
+    if "staging_root = output_dir /" in main_content:
+        print("✓ staging_root uses output_dir")
+    else:
+        print("✗ staging_root does not use output_dir")
+        return False
+
+    print("\n✓ output_dir is used consistently for all outputs")
+    return True
+
+
+def test_write_permission_checks_present():
+    """Test that write permission checks are present for all necessary directories."""
+    print("\n" + "=" * 70)
+    print("Testing Write Permission Checks")
+    print("=" * 70)
+
+    with open(Path(__file__).parent / "smart_media_manager" / "cli.py") as f:
+        cli_content = f.read()
+
+    # Check for CWD write permission check
+    if 'check_write_permission(Path.cwd(), "create logs")' in cli_content:
+        print("✓ Write permission check for CWD (logs) found")
+    else:
+        print("✗ Missing write permission check for CWD")
+        return False
+
+    # Check for output_dir write permission check
+    if 'check_write_permission(output_dir, "create skip logs and staging directory")' in cli_content:
+        print("✓ Write permission check for output_dir (skip logs/staging) found")
+    else:
+        print("✗ Missing write permission check for output_dir")
+        return False
+
+    print("\n✓ All necessary write permission checks are present")
+    return True
+
+
 def main():
     print("=" * 70)
     print("Log Directory Test Suite")
@@ -151,6 +249,33 @@ def main():
 
         traceback.print_exc()
         results.append(("Log directory exclusion", False))
+
+    try:
+        results.append(("No code duplication", test_no_code_duplication()))
+    except Exception as e:
+        print(f"\n✗ Code duplication test FAILED: {e}")
+        import traceback
+
+        traceback.print_exc()
+        results.append(("No code duplication", False))
+
+    try:
+        results.append(("output_dir usage consistency", test_output_dir_usage_consistency()))
+    except Exception as e:
+        print(f"\n✗ output_dir consistency test FAILED: {e}")
+        import traceback
+
+        traceback.print_exc()
+        results.append(("output_dir usage consistency", False))
+
+    try:
+        results.append(("Write permission checks", test_write_permission_checks_present()))
+    except Exception as e:
+        print(f"\n✗ Write permission check test FAILED: {e}")
+        import traceback
+
+        traceback.print_exc()
+        results.append(("Write permission checks", False))
 
     # Summary
     print("\n" + "=" * 70)

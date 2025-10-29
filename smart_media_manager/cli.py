@@ -3453,10 +3453,15 @@ def main() -> int:
         # For single file mode, use parent directory for outputs; otherwise use scan root
         output_dir = root.parent if is_single_file else root
 
-        # Logs are now created in CWD (not scan root) to avoid scanning them
-        # Check write permissions for CWD before proceeding
+        # Check write permissions for both CWD (logs) and output_dir (skip logs, staging)
         try:
             check_write_permission(Path.cwd(), "create logs")
+        except (PermissionError, OSError) as e:
+            print(f"ERROR: {e}", file=sys.stderr)
+            return 1
+
+        try:
+            check_write_permission(output_dir, "create skip logs and staging directory")
         except (PermissionError, OSError) as e:
             print(f"ERROR: {e}", file=sys.stderr)
             return 1
