@@ -1461,7 +1461,12 @@ def parse_args() -> argparse.Namespace:
         nargs="?",
         default=Path.cwd(),
         type=Path,
-        help="Folder to scan (defaults to current working directory).",
+        help="Path to scan: folder (default behavior) or single file (with --file flag).",
+    )
+    parser.add_argument(
+        "--file",
+        action="store_true",
+        help="Treat 'path' as a single file to import (not a folder). Useful for testing specific files.",
     )
     parser.add_argument(
         "--delete",
@@ -1482,6 +1487,21 @@ def parse_args() -> argparse.Namespace:
         "--skip-bootstrap",
         action="store_true",
         help="Skip automatic dependency installation (requires prerequisites already installed).",
+    )
+    parser.add_argument(
+        "--skip-renaming",
+        action="store_true",
+        help="Skip filename sanitization (keep original names). Useful for testing/debugging.",
+    )
+    parser.add_argument(
+        "--skip-convert",
+        action="store_true",
+        help="Skip format conversion/transcoding. Files must already be Photos-compatible. Useful for testing raw compatibility.",
+    )
+    parser.add_argument(
+        "--skip-compatibility-check",
+        action="store_true",
+        help="Skip all compatibility validation checks. ⚠️ WARNING: May cause Photos import errors! Use only for format testing.",
     )
     parser.add_argument(
         "--version",
