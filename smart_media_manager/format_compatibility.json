@@ -1,0 +1,239 @@
+{
+  "$schema": "format_compatibility_schema",
+  "version": "1.0.0",
+  "description": "Format compatibility rules for Apple Photos import with UUID-based format identification",
+  "apple_photos_compatible": {
+    "images": {
+      "direct_import": [
+        "d33d5c73-5f1a-5c4b-878e-58c3f9c193c0-I",
+        "8a88adf4-d744-55d7-8cb3-7aa1288edf7c-I",
+        "808b7568-daf7-5b4a-959d-79e3f3765189-I",
+        "8980893a-f63c-5f02-a3ef-20e75f6aecd9-I",
+        "002b5a9f-6bbb-5c17-ab0e-f3abb791ab72-I",
+        "768db60f-4e74-52f5-a2dc-56060da83b8c-I",
+        "169ebedc-69b8-5a8e-ac64-df1a8eee5b92-I"
+      ],
+      "needs_conversion": [
+        "c416405f-af41-56cb-8c6c-46533f290969-I"
+      ],
+      "raw_formats": [
+        "ac126046-11bb-5544-a3a7-27d6153bc432-R",
+        "a829ec18-757e-5217-84de-48784fc699bb-R",
+        "16e292ec-83ed-55b2-b4ba-39f714afa804-R",
+        "facc476b-bc24-5e80-87a9-d54289a059c3-R",
+        "a9997994-18d5-5fb2-b76b-6d12d242129d-R",
+        "b2f15c88-20f2-548c-b21e-2f0c520bd7da-R",
+        "c3fbb54e-1107-54a7-8123-2f1fad9b843d-R",
+        "8e2ac93c-d3f8-5d19-9bf8-3e5beeb3e404-R",
+        "0283bda1-fa3f-5eea-b4bf-8530217aad6d-R",
+        "ae6404c9-613b-5ca4-9c5a-e30370fada54-R"
+      ]
+    },
+    "videos": {
+      "compatible_containers": [
+        "a9457602-d9c2-5787-a3f4-a6c1f72ac82a-C",
+        "3f8a2874-1b17-5dd6-b51f-fb0e7d34022c-C"
+      ],
+      "compatible_video_codecs": [
+        "b2e62c4a-6122-548c-9bfa-0fcf3613942a-V",
+        "faf4b553-de47-5bc8-80ea-d026a2571456-V",
+        "c69693cd-1fcd-5608-a8df-9476a00cfa9b-V"
+      ],
+      "compatible_audio_codecs": [
+        "aac",
+        "ac3",
+        "eac3",
+        "alac",
+        "pcm_s16le",
+        "pcm_s16be",
+        "pcm_s24le",
+        "pcm_s24be"
+      ],
+      "needs_rewrap": [
+        "f8f9aed9-bdeb-5fe7-b77b-b3c94c9c0ae0-C"
+      ],
+      "needs_transcode_video": [
+        "4c9b19a7-ec9f-57c2-98ca-3ac8432b27cc-V"
+      ],
+      "needs_transcode_audio": [
+        "opus",
+        "vorbis",
+        "dts"
+      ]
+    }
+  },
+  "format_names": {
+    "d33d5c73-5f1a-5c4b-878e-58c3f9c193c0-I": {
+      "canonical": "jpeg",
+      "extensions": [".jpg", ".jpeg"],
+      "category": "image"
+    },
+    "8a88adf4-d744-55d7-8cb3-7aa1288edf7c-I": {
+      "canonical": "png",
+      "extensions": [".png"],
+      "category": "image"
+    },
+    "808b7568-daf7-5b4a-959d-79e3f3765189-I": {
+      "canonical": "gif",
+      "extensions": [".gif"],
+      "category": "image"
+    },
+    "8980893a-f63c-5f02-a3ef-20e75f6aecd9-I": {
+      "canonical": "tiff",
+      "extensions": [".tiff", ".tif"],
+      "category": "image"
+    },
+    "002b5a9f-6bbb-5c17-ab0e-f3abb791ab72-I": {
+      "canonical": "webp",
+      "extensions": [".webp"],
+      "category": "image"
+    },
+    "768db60f-4e74-52f5-a2dc-56060da83b8c-I": {
+      "canonical": "heif",
+      "extensions": [".heif", ".heic"],
+      "category": "image"
+    },
+    "169ebedc-69b8-5a8e-ac64-df1a8eee5b92-I": {
+      "canonical": "avif",
+      "extensions": [".avif"],
+      "category": "image"
+    },
+    "c416405f-af41-56cb-8c6c-46533f290969-I": {
+      "canonical": "jxl",
+      "extensions": [".jxl"],
+      "category": "image"
+    },
+    "ac126046-11bb-5544-a3a7-27d6153bc432-R": {
+      "canonical": "cr2",
+      "extensions": [".cr2"],
+      "category": "raw"
+    },
+    "a829ec18-757e-5217-84de-48784fc699bb-R": {
+      "canonical": "cr3",
+      "extensions": [".cr3"],
+      "category": "raw"
+    },
+    "16e292ec-83ed-55b2-b4ba-39f714afa804-R": {
+      "canonical": "nef",
+      "extensions": [".nef"],
+      "category": "raw"
+    },
+    "facc476b-bc24-5e80-87a9-d54289a059c3-R": {
+      "canonical": "arw",
+      "extensions": [".arw"],
+      "category": "raw"
+    },
+    "a9997994-18d5-5fb2-b76b-6d12d242129d-R": {
+      "canonical": "raf",
+      "extensions": [".raf"],
+      "category": "raw"
+    },
+    "b2f15c88-20f2-548c-b21e-2f0c520bd7da-R": {
+      "canonical": "orf",
+      "extensions": [".orf"],
+      "category": "raw"
+    },
+    "c3fbb54e-1107-54a7-8123-2f1fad9b843d-R": {
+      "canonical": "rw2",
+      "extensions": [".rw2"],
+      "category": "raw"
+    },
+    "8e2ac93c-d3f8-5d19-9bf8-3e5beeb3e404-R": {
+      "canonical": "pef",
+      "extensions": [".pef"],
+      "category": "raw"
+    },
+    "0283bda1-fa3f-5eea-b4bf-8530217aad6d-R": {
+      "canonical": "srw",
+      "extensions": [".srw"],
+      "category": "raw"
+    },
+    "ae6404c9-613b-5ca4-9c5a-e30370fada54-R": {
+      "canonical": "dng",
+      "extensions": [".dng"],
+      "category": "raw"
+    },
+    "a9457602-d9c2-5787-a3f4-a6c1f72ac82a-C": {
+      "canonical": "mp4",
+      "extensions": [".mp4", ".m4v"],
+      "category": "container"
+    },
+    "3f8a2874-1b17-5dd6-b51f-fb0e7d34022c-C": {
+      "canonical": "mov",
+      "extensions": [".mov", ".qt"],
+      "category": "container"
+    },
+    "f8f9aed9-bdeb-5fe7-b77b-b3c94c9c0ae0-C": {
+      "canonical": "mkv",
+      "extensions": [".mkv"],
+      "category": "container"
+    },
+    "b2e62c4a-6122-548c-9bfa-0fcf3613942a-V": {
+      "canonical": "h264",
+      "aliases": ["avc", "avc1"],
+      "category": "video_codec"
+    },
+    "faf4b553-de47-5bc8-80ea-d026a2571456-V": {
+      "canonical": "hevc",
+      "aliases": ["h265", "hvc1"],
+      "category": "video_codec"
+    },
+    "c69693cd-1fcd-5608-a8df-9476a00cfa9b-V": {
+      "canonical": "av1",
+      "category": "video_codec"
+    },
+    "4c9b19a7-ec9f-57c2-98ca-3ac8432b27cc-V": {
+      "canonical": "vp9",
+      "category": "video_codec"
+    }
+  },
+  "tool_mappings": {
+    "libmagic": {
+      "JPEG image data": "d33d5c73-5f1a-5c4b-878e-58c3f9c193c0-I",
+      "PNG image data": "8a88adf4-d744-55d7-8cb3-7aa1288edf7c-I",
+      "GIF image data": "808b7568-daf7-5b4a-959d-79e3f3765189-I",
+      "TIFF image data": "8980893a-f63c-5f02-a3ef-20e75f6aecd9-I",
+      "Web/P image": "002b5a9f-6bbb-5c17-ab0e-f3abb791ab72-I",
+      "ISO Media": ["768db60f-4e74-52f5-a2dc-56060da83b8c-I", "169ebedc-69b8-5a8e-ac64-df1a8eee5b92-I", "a9457602-d9c2-5787-a3f4-a6c1f72ac82a-C", "3f8a2874-1b17-5dd6-b51f-fb0e7d34022c-C"],
+      "JPEG XL codestream": "c416405f-af41-56cb-8c6c-46533f290969-I",
+      "Canon CR2 RAW": "ac126046-11bb-5544-a3a7-27d6153bc432-R",
+      "Canon CR3": "a829ec18-757e-5217-84de-48784fc699bb-R",
+      "Nikon NEF RAW": "16e292ec-83ed-55b2-b4ba-39f714afa804-R",
+      "Sony ARW RAW": "facc476b-bc24-5e80-87a9-d54289a059c3-R",
+      "Matroska data": "f8f9aed9-bdeb-5fe7-b77b-b3c94c9c0ae0-C",
+      "RIFF (little-endian) data, AVI": "c7fd4386-20fb-5f59-8df2-c081da124546-C"
+    },
+    "puremagic": {
+      "image/jpeg": "d33d5c73-5f1a-5c4b-878e-58c3f9c193c0-I",
+      "image/png": "8a88adf4-d744-55d7-8cb3-7aa1288edf7c-I",
+      "image/gif": "808b7568-daf7-5b4a-959d-79e3f3765189-I",
+      "image/tiff": "8980893a-f63c-5f02-a3ef-20e75f6aecd9-I",
+      "image/webp": "002b5a9f-6bbb-5c17-ab0e-f3abb791ab72-I",
+      "image/heif": "768db60f-4e74-52f5-a2dc-56060da83b8c-I",
+      "image/avif": "169ebedc-69b8-5a8e-ac64-df1a8eee5b92-I",
+      "image/jxl": "c416405f-af41-56cb-8c6c-46533f290969-I",
+      "video/mp4": "a9457602-d9c2-5787-a3f4-a6c1f72ac82a-C",
+      "video/quicktime": "3f8a2874-1b17-5dd6-b51f-fb0e7d34022c-C",
+      "video/x-matroska": "f8f9aed9-bdeb-5fe7-b77b-b3c94c9c0ae0-C",
+      "video/x-msvideo": "c7fd4386-20fb-5f59-8df2-c081da124546-C"
+    },
+    "ffprobe": {
+      "mjpeg": "d33d5c73-5f1a-5c4b-878e-58c3f9c193c0-I",
+      "png": "8a88adf4-d744-55d7-8cb3-7aa1288edf7c-I",
+      "gif": "808b7568-daf7-5b4a-959d-79e3f3765189-I",
+      "tiff": "8980893a-f63c-5f02-a3ef-20e75f6aecd9-I",
+      "webp": "002b5a9f-6bbb-5c17-ab0e-f3abb791ab72-I",
+      "heif": "768db60f-4e74-52f5-a2dc-56060da83b8c-I",
+      "avif": "169ebedc-69b8-5a8e-ac64-df1a8eee5b92-I",
+      "jxl": "c416405f-af41-56cb-8c6c-46533f290969-I",
+      "mp4": "a9457602-d9c2-5787-a3f4-a6c1f72ac82a-C",
+      "mov": "3f8a2874-1b17-5dd6-b51f-fb0e7d34022c-C",
+      "matroska": "f8f9aed9-bdeb-5fe7-b77b-b3c94c9c0ae0-C",
+      "avi": "c7fd4386-20fb-5f59-8df2-c081da124546-C",
+      "h264": "b2e62c4a-6122-548c-9bfa-0fcf3613942a-V",
+      "hevc": "faf4b553-de47-5bc8-80ea-d026a2571456-V",
+      "av1": "c69693cd-1fcd-5608-a8df-9476a00cfa9b-V",
+      "vp9": "4c9b19a7-ec9f-57c2-98ca-3ac8432b27cc-V"
+    }
+  }
+}
