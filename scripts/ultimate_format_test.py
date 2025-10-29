@@ -520,36 +520,120 @@ class UltimateFormatTester:
                     'description': f"{container['name'].upper()} + {audio_codec['name']} audio codec"
                 })
 
-        # Test 3: Pixel format variations (ALL formats)
-        # Test with MP4+H.264 as baseline
+        # Test 3: Video Codec + Pixel Format (independent of container)
+        # Pixel formats depend on video codec, not container
+        # Test with MP4 container and AAC audio as baseline
         if not max_samples or len(commands) < max_samples:
-            print(f"3. Testing Pixel Format variations:")
-            for pix_fmt in self.pix_fmts:
+            print(f"3. Testing Video Codec + Pixel Format combinations:")
+            # Test a subset of common video codecs with all pixel formats
+            common_video_codecs = ['libx264', 'libx265', 'libvpx', 'libvpx-vp9', 'av1']
+            test_video_codecs = [c for c in video_codecs if c['name'] in common_video_codecs]
+
+            for video_codec in test_video_codecs:
                 if max_samples and len(commands) >= max_samples:
                     break
+                for pix_fmt in self.pix_fmts:
+                    if max_samples and len(commands) >= max_samples:
+                        break
 
-                cmd_id += 1
-                output_name = f"test_{cmd_id:04d}_pixfmt_{pix_fmt}.mp4"
-                output_path = self.output_dir / output_name
+                    cmd_id += 1
+                    output_name = f"test_{cmd_id:04d}_video_{video_codec['name']}_pixfmt_{pix_fmt}.mp4"
+                    output_path = self.output_dir / output_name
 
-                command = (
-                    f"ffmpeg -y -i {self.base_video} "
-                    f"-c:v libx264 -pix_fmt {pix_fmt} -c:a aac "
-                    f"-t 5 {output_path}"
-                )
+                    command = (
+                        f"ffmpeg -y -i {self.base_video} "
+                        f"-c:v {video_codec['name']} -pix_fmt {pix_fmt} -c:a aac "
+                        f"-t 5 {output_path}"
+                    )
 
-                commands.append({
-                    'id': cmd_id,
-                    'type': 'pixel_format',
-                    'pix_fmt': pix_fmt,
-                    'command': command,
-                    'output': str(output_path),
-                    'description': f"Pixel format: {pix_fmt}"
-                })
+                    commands.append({
+                        'id': cmd_id,
+                        'type': 'video_pixfmt',
+                        'video_codec': video_codec['name'],
+                        'pix_fmt': pix_fmt,
+                        'command': command,
+                        'output': str(output_path),
+                        'description': f"{video_codec['name']} + {pix_fmt} pixel format"
+                    })
 
-        # Test 4: Image format variations (ALL image containers)
+        # Test 4: Audio Codec + Sample Format (independent of container)
+        # Sample formats depend on audio codec, not container
+        # Test with MP4 container and H.264 video as baseline
         if not max_samples or len(commands) < max_samples:
-            print(f"4. Testing Image Format variations:")
+            print(f"4. Testing Audio Codec + Sample Format combinations:")
+            # Test a subset of common audio codecs with all sample formats
+            common_audio_codecs = ['aac', 'mp3', 'libopus', 'libvorbis', 'flac']
+            test_audio_codecs = [c for c in audio_codecs if c['name'] in common_audio_codecs]
+
+            for audio_codec in test_audio_codecs:
+                if max_samples and len(commands) >= max_samples:
+                    break
+                for sample_fmt in self.sample_fmts:
+                    if max_samples and len(commands) >= max_samples:
+                        break
+
+                    cmd_id += 1
+                    output_name = f"test_{cmd_id:04d}_audio_{audio_codec['name']}_samplefmt_{sample_fmt}.mp4"
+                    output_path = self.output_dir / output_name
+
+                    command = (
+                        f"ffmpeg -y -i {self.base_video} "
+                        f"-c:v libx264 -c:a {audio_codec['name']} -sample_fmt {sample_fmt} "
+                        f"-t 5 {output_path}"
+                    )
+
+                    commands.append({
+                        'id': cmd_id,
+                        'type': 'audio_samplefmt',
+                        'audio_codec': audio_codec['name'],
+                        'sample_fmt': sample_fmt,
+                        'command': command,
+                        'output': str(output_path),
+                        'description': f"{audio_codec['name']} + {sample_fmt} sample format"
+                    })
+
+        # Test 5: Audio Codec + Channel Layout (independent of container)
+        # Channel layouts depend on audio codec, not container
+        # Test with MP4 container and H.264 video as baseline
+        if not max_samples or len(commands) < max_samples:
+            print(f"5. Testing Audio Codec + Channel Layout combinations:")
+            common_audio_codecs = ['aac', 'mp3', 'libopus', 'ac3', 'eac3']
+            test_audio_codecs = [c for c in audio_codecs if c['name'] in common_audio_codecs]
+
+            # Test a subset of common layouts
+            common_layouts = ['mono', 'stereo', '2.1', '5.1', '5.1(side)', '7.1']
+            test_layouts = [l for l in self.layouts if l in common_layouts]
+
+            for audio_codec in test_audio_codecs:
+                if max_samples and len(commands) >= max_samples:
+                    break
+                for layout in test_layouts:
+                    if max_samples and len(commands) >= max_samples:
+                        break
+
+                    cmd_id += 1
+                    output_name = f"test_{cmd_id:04d}_audio_{audio_codec['name']}_layout_{layout.replace('.', '_')}.mp4"
+                    output_path = self.output_dir / output_name
+
+                    command = (
+                        f"ffmpeg -y -i {self.base_video} "
+                        f"-c:v libx264 -c:a {audio_codec['name']} -channel_layout {layout} "
+                        f"-t 5 {output_path}"
+                    )
+
+                    commands.append({
+                        'id': cmd_id,
+                        'type': 'audio_layout',
+                        'audio_codec': audio_codec['name'],
+                        'channel_layout': layout,
+                        'command': command,
+                        'output': str(output_path),
+                        'description': f"{audio_codec['name']} + {layout} channel layout"
+                    })
+
+        # Test 6: Image format variations (ALL image containers)
+        if not max_samples or len(commands) < max_samples:
+            print(f"6. Testing Image Format variations:")
             # Map image containers to their codecs
             image_format_map = {
                 'png': 'png',
@@ -594,7 +678,9 @@ class UltimateFormatTester:
         print(f"\n✅ Generated {len(commands)} commands")
         print(f"   - Container + Video: {sum(1 for c in commands if c['type'] == 'container_video')}")
         print(f"   - Container + Audio: {sum(1 for c in commands if c['type'] == 'container_audio')}")
-        print(f"   - Pixel formats: {sum(1 for c in commands if c['type'] == 'pixel_format')}")
+        print(f"   - Video + Pixel fmt: {sum(1 for c in commands if c['type'] == 'video_pixfmt')}")
+        print(f"   - Audio + Sample fmt: {sum(1 for c in commands if c['type'] == 'audio_samplefmt')}")
+        print(f"   - Audio + Layout: {sum(1 for c in commands if c['type'] == 'audio_layout')}")
         print(f"   - Image formats: {sum(1 for c in commands if c['type'] == 'image')}")
         return commands
 
