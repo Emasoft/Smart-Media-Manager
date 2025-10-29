@@ -31,7 +31,7 @@ def test_sanitize_path_string():
         ("Tëst/Fîlé/Ñame.png", "Tëst/Fîlé/Ñame.png", "Mixed diacritics"),
         ("path\twith\ttabs.txt", "pathwithtabs.txt", "Tab characters"),
         ("path\nwith\nnewlines.txt", "pathwithnewlines.txt", "Newline characters"),
-        ("path/with<>:|\"?*.txt", "path/with:.txt", "Invalid Windows characters (colon valid on Unix)"),
+        ('path/with<>:|"?*.txt', "path/with:.txt", "Invalid Windows characters (colon valid on Unix)"),
         ("   ", "", "Only whitespace"),
         ("/ümlaut/Übung.doc", "/ümlaut/Übung.doc", "German umlauts"),
         ("مجلد/ملف.txt", "مجلد/ملف.txt", "Arabic characters"),
@@ -124,7 +124,7 @@ def test_validate_path_argument():
             print("✗ Non-existent path - Should have raised error")
             failed += 1
         except argparse.ArgumentTypeError as e:
-            print(f"✓ Non-existent path - Correctly rejected")
+            print("✓ Non-existent path - Correctly rejected")
             print(f"  Error: {e}")
             passed += 1
         print()
@@ -136,7 +136,7 @@ def test_validate_path_argument():
             print("✗ Empty path - Should have raised error")
             failed += 1
         except argparse.ArgumentTypeError as e:
-            print(f"✓ Empty path - Correctly rejected")
+            print("✓ Empty path - Correctly rejected")
             print(f"  Error: {e}")
             passed += 1
         print()
@@ -184,6 +184,130 @@ def test_cli_with_unicode_paths():
         return True
 
 
+def test_error_scenarios():
+    """Test comprehensive error scenarios."""
+    print("\n" + "=" * 70)
+    print("Testing Error Scenarios")
+    print("=" * 70)
+
+    passed = 0
+    failed = 0
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        tmppath = Path(tmpdir)
+
+        # Test 1: Empty file (should warn but not fail)
+        print("\nTest 1: Empty file...")
+        empty_file = tmppath / "empty.txt"
+        empty_file.touch()
+        try:
+            result = validate_path_argument(str(empty_file))
+            print(f"✓ Empty file validated (warning expected): {result}")
+            passed += 1
+        except argparse.ArgumentTypeError as e:
+            print(f"✗ Empty file - Should have warned but not failed: {e}")
+            failed += 1
+        print()
+
+        # Test 2: Permission denied (directory)
+        print("Test 2: Permission denied on directory...")
+        restricted_dir = tmppath / "restricted_dir"
+        restricted_dir.mkdir()
+        (restricted_dir / "test.txt").write_text("test")
+
+        # Make directory unreadable
+        import os
+        import stat
+
+        try:
+            os.chmod(restricted_dir, 0o000)
+            try:
+                validate_path_argument(str(restricted_dir))
+                print("✗ Should have raised permission error")
+                failed += 1
+            except argparse.ArgumentTypeError as e:
+                if "Permission denied" in str(e):
+                    print(f"✓ Permission error correctly detected: {e}")
+                    passed += 1
+                else:
+                    print(f"✗ Wrong error type: {e}")
+                    failed += 1
+        finally:
+            # Restore permissions for cleanup
+            os.chmod(restricted_dir, stat.S_IRWXU)
+        print()
+
+        # Test 3: Permission denied (file)
+        print("Test 3: Permission denied on file...")
+        restricted_file = tmppath / "restricted.txt"
+        restricted_file.write_text("test content")
+
+        try:
+            os.chmod(restricted_file, 0o000)
+            try:
+                validate_path_argument(str(restricted_file))
+                print("✗ Should have raised permission error")
+                failed += 1
+            except argparse.ArgumentTypeError as e:
+                if "Permission denied" in str(e):
+                    print(f"✓ Permission error correctly detected: {e}")
+                    passed += 1
+                else:
+                    print(f"✗ Wrong error type: {e}")
+                    failed += 1
+        finally:
+            # Restore permissions for cleanup
+            os.chmod(restricted_file, stat.S_IRUSR | stat.S_IWUSR)
+        print()
+
+        # Test 4: File that exists but can't be read
+        print("Test 4: Readable file (should pass)...")
+        readable_file = tmppath / "readable.txt"
+        readable_file.write_text("test content")
+        try:
+            result = validate_path_argument(str(readable_file))
+            print(f"✓ Readable file validated: {result}")
+            passed += 1
+        except argparse.ArgumentTypeError as e:
+            print(f"✗ Readable file should have passed: {e}")
+            failed += 1
+        print()
+
+        # Test 5: Unmounted volume simulation (parent doesn't exist)
+        print("Test 5: Unmounted volume simulation...")
+        unmounted_path = "/Volumes/NonExistentDrive/some/path/file.txt"
+        try:
+            validate_path_argument(unmounted_path)
+            print("✗ Should have raised unmounted volume error")
+            failed += 1
+        except argparse.ArgumentTypeError as e:
+            if "unmounted volume" in str(e).lower() or "does not exist" in str(e):
+                print(f"✓ Unmounted volume error correctly detected: {e}")
+                passed += 1
+            else:
+                print(f"✗ Wrong error type: {e}")
+                failed += 1
+        print()
+
+        # Test 6: Valid directory with files
+        print("Test 6: Valid directory with files...")
+        valid_dir = tmppath / "valid_dir"
+        valid_dir.mkdir()
+        (valid_dir / "file1.txt").write_text("content 1")
+        (valid_dir / "file2.txt").write_text("content 2")
+        try:
+            result = validate_path_argument(str(valid_dir))
+            print(f"✓ Valid directory validated: {result}")
+            passed += 1
+        except argparse.ArgumentTypeError as e:
+            print(f"✗ Valid directory should have passed: {e}")
+            failed += 1
+        print()
+
+    print(f"Results: {passed} passed, {failed} failed")
+    return failed == 0
+
+
 def main():
     print("=" * 70)
     print("Path Validation Test Suite")
@@ -195,6 +319,7 @@ def main():
     results.append(("sanitize_path_string", test_sanitize_path_string()))
     results.append(("validate_path_argument", test_validate_path_argument()))
     results.append(("CLI unicode paths", test_cli_with_unicode_paths()))
+    results.append(("Error scenarios", test_error_scenarios()))
 
     # Summary
     print("\n" + "=" * 70)

@@ -1532,7 +1532,7 @@ def sanitize_path_string(path_str: str) -> str:
 
 
 def validate_path_argument(path_str: str) -> Path:
-    """Validate and convert path string to Path object.
+    """Validate and convert path string to Path object with comprehensive error checking.
 
     Args:
         path_str: Path string from command line argument
@@ -1541,7 +1541,8 @@ def validate_path_argument(path_str: str) -> Path:
         Validated Path object
 
     Raises:
-        argparse.ArgumentTypeError: If path is invalid or doesn't exist
+        argparse.ArgumentTypeError: If path is invalid, doesn't exist, is empty,
+                                   has permission issues, or is on an unmounted volume
     """
     # Sanitize the path string
     cleaned_str = sanitize_path_string(path_str)
@@ -1557,7 +1558,50 @@ def validate_path_argument(path_str: str) -> Path:
 
     # Check if path exists
     if not path.exists():
-        raise argparse.ArgumentTypeError(f"Path does not exist: {path}")
+        # Check if it's on an unmounted volume or network path
+        parent = path.parent
+        if parent.exists():
+            # Parent exists but file/dir doesn't - likely deleted/moved
+            raise argparse.ArgumentTypeError(f"Path does not exist: {path}")
+        else:
+            # Parent doesn't exist - might be unmounted volume
+            raise argparse.ArgumentTypeError(f"Path does not exist (unmounted volume or network path?): {path}")
+
+    # Check if we have read permissions
+    try:
+        # For directories, try to list contents
+        if path.is_dir():
+            try:
+                next(path.iterdir(), None)
+            except PermissionError:
+                raise argparse.ArgumentTypeError(f"Permission denied: Cannot read directory {path}")
+            except OSError as e:
+                raise argparse.ArgumentTypeError(f"Cannot access directory {path}: {e}")
+        # For files, try to open and read
+        else:
+            try:
+                # Check if file is readable
+                with path.open("rb") as f:
+                    # Try to read first byte to check if file is accessible
+                    f.read(1)
+            except PermissionError:
+                raise argparse.ArgumentTypeError(f"Permission denied: Cannot read file {path}")
+            except OSError as e:
+                # Could be corrupt, on unmounted volume, or other I/O error
+                raise argparse.ArgumentTypeError(f"Cannot read file {path}: {e}")
+
+            # Check if file is empty (warn but don't fail - might be intentional for testing)
+            if path.stat().st_size == 0:
+                # Note: We don't raise an error here because empty files might be intentional
+                # The CLI will handle this later in the processing pipeline
+                LOG.warning(f"File is empty: {path}")
+
+    except argparse.ArgumentTypeError:
+        # Re-raise our custom errors
+        raise
+    except Exception as e:
+        # Catch any other unexpected errors
+        raise argparse.ArgumentTypeError(f"Error validating path {path}: {e}")
 
     return path
 
