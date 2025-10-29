@@ -14,6 +14,7 @@ import sys
 import tempfile
 import time
 import unicodedata
+import uuid
 from contextlib import suppress
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -3393,8 +3394,6 @@ def attach_file_logger(root: Path, run_ts: str) -> Path:
         with pattern: .smm__runtime_logs_YYYYMMDD_HHMMSS_<uuid>
         This prevents logs from being scanned as media files.
     """
-    import uuid
-
     global _FILE_LOG_HANDLER
     if _FILE_LOG_HANDLER is not None:
         return Path(_FILE_LOG_HANDLER.baseFilename)  # type: ignore[attr-defined]
@@ -3451,6 +3450,9 @@ def main() -> int:
         root = validate_root(args.path, allow_file=is_single_file)
         run_ts = timestamp()
 
+        # For single file mode, use parent directory for outputs; otherwise use scan root
+        output_dir = root.parent if is_single_file else root
+
         # Logs are now created in CWD (not scan root) to avoid scanning them
         # Check write permissions for CWD before proceeding
         try:
@@ -3466,9 +3468,8 @@ def main() -> int:
         LOG.info("Scanning %s for media files...", root)
         print(f"Scanning {root}...")
 
-        # Skip log goes in scan root (for single file mode, use parent directory)
-        skip_log_dir = root.parent if is_single_file else root
-        skip_log = skip_log_dir / f"smm_skipped_files_{run_ts}.log"
+        # Skip log goes in output directory (scan root or parent of single file)
+        skip_log = output_dir / f"smm_skipped_files_{run_ts}.log"
         if skip_log.exists():
             skip_log.unlink()
         skip_logger = SkipLogger(skip_log)
@@ -3508,9 +3509,8 @@ def main() -> int:
             return 0
         ensure_raw_dependencies_for_files(media_files)
 
-        # Create staging directory in scan root (for single file mode, use parent directory)
-        staging_dir = root.parent if is_single_file else root
-        staging_root = staging_dir / f"FOUND_MEDIA_FILES_{run_ts}"
+        # Create staging directory in output directory (scan root or parent of single file)
+        staging_root = output_dir / f"FOUND_MEDIA_FILES_{run_ts}"
         staging_root.mkdir(parents=True, exist_ok=False)
         move_to_staging(media_files, staging_root)
         ensure_compatibility(media_files, skip_logger, stats, args.skip_convert)
