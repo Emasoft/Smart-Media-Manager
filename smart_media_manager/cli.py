@@ -2273,6 +2273,31 @@ def guess_extension(container: str, kind: str) -> Optional[str]:
     return video_map.get(container)
 
 
+def should_ignore(entry: Path) -> bool:
+    """Check if file/directory should be excluded from scanning.
+
+    Excludes:
+    - FOUND_MEDIA_FILES_* staging directories
+    - .smm__runtime_logs_* log directories (timestamped, in CWD)
+    - smm_run_* and smm_skipped_files_* log files
+    - .DS_Store system files
+    """
+    name = entry.name
+    # Exclude staging directories
+    if name.startswith("FOUND_MEDIA_FILES_"):
+        return True
+    # Exclude timestamped log directories (new pattern)
+    if name.startswith(SMM_LOGS_SUBDIR):
+        return True
+    # Exclude individual log files and skip logs (legacy/backward compat)
+    if name.startswith("smm_run_") or name.startswith("smm_skipped_files_"):
+        return True
+    # Exclude macOS metadata
+    if name == ".DS_Store":
+        return True
+    return False
+
+
 def gather_media_files(
     root: Path,
     recursive: bool,
@@ -2282,30 +2307,6 @@ def gather_media_files(
     skip_compatibility_check: bool = False,
 ) -> list[MediaFile]:
     media_files: list[MediaFile] = []
-
-    def should_ignore(entry: Path) -> bool:
-        """Check if file/directory should be excluded from scanning.
-
-        Excludes:
-        - FOUND_MEDIA_FILES_* staging directories
-        - .smm__runtime_logs_* log directories (timestamped, in CWD)
-        - smm_run_* and smm_skipped_files_* log files
-        - .DS_Store system files
-        """
-        name = entry.name
-        # Exclude staging directories
-        if name.startswith("FOUND_MEDIA_FILES_"):
-            return True
-        # Exclude timestamped log directories (new pattern)
-        if name.startswith(SMM_LOGS_SUBDIR):
-            return True
-        # Exclude individual log files and skip logs (legacy/backward compat)
-        if name.startswith("smm_run_") or name.startswith("smm_skipped_files_"):
-            return True
-        # Exclude macOS metadata
-        if name == ".DS_Store":
-            return True
-        return False
 
     def iter_candidate_files() -> list[Path]:
         candidates: list[Path] = []
