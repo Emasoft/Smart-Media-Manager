@@ -3531,8 +3531,7 @@ def main() -> int:
         LOG.info("Importing %d file(s) into Apple Photos...", staged_count)
         imported_count, failed_imports = import_into_photos(media_files, stats)
         if failed_imports:
-            if skip_logger is None:
-                skip_logger = SkipLogger(skip_log or root / f"smm_skipped_files_{run_ts}.log")
+            # skip_logger is always created at line 3480, so no need to check for None
             for media, reason in failed_imports:
                 skip_logger.log(media.source, f"Apple Photos import failed: {reason}")
             LOG.warning("Apple Photos rejected %d file(s); see skip log.", len(failed_imports))

@@ -224,6 +224,33 @@ def test_write_permission_checks_present():
     return True
 
 
+def test_no_obsolete_skip_logger_checks():
+    """Test that obsolete skip_logger None checks have been removed."""
+    print("\n" + "=" * 70)
+    print("Testing for Obsolete skip_logger Checks")
+    print("=" * 70)
+
+    with open(Path(__file__).parent / "smart_media_manager" / "cli.py") as f:
+        cli_content = f.read()
+
+    # Check that obsolete "if skip_logger is None:" has been removed
+    if "if skip_logger is None:" in cli_content:
+        print("✗ FAILED: Found obsolete 'if skip_logger is None:' check")
+        print("  skip_logger is always created, so this check is unnecessary")
+        return False
+
+    # Check that obsolete fallback with 'root /' has been removed
+    if 'skip_log or root / f"smm_skipped_files_' in cli_content:
+        print("✗ FAILED: Found obsolete fallback using 'root /'")
+        print("  Should use 'output_dir' instead of 'root' for consistency")
+        return False
+
+    print("✓ No obsolete skip_logger None checks found")
+    print("✓ No obsolete root / fallback patterns found")
+    print("\n✓ Code is free of obsolete defensive checks")
+    return True
+
+
 def main():
     print("=" * 70)
     print("Log Directory Test Suite")
@@ -276,6 +303,15 @@ def main():
 
         traceback.print_exc()
         results.append(("Write permission checks", False))
+
+    try:
+        results.append(("No obsolete skip_logger checks", test_no_obsolete_skip_logger_checks()))
+    except Exception as e:
+        print(f"\n✗ Obsolete code check test FAILED: {e}")
+        import traceback
+
+        traceback.print_exc()
+        results.append(("No obsolete skip_logger checks", False))
 
     # Summary
     print("\n" + "=" * 70)
