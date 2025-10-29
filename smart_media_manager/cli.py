@@ -1184,6 +1184,49 @@ def ensure_dot_extension(ext: Optional[str]) -> Optional[str]:
     return normalized
 
 
+def canonicalize_extension(ext: Optional[str]) -> Optional[str]:
+    """
+    Canonicalize extension variants to preferred forms.
+    
+    Examples:
+        .jfif, .jpeg → .jpg
+        .tif → .tiff
+        .htm → .html
+    
+    This ensures consistent extension naming regardless of which detection tool
+    returned the extension.
+    """
+    if not ext:
+        return None
+    
+    # Ensure normalized form (lowercase, with dot)
+    normalized = ensure_dot_extension(ext)
+    if not normalized:
+        return None
+    
+    # Canonical extension mappings
+    # Format: variant → canonical
+    CANONICAL_EXTENSIONS = {
+        # JPEG variants → .jpg
+        ".jfif": ".jpg",
+        ".jpeg": ".jpg",
+        ".jpe": ".jpg",
+        
+        # TIFF variants → .tiff
+        ".tif": ".tiff",
+        
+        # HTML variants → .html
+        ".htm": ".html",
+        
+        # MPEG variants → .mpg
+        ".mpeg": ".mpg",
+        
+        # Add more as needed based on detection tool outputs
+    }
+    
+    return CANONICAL_EXTENSIONS.get(normalized, normalized)
+
+
 def kind_from_mime(mime: Optional[str]) -> Optional[str]:
     mime_val = normalize_mime_value(mime)
     if not mime_val:
@@ -2024,10 +2067,10 @@ def detect_media(path: Path, skip_compatibility_check: bool = False) -> tuple[Op
 
     extension_candidates: list[Optional[str]] = []
     if consensus:
-        consensus_ext = ensure_dot_extension(consensus.extension)
+        consensus_ext = canonicalize_extension(consensus.extension)  # Apply canonicalization to detected extension
         if consensus_ext:
             extension_candidates.append(consensus_ext)
-    suffix_ext = ensure_dot_extension(path.suffix)
+    suffix_ext = canonicalize_extension(path.suffix)  # Apply canonicalization to file suffix
     if suffix_ext and suffix_ext not in extension_candidates:
         extension_candidates.append(suffix_ext)
     extension_candidates.append(None)
@@ -2080,9 +2123,9 @@ def detect_media(path: Path, skip_compatibility_check: bool = False) -> tuple[Op
         raw_media.metadata.update(metadata)
         return raw_media, None
 
-    original_extension = ensure_dot_extension(path.suffix)
-    consensus_extension = ensure_dot_extension(consensus.extension) if consensus else None
-    preferred_extension = rule.extensions[0] if rule.extensions else None
+    original_extension = canonicalize_extension(path.suffix)  # Apply canonicalization
+    consensus_extension = canonicalize_extension(consensus.extension) if consensus else None  # Apply canonicalization
+    preferred_extension = canonicalize_extension(rule.extensions[0]) if rule.extensions else None  # Apply canonicalization
 
     # NEVER change extension unless format detected differs from file extension
     # Priority: always keep original if valid, only use detected format if no extension or wrong extension
