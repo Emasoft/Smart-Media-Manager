@@ -1606,6 +1606,36 @@ def validate_path_argument(path_str: str) -> Path:
     return path
 
 
+def check_write_permission(directory: Path, operation_name: str = "write") -> None:
+    """Check if we have write permissions in the given directory.
+
+    Args:
+        directory: Directory to check for write permissions
+        operation_name: Description of the operation needing write access (for error messages)
+
+    Raises:
+        PermissionError: If directory is not writable with a clear error message
+        OSError: If directory cannot be accessed for other reasons
+    """
+    import tempfile
+
+    if not directory.exists():
+        raise OSError(f"Directory does not exist: {directory}")
+
+    if not directory.is_dir():
+        raise OSError(f"Path is not a directory: {directory}")
+
+    # Try to create a temporary file to test write permissions
+    try:
+        with tempfile.NamedTemporaryFile(dir=directory, delete=True) as tmp:
+            # Successfully created and can write
+            tmp.write(b"test")
+    except PermissionError:
+        raise PermissionError(f"Permission denied: Cannot {operation_name} in directory {directory}\nPlease check that you have write permissions for this location.")
+    except OSError as e:
+        raise OSError(f"Cannot {operation_name} in directory {directory}: {e}")
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         prog="smart-media-manager",
@@ -3386,6 +3416,14 @@ def main() -> int:
 
         # For single file mode, use parent directory for logs
         log_dir = root.parent if is_single_file else root
+
+        # Check write permissions for log directory before proceeding
+        try:
+            check_write_permission(log_dir, "create logs")
+        except (PermissionError, OSError) as e:
+            print(f"ERROR: {e}", file=sys.stderr)
+            return 1
+
         log_path = attach_file_logger(log_dir, run_ts)
 
         for dependency in ("ffprobe", "ffmpeg", "osascript"):

@@ -10,7 +10,7 @@ from pathlib import Path
 # Add the module to path
 sys.path.insert(0, str(Path(__file__).parent))
 
-from smart_media_manager.cli import sanitize_path_string, validate_path_argument
+from smart_media_manager.cli import sanitize_path_string, validate_path_argument, check_write_permission
 import argparse
 
 
@@ -308,6 +308,95 @@ def test_error_scenarios():
     return failed == 0
 
 
+def test_write_permissions():
+    """Test write permission checking."""
+    print("\n" + "=" * 70)
+    print("Testing Write Permissions")
+    print("=" * 70)
+
+    passed = 0
+    failed = 0
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        tmppath = Path(tmpdir)
+
+        # Test 1: Writable directory (should pass)
+        print("\nTest 1: Writable directory...")
+        writable_dir = tmppath / "writable"
+        writable_dir.mkdir()
+        try:
+            check_write_permission(writable_dir, "test operation")
+            print(f"✓ Writable directory check passed: {writable_dir}")
+            passed += 1
+        except (PermissionError, OSError) as e:
+            print(f"✗ Should have passed: {e}")
+            failed += 1
+        print()
+
+        # Test 2: Read-only directory (should fail)
+        print("Test 2: Read-only directory...")
+        readonly_dir = tmppath / "readonly"
+        readonly_dir.mkdir()
+
+        import os
+        import stat
+
+        try:
+            # Make directory read-only
+            os.chmod(readonly_dir, stat.S_IRUSR | stat.S_IXUSR)
+            try:
+                check_write_permission(readonly_dir, "test operation")
+                print("✗ Should have raised PermissionError")
+                failed += 1
+            except PermissionError as e:
+                if "Permission denied" in str(e) and "Cannot test operation" in str(e):
+                    print(f"✓ Permission error correctly detected: {e}")
+                    passed += 1
+                else:
+                    print(f"✗ Wrong error message: {e}")
+                    failed += 1
+        finally:
+            # Restore permissions for cleanup
+            os.chmod(readonly_dir, stat.S_IRWXU)
+        print()
+
+        # Test 3: Non-existent directory (should fail)
+        print("Test 3: Non-existent directory...")
+        nonexistent_dir = tmppath / "does_not_exist"
+        try:
+            check_write_permission(nonexistent_dir, "test operation")
+            print("✗ Should have raised OSError")
+            failed += 1
+        except OSError as e:
+            if "does not exist" in str(e).lower():
+                print(f"✓ Non-existent directory error correctly detected: {e}")
+                passed += 1
+            else:
+                print(f"✗ Wrong error type: {e}")
+                failed += 1
+        print()
+
+        # Test 4: File instead of directory (should fail)
+        print("Test 4: File instead of directory...")
+        test_file = tmppath / "testfile.txt"
+        test_file.write_text("test")
+        try:
+            check_write_permission(test_file, "test operation")
+            print("✗ Should have raised OSError")
+            failed += 1
+        except OSError as e:
+            if "not a directory" in str(e).lower():
+                print(f"✓ Not-a-directory error correctly detected: {e}")
+                passed += 1
+            else:
+                print(f"✗ Wrong error type: {e}")
+                failed += 1
+        print()
+
+    print(f"Results: {passed} passed, {failed} failed")
+    return failed == 0
+
+
 def main():
     print("=" * 70)
     print("Path Validation Test Suite")
@@ -320,6 +409,7 @@ def main():
     results.append(("validate_path_argument", test_validate_path_argument()))
     results.append(("CLI unicode paths", test_cli_with_unicode_paths()))
     results.append(("Error scenarios", test_error_scenarios()))
+    results.append(("Write permissions", test_write_permissions()))
 
     # Summary
     print("\n" + "=" * 70)
