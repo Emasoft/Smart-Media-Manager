@@ -41,7 +41,7 @@ except ImportError:  # pragma: no cover - optional runtime dependency
 
 LOG = logging.getLogger("smart_media_manager")
 _FILE_LOG_HANDLER: Optional[logging.Handler] = None
-LOG_SUBDIR = ".smm_logs"
+SMM_LOGS_SUBDIR = ".smm__runtime_logs_"  # Unique prefix for timestamped log directories (created in CWD, excluded from scanning)
 
 SAFE_NAME_PATTERN = re.compile(r"[^A-Za-z0-9_.-]")
 MAX_APPLESCRIPT_ARGS = 100  # Reduced from 200 to prevent Photos.app rate-limiting errors
@@ -2283,11 +2283,25 @@ def gather_media_files(
     media_files: list[MediaFile] = []
 
     def should_ignore(entry: Path) -> bool:
+        """Check if file/directory should be excluded from scanning.
+
+        Excludes:
+        - FOUND_MEDIA_FILES_* staging directories
+        - .smm__runtime_logs_* log directories (timestamped, in CWD)
+        - smm_run_* and smm_skipped_files_* log files
+        - .DS_Store system files
+        """
         name = entry.name
+        # Exclude staging directories
         if name.startswith("FOUND_MEDIA_FILES_"):
             return True
-        if name == LOG_SUBDIR or name.startswith("smm_run_") or name.startswith("smm_skipped_files_"):
+        # Exclude timestamped log directories (new pattern)
+        if name.startswith(SMM_LOGS_SUBDIR):
             return True
+        # Exclude individual log files and skip logs (legacy/backward compat)
+        if name.startswith("smm_run_") or name.startswith("smm_skipped_files_"):
+            return True
+        # Exclude macOS metadata
         if name == ".DS_Store":
             return True
         return False
@@ -3365,11 +3379,34 @@ def configure_logging() -> None:
 
 
 def attach_file_logger(root: Path, run_ts: str) -> Path:
+    """Create timestamped log directory in CWD and attach file logger.
+
+    Args:
+        root: Scan root directory (not used for log location, kept for compatibility)
+        run_ts: Timestamp string for this run
+
+    Returns:
+        Path to created log file
+
+    Note:
+        Log directory is created in current working directory (not scan root)
+        with pattern: .smm__runtime_logs_YYYYMMDD_HHMMSS_<uuid>
+        This prevents logs from being scanned as media files.
+    """
+    import uuid
+
     global _FILE_LOG_HANDLER
     if _FILE_LOG_HANDLER is not None:
         return Path(_FILE_LOG_HANDLER.baseFilename)  # type: ignore[attr-defined]
-    log_dir = root / LOG_SUBDIR
+
+    # Create unique timestamped log directory in CWD (not scan root)
+    # Format: .smm__runtime_logs_YYYYMMDD_HHMMSS_<short-uuid>
+    short_uuid = str(uuid.uuid4())[:8]  # First 8 chars of UUID for uniqueness
+    log_dir_name = f"{SMM_LOGS_SUBDIR}{run_ts}_{short_uuid}"
+    log_dir = Path.cwd() / log_dir_name
     log_dir.mkdir(parents=True, exist_ok=True)
+
+    # Log file inside the timestamped directory
     path = log_dir / f"smm_run_{run_ts}.log"
     handler = logging.FileHandler(path, encoding="utf-8")
     handler.setLevel(logging.INFO)
@@ -3414,24 +3451,24 @@ def main() -> int:
         root = validate_root(args.path, allow_file=is_single_file)
         run_ts = timestamp()
 
-        # For single file mode, use parent directory for logs
-        log_dir = root.parent if is_single_file else root
-
-        # Check write permissions for log directory before proceeding
+        # Logs are now created in CWD (not scan root) to avoid scanning them
+        # Check write permissions for CWD before proceeding
         try:
-            check_write_permission(log_dir, "create logs")
+            check_write_permission(Path.cwd(), "create logs")
         except (PermissionError, OSError) as e:
             print(f"ERROR: {e}", file=sys.stderr)
             return 1
 
-        log_path = attach_file_logger(log_dir, run_ts)
+        log_path = attach_file_logger(root, run_ts)  # root arg kept for compatibility, not used for log location
 
         for dependency in ("ffprobe", "ffmpeg", "osascript"):
             ensure_dependency(dependency)
         LOG.info("Scanning %s for media files...", root)
         print(f"Scanning {root}...")
 
-        skip_log = log_dir / f"smm_skipped_files_{run_ts}.log"
+        # Skip log goes in scan root (for single file mode, use parent directory)
+        skip_log_dir = root.parent if is_single_file else root
+        skip_log = skip_log_dir / f"smm_skipped_files_{run_ts}.log"
         if skip_log.exists():
             skip_log.unlink()
         skip_logger = SkipLogger(skip_log)
@@ -3471,8 +3508,9 @@ def main() -> int:
             return 0
         ensure_raw_dependencies_for_files(media_files)
 
-        # For single file mode, create staging in parent directory
-        staging_root = log_dir / f"FOUND_MEDIA_FILES_{run_ts}"
+        # Create staging directory in scan root (for single file mode, use parent directory)
+        staging_dir = root.parent if is_single_file else root
+        staging_root = staging_dir / f"FOUND_MEDIA_FILES_{run_ts}"
         staging_root.mkdir(parents=True, exist_ok=False)
         move_to_staging(media_files, staging_root)
         ensure_compatibility(media_files, skip_logger, stats, args.skip_convert)
