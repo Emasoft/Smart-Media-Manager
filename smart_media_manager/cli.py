@@ -754,14 +754,21 @@ def refine_raw_media(path: Path, extension_candidates: Iterable[Optional[str]]) 
     return media, None
 
 
-def refine_image_media(media: MediaFile) -> tuple[Optional[MediaFile], Optional[str]]:
+def refine_image_media(media: MediaFile, skip_compatibility_check: bool = False) -> tuple[Optional[MediaFile], Optional[str]]:
     """
     FAST corruption detection for image files (<10ms for most images).
 
     Strategy:
     1. Format-specific quick checks (EOF markers) - microseconds
     2. PIL load() to decode pixels - catches truncation - milliseconds
+
+    Args:
+        media: MediaFile to validate
+        skip_compatibility_check: If True, skip all validation (for testing)
     """
+    # Skip all validation if flag is set (for format testing)
+    if skip_compatibility_check:
+        return media, None
 
     # FAST CHECK: Format-specific validation (very quick!)
     path = media.source
@@ -843,7 +850,7 @@ def refine_image_media(media: MediaFile) -> tuple[Optional[MediaFile], Optional[
     return media, None
 
 
-def refine_video_media(media: MediaFile) -> tuple[Optional[MediaFile], Optional[str]]:
+def refine_video_media(media: MediaFile, skip_compatibility_check: bool = False) -> tuple[Optional[MediaFile], Optional[str]]:
     """
     Validate video file compatibility with Apple Photos.
 
@@ -852,7 +859,15 @@ def refine_video_media(media: MediaFile) -> tuple[Optional[MediaFile], Optional[
     - Audio codec compatibility (FLAC, Opus, DTS, etc.)
     - Audio sample rate (must be standard rate)
     - Audio channel configuration
+
+    Args:
+        media: MediaFile to validate
+        skip_compatibility_check: If True, skip all validation (for testing)
     """
+    # Skip all validation if flag is set (for format testing)
+    if skip_compatibility_check:
+        return media, None
+
     ffprobe_path = shutil.which("ffprobe")
     if not ffprobe_path:
         return media, None
@@ -1690,7 +1705,7 @@ def is_skippable_file(path: Path) -> Optional[str]:
     return None
 
 
-def detect_media(path: Path) -> tuple[Optional[MediaFile], Optional[str]]:
+def detect_media(path: Path, skip_compatibility_check: bool = False) -> tuple[Optional[MediaFile], Optional[str]]:
     filetype_signature = safe_filetype_guess(path)
     puremagic_signature = safe_puremagic_guess(path)
     signatures = [filetype_signature, puremagic_signature]
@@ -1890,7 +1905,7 @@ def detect_media(path: Path) -> tuple[Optional[MediaFile], Optional[str]]:
                 "psd_color_mode": psd_color_mode,
             }
         )
-        refined_media, refine_reason = refine_image_media(media)
+        refined_media, refine_reason = refine_image_media(media, skip_compatibility_check)
         if refined_media is None:
             return None, refine_reason or "image validation failed"
         return refined_media, None
@@ -1919,7 +1934,7 @@ def detect_media(path: Path) -> tuple[Optional[MediaFile], Optional[str]]:
                 "audio_layout": audio_layout,
             }
         )
-        refined_media, refine_reason = refine_video_media(media)
+        refined_media, refine_reason = refine_video_media(media, skip_compatibility_check)
         if refined_media is None:
             return None, refine_reason or "video validation failed"
         return refined_media, None
@@ -2053,6 +2068,7 @@ def gather_media_files(
     follow_symlinks: bool,
     skip_logger: SkipLogger,
     stats: RunStatistics,
+    skip_compatibility_check: bool = False,
 ) -> list[MediaFile]:
     media_files: list[MediaFile] = []
 
@@ -2113,7 +2129,7 @@ def gather_media_files(
         # File is binary
         stats.total_binary_files += 1
 
-        media, reject_reason = detect_media(file_path)
+        media, reject_reason = detect_media(file_path, skip_compatibility_check)
         if media:
             stats.total_media_detected += 1
             if media.compatible and media.action == "import":
@@ -2812,7 +2828,11 @@ def revert_media_files(media_files: Iterable[MediaFile], staging: Optional[Path]
         shutil.rmtree(staging, ignore_errors=True)
 
 
-def sanitize_stage_paths(media_files: Iterable[MediaFile], staging: Path, run_token: str) -> None:
+def sanitize_stage_paths(media_files: Iterable[MediaFile], staging: Path, run_token: str, skip_renaming: bool = False) -> None:
+    # Skip renaming if flag is set (for format testing)
+    if skip_renaming:
+        return
+
     for index, media in enumerate(media_files, start=1):
         if not media.stage_path or not media.stage_path.exists():
             continue
@@ -2826,7 +2846,7 @@ def sanitize_stage_paths(media_files: Iterable[MediaFile], staging: Path, run_to
         media.stage_path = target
 
 
-def ensure_compatibility(media_files: list[MediaFile], skip_logger: SkipLogger, stats: RunStatistics) -> None:
+def ensure_compatibility(media_files: list[MediaFile], skip_logger: SkipLogger, stats: RunStatistics, skip_convert: bool = False) -> None:
     retained: list[MediaFile] = []
     progress = ProgressReporter(len(media_files), "Ensuring compatibility")
 
@@ -2846,6 +2866,15 @@ def ensure_compatibility(media_files: list[MediaFile], skip_logger: SkipLogger, 
             if not skip_unknown_video(media, skip_logger):
                 progress.update()
                 continue
+
+        # Skip all conversions if flag is set (for format testing)
+        if skip_convert:
+            # Mark as compatible and treat as import-ready
+            media.requires_processing = False
+            media.compatible = True
+            retained.append(media)
+            progress.update()
+            continue
 
         try:
             if media.action == "import":
@@ -3130,12 +3159,12 @@ def attach_file_logger(root: Path, run_ts: str) -> Path:
     return path
 
 
-def validate_root(path: Path) -> Path:
+def validate_root(path: Path, allow_file: bool = False) -> Path:
     resolved = path.expanduser().resolve()
     if not resolved.exists():
         raise RuntimeError(f"Path does not exist: {resolved}")
-    if not resolved.is_dir():
-        raise RuntimeError(f"Path must be a directory: {resolved}")
+    if not resolved.is_dir() and not (allow_file and resolved.is_file()):
+        raise RuntimeError(f"Path must be a {'file or ' if allow_file else ''}directory: {resolved}")
     return resolved
 
 
@@ -3154,29 +3183,57 @@ def main() -> int:
     skip_logger: Optional[SkipLogger] = None
     stats = RunStatistics()
     try:
-        root = validate_root(args.path)
+        root = validate_root(args.path, allow_file=args.file)
         run_ts = timestamp()
-        log_path = attach_file_logger(root, run_ts)
+
+        # For single file mode, use parent directory for logs
+        log_dir = root.parent if args.file else root
+        log_path = attach_file_logger(log_dir, run_ts)
+
         for dependency in ("ffprobe", "ffmpeg", "osascript"):
             ensure_dependency(dependency)
         LOG.info("Scanning %s for media files...", root)
         print(f"Scanning {root}...")
-        skip_log = root / f"smm_skipped_files_{run_ts}.log"
+
+        skip_log = log_dir / f"smm_skipped_files_{run_ts}.log"
         if skip_log.exists():
             skip_log.unlink()
         skip_logger = SkipLogger(skip_log)
-        media_files = gather_media_files(root, args.recursive, args.follow_symlinks, skip_logger, stats)
+
+        # Handle single file mode
+        if args.file:
+            media, reject_reason = detect_media(root, args.skip_compatibility_check)
+            if media:
+                media_files = [media]
+                stats.total_files_scanned = 1
+                stats.total_binary_files = 1
+                stats.total_media_detected = 1
+                if media.compatible:
+                    stats.media_compatible = 1
+                else:
+                    stats.media_incompatible = 1
+            elif reject_reason:
+                skip_logger.log(root, reject_reason)
+                LOG.info("File rejected: %s", reject_reason)
+                return 0
+            else:
+                LOG.info("File is not a supported media format.")
+                return 0
+        else:
+            media_files = gather_media_files(root, args.recursive, args.follow_symlinks, skip_logger, stats, args.skip_compatibility_check)
         if not media_files:
             LOG.info("No media files detected.")
             if skip_logger and not skip_logger.has_entries() and skip_log.exists():
                 skip_log.unlink()
             return 0
         ensure_raw_dependencies_for_files(media_files)
-        staging_root = root / f"FOUND_MEDIA_FILES_{run_ts}"
+
+        # For single file mode, create staging in parent directory
+        staging_root = log_dir / f"FOUND_MEDIA_FILES_{run_ts}"
         staging_root.mkdir(parents=True, exist_ok=False)
         move_to_staging(media_files, staging_root)
-        ensure_compatibility(media_files, skip_logger, stats)
-        sanitize_stage_paths(media_files, staging_root, run_ts)
+        ensure_compatibility(media_files, skip_logger, stats, args.skip_convert)
+        sanitize_stage_paths(media_files, staging_root, run_ts, args.skip_renaming)
 
         missing_media: list[MediaFile] = [media for media in media_files if not media.stage_path or not media.stage_path.exists()]
 
