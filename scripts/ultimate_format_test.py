@@ -369,42 +369,65 @@ class UltimateFormatTester:
         # Deduplicate
         self.deduplicate_formats()
 
-    def filter_compatible_combinations(self, container: Dict, video_codec: Dict, audio_codec: Dict) -> bool:
-        """Check if container/codec combination is valid."""
-        container_name = container['name']
-        video_name = video_codec['name']
-        audio_name = audio_codec['name']
+    def is_video_compatible_with_container(self, container: str, video_codec: str) -> bool:
+        """Check if video codec is compatible with container."""
+        # WebM only supports VP8/VP9/AV1
+        if container == 'webm':
+            return video_codec in ['vp8', 'vp9', 'av1', 'libaom-av1', 'libvpx', 'libvpx-vp9']
 
-        # WebM only supports VP8/VP9/AV1 + Vorbis/Opus
-        if container_name == 'webm':
-            if video_name not in ['vp8', 'vp9', 'av1', 'libaom-av1', 'libvpx', 'libvpx-vp9']:
-                return False
-            if audio_name not in ['libvorbis', 'vorbis', 'libopus', 'opus']:
-                return False
-
-        # MP4 works with most codecs, but prefer H.264/HEVC/AV1
-        if container_name == 'mp4':
-            # Skip very exotic codecs in MP4
-            if video_name in ['vp8', 'vp9', 'theora', 'ffv1']:
-                return False
-
-        # MKV is very flexible, accept most combinations
         # AVI has limitations with modern codecs
-        if container_name == 'avi':
-            if video_name in ['hevc', 'libx265', 'vp9', 'av1']:
-                return False
-            if audio_name in ['opus', 'vorbis', 'flac']:
-                return False
+        if container == 'avi':
+            return video_codec not in ['hevc', 'libx265', 'vp9', 'av1', 'libaom-av1']
 
-        # MOV similar to MP4
-        if container_name == 'mov':
-            if video_name in ['vp8', 'vp9', 'theora']:
-                return False
+        # MP4/MOV skip exotic codecs
+        if container in ['mp4', 'mov']:
+            return video_codec not in ['vp8', 'vp9', 'theora', 'ffv1']
 
+        # OGG/OGV only support Theora
+        if container in ['ogg', 'ogv']:
+            return video_codec in ['theora', 'libtheora']
+
+        # MKV is very flexible, accept most
+        # For unknown containers, try it
+        return True
+
+    def is_audio_compatible_with_container(self, container: str, audio_codec: str) -> bool:
+        """Check if audio codec is compatible with container."""
+        # WebM only supports Vorbis/Opus
+        if container == 'webm':
+            return audio_codec in ['libvorbis', 'vorbis', 'libopus', 'opus']
+
+        # AVI has limitations
+        if container == 'avi':
+            return audio_codec not in ['opus', 'vorbis', 'flac']
+
+        # MP4/MOV prefer common codecs
+        if container in ['mp4', 'mov']:
+            # Skip very exotic
+            return audio_codec not in ['vorbis', 'libvorbis']
+
+        # OGG/OGV only support Vorbis/Opus/FLAC
+        if container in ['ogg', 'ogv', 'oga']:
+            return audio_codec in ['vorbis', 'libvorbis', 'opus', 'libopus', 'flac']
+
+        # MKV is very flexible
+        # For unknown containers, try it
         return True
 
     def generate_all_commands(self, max_samples: int = None):
-        """Generate all format conversion commands."""
+        """Generate all format conversion commands.
+
+        Uses independent testing approach:
+        - Container + Video Codec (with default audio)
+        - Container + Audio Codec (with default video)
+        - Pixel format variations
+        - Image format variations
+
+        This avoids unnecessary combinations since:
+        - Video codec support is independent of audio codec
+        - Audio codec support is independent of video codec
+        - Both depend on container format
+        """
         print("\n" + "="*80)
         print("GENERATING FORMAT CONVERSION COMMANDS")
         print("="*80)
@@ -412,67 +435,101 @@ class UltimateFormatTester:
         commands = []
         cmd_id = 0
 
-        # Priority containers
-        priority_containers = ['mp4', 'mkv', 'mov', 'avi', 'webm']
-        priority_video = ['libx264', 'libx265', 'vp9', 'av1']
-        priority_audio = ['aac', 'opus', 'mp3', 'ac3']
+        # Use ALL discovered formats (not just priority)
+        containers = self.formats
+        video_codecs = self.video_codecs
+        audio_codecs = self.audio_codecs
 
-        # Get priority formats first
-        containers = [f for f in self.formats if f['name'] in priority_containers]
-        video_codecs = [c for c in self.video_codecs if c['name'] in priority_video]
-        audio_codecs = [c for c in self.audio_codecs if c['name'] in priority_audio]
-
-        print(f"\nGenerating video/audio commands:")
+        print(f"\nFormat inventory:")
         print(f"  Containers: {len(containers)}")
         print(f"  Video codecs: {len(video_codecs)}")
         print(f"  Audio codecs: {len(audio_codecs)}")
+        print(f"  Pixel formats: {len(self.pix_fmts)}")
+        print(f"  Sample formats: {len(self.sample_fmts)}")
+        print(f"  Layouts: {len(self.layouts)}")
 
-        # Generate video/audio combinations
+        # Test 1: Container + Video Codec (independent of audio)
+        # Use AAC as default audio since it's widely supported
+        print(f"\n1. Testing Container + Video Codec combinations:")
         for container in containers:
-            for video_codec in video_codecs:
-                for audio_codec in audio_codecs:
-                    if not self.filter_compatible_combinations(container, video_codec, audio_codec):
-                        continue
-
-                    cmd_id += 1
-                    output_name = f"test_{cmd_id:04d}_{container['name']}_{video_codec['name']}_{audio_codec['name']}.{container['name']}"
-                    output_path = self.output_dir / output_name
-
-                    command = (
-                        f"ffmpeg -y -i {self.base_video} "
-                        f"-c:v {video_codec['name']} -c:a {audio_codec['name']} "
-                        f"-t 5 -map_metadata 0 {output_path}"
-                    )
-
-                    commands.append({
-                        'id': cmd_id,
-                        'type': 'video',
-                        'container': container['name'],
-                        'video_codec': video_codec['name'],
-                        'audio_codec': audio_codec['name'],
-                        'command': command,
-                        'output': str(output_path),
-                        'description': f"{container['name'].upper()} with {video_codec['name']} + {audio_codec['name']}"
-                    })
-
-                    if max_samples and len(commands) >= max_samples:
-                        break
-                if max_samples and len(commands) >= max_samples:
-                    break
             if max_samples and len(commands) >= max_samples:
                 break
-
-        # Generate pixel format variations (select subset)
-        if not max_samples or len(commands) < max_samples:
-            print(f"\nGenerating pixel format variations:")
-            priority_pix_fmts = ['yuv420p', 'yuv422p', 'yuv444p', 'yuv420p10le']
-            pix_fmts = [p for p in self.pix_fmts if p in priority_pix_fmts]
-
-            for pix_fmt in pix_fmts:
+            for video_codec in video_codecs:
                 if max_samples and len(commands) >= max_samples:
                     break
+
+                # Check container-video compatibility
+                if not self.is_video_compatible_with_container(container['name'], video_codec['name']):
+                    continue
+
                 cmd_id += 1
-                output_name = f"test_{cmd_id:04d}_mp4_pixfmt_{pix_fmt}.mp4"
+                output_name = f"test_{cmd_id:04d}_{container['name']}_video_{video_codec['name']}.{container['name']}"
+                output_path = self.output_dir / output_name
+
+                # Use AAC as default audio (widely supported)
+                command = (
+                    f"ffmpeg -y -i {self.base_video} "
+                    f"-c:v {video_codec['name']} -c:a aac "
+                    f"-t 5 -map_metadata 0 {output_path}"
+                )
+
+                commands.append({
+                    'id': cmd_id,
+                    'type': 'container_video',
+                    'container': container['name'],
+                    'video_codec': video_codec['name'],
+                    'audio_codec': 'aac',
+                    'command': command,
+                    'output': str(output_path),
+                    'description': f"{container['name'].upper()} + {video_codec['name']} video codec"
+                })
+
+        # Test 2: Container + Audio Codec (independent of video)
+        # Use H.264 as default video since it's universally supported
+        print(f"2. Testing Container + Audio Codec combinations:")
+        for container in containers:
+            if max_samples and len(commands) >= max_samples:
+                break
+            for audio_codec in audio_codecs:
+                if max_samples and len(commands) >= max_samples:
+                    break
+
+                # Check container-audio compatibility
+                if not self.is_audio_compatible_with_container(container['name'], audio_codec['name']):
+                    continue
+
+                cmd_id += 1
+                output_name = f"test_{cmd_id:04d}_{container['name']}_audio_{audio_codec['name']}.{container['name']}"
+                output_path = self.output_dir / output_name
+
+                # Use H.264 as default video (universally supported)
+                command = (
+                    f"ffmpeg -y -i {self.base_video} "
+                    f"-c:v libx264 -c:a {audio_codec['name']} "
+                    f"-t 5 -map_metadata 0 {output_path}"
+                )
+
+                commands.append({
+                    'id': cmd_id,
+                    'type': 'container_audio',
+                    'container': container['name'],
+                    'video_codec': 'libx264',
+                    'audio_codec': audio_codec['name'],
+                    'command': command,
+                    'output': str(output_path),
+                    'description': f"{container['name'].upper()} + {audio_codec['name']} audio codec"
+                })
+
+        # Test 3: Pixel format variations (ALL formats)
+        # Test with MP4+H.264 as baseline
+        if not max_samples or len(commands) < max_samples:
+            print(f"3. Testing Pixel Format variations:")
+            for pix_fmt in self.pix_fmts:
+                if max_samples and len(commands) >= max_samples:
+                    break
+
+                cmd_id += 1
+                output_name = f"test_{cmd_id:04d}_pixfmt_{pix_fmt}.mp4"
                 output_path = self.output_dir / output_name
 
                 command = (
@@ -490,40 +547,55 @@ class UltimateFormatTester:
                     'description': f"Pixel format: {pix_fmt}"
                 })
 
-        # Generate image format variations
+        # Test 4: Image format variations (ALL image containers)
         if not max_samples or len(commands) < max_samples:
-            print(f"\nGenerating image format variations:")
-            image_formats = [
-                ('png', 'png'),
-                ('jpg', 'mjpeg'),
-                ('webp', 'libwebp'),
-                ('tiff', 'tiff'),
-                ('bmp', 'bmp'),
-            ]
+            print(f"4. Testing Image Format variations:")
+            # Map image containers to their codecs
+            image_format_map = {
+                'png': 'png',
+                'jpg': 'mjpeg',
+                'jpeg': 'mjpeg',
+                'webp': 'libwebp',
+                'tiff': 'tiff',
+                'tif': 'tiff',
+                'bmp': 'bmp',
+                'gif': 'gif',
+                'jp2': 'jpeg2000',
+                'j2k': 'jpeg2000',
+            }
 
-            for ext, codec in image_formats:
+            # Test all container formats that look like images
+            for container in self.formats:
                 if max_samples and len(commands) >= max_samples:
                     break
-                cmd_id += 1
-                output_name = f"test_{cmd_id:04d}_image_{ext}.{ext}"
-                output_path = self.output_dir / output_name
 
-                command = f"ffmpeg -y -i {self.base_image} -c:v {codec} {output_path}"
+                ext = container['name']
+                if ext in image_format_map:
+                    cmd_id += 1
+                    output_name = f"test_{cmd_id:04d}_image_{ext}.{ext}"
+                    output_path = self.output_dir / output_name
 
-                commands.append({
-                    'id': cmd_id,
-                    'type': 'image',
-                    'format': ext,
-                    'codec': codec,
-                    'command': command,
-                    'output': str(output_path),
-                    'description': f"Image format: {ext.upper()}"
-                })
+                    codec = image_format_map[ext]
+                    command = f"ffmpeg -y -i {self.base_image} -c:v {codec} {output_path}"
+
+                    commands.append({
+                        'id': cmd_id,
+                        'type': 'image',
+                        'format': ext,
+                        'codec': codec,
+                        'command': command,
+                        'output': str(output_path),
+                        'description': f"Image format: {ext.upper()}"
+                    })
 
         self.commands = commands
         self.stats['total_commands'] = len(commands)
 
         print(f"\n✅ Generated {len(commands)} commands")
+        print(f"   - Container + Video: {sum(1 for c in commands if c['type'] == 'container_video')}")
+        print(f"   - Container + Audio: {sum(1 for c in commands if c['type'] == 'container_audio')}")
+        print(f"   - Pixel formats: {sum(1 for c in commands if c['type'] == 'pixel_format')}")
+        print(f"   - Image formats: {sum(1 for c in commands if c['type'] == 'image')}")
         return commands
 
     def step2_generate_samples(self, skip_existing: bool = True):
