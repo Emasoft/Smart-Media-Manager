@@ -1630,7 +1630,7 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         prog="smart-media-manager",
         description="Scan and import media into Apple Photos, fixing extensions and compatibility.",
-        epilog="Examples:\n  %(prog)s /path/to/media --recursive\n  %(prog)s /path/to/image.jpg --file\n  %(prog)s  # scans current directory",
+        epilog="Examples:\n  %(prog)s /path/to/media --recursive\n  %(prog)s /path/to/image.jpg\n  %(prog)s  # scans current directory",
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     parser.add_argument(
@@ -1639,12 +1639,7 @@ def parse_args() -> argparse.Namespace:
         default=Path.cwd(),
         type=Path,
         metavar="PATH",
-        help="Directory to scan (default: current directory) or file path with --file flag",
-    )
-    parser.add_argument(
-        "--file",
-        action="store_true",
-        help="Treat 'path' as a single file to import (not a folder). Useful for testing specific files.",
+        help="Directory to scan (default: current directory) or path to a single file",
     )
     parser.add_argument(
         "--delete",
@@ -3476,11 +3471,13 @@ def main() -> int:
     skip_logger: Optional[SkipLogger] = None
     stats = RunStatistics()
     try:
-        root = validate_root(args.path, allow_file=args.file)
+        # Auto-detect if path is a file or directory
+        is_single_file = args.path.is_file()
+        root = validate_root(args.path, allow_file=is_single_file)
         run_ts = timestamp()
 
         # For single file mode, use parent directory for logs
-        log_dir = root.parent if args.file else root
+        log_dir = root.parent if is_single_file else root
         log_path = attach_file_logger(log_dir, run_ts)
 
         for dependency in ("ffprobe", "ffmpeg", "osascript"):
@@ -3494,7 +3491,7 @@ def main() -> int:
         skip_logger = SkipLogger(skip_log)
 
         # Handle single file mode
-        if args.file:
+        if is_single_file:
             media, reject_reason = detect_media(root, args.skip_compatibility_check)
             if media:
                 media_files = [media]
