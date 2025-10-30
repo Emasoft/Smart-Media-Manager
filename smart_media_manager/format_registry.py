@@ -60,9 +60,10 @@ def load_compatibility_data() -> Dict[str, Any]:
 
     compat_path = Path(__file__).parent / "format_compatibility.json"
     if not compat_path.exists():
-        LOG.warning(f"Compatibility data not found at {compat_path}, using empty compatibility rules")
-        _COMPATIBILITY = {}
-        return _COMPATIBILITY
+        LOG.error(f"FATAL: Compatibility data not found at {compat_path}")
+        LOG.error("This file must be included in the package. The installation is corrupted.")
+        LOG.error("Please reinstall: uv tool uninstall smart-media-manager && uv tool install smart-media-manager")
+        raise FileNotFoundError(f"Critical file missing: {compat_path}")
 
     try:
         with open(compat_path) as f:
@@ -70,9 +71,8 @@ def load_compatibility_data() -> Dict[str, Any]:
             LOG.info("Loaded Apple Photos compatibility rules")
             return _COMPATIBILITY
     except Exception as exc:
-        LOG.error(f"Failed to load compatibility data: {exc}")
-        _COMPATIBILITY = {}
-        return _COMPATIBILITY
+        LOG.error(f"FATAL: Failed to load compatibility data: {exc}")
+        raise RuntimeError(f"Failed to load critical compatibility data from {compat_path}") from exc
 
 
 def lookup_format_uuid(tool_name: str, tool_output: str) -> Optional[str]:

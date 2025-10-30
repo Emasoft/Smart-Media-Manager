@@ -1,0 +1,750 @@
+[
+  {
+    "id": 1,
+    "type": "video",
+    "container": "3gp",
+    "video_codec": "mjpeg",
+    "audio_codec": "aac",
+    "output": "tests/samples/format_tests/test_0001_3gp_mjpeg_aac.3gp",
+    "command": "ffmpeg -y -i tests/samples/media/001.mp4 -t 3 -c:v mjpeg -c:a aac tests/samples/format_tests/test_0001_3gp_mjpeg_aac.3gp"
+  },
+  {
+    "id": 2,
+    "type": "video",
+    "container": "3gp",
+    "video_codec": "mjpeg",
+    "audio_codec": "ac3",
+    "output": "tests/samples/format_tests/test_0002_3gp_mjpeg_ac3.3gp",
+    "command": "ffmpeg -y -i tests/samples/media/001.mp4 -t 3 -c:v mjpeg -c:a ac3 tests/samples/format_tests/test_0002_3gp_mjpeg_ac3.3gp"
+  },
+  {
+    "id": 3,
+    "type": "video",
+    "container": "3gp",
+    "video_codec": "mjpeg",
+    "audio_codec": "eac3",
+    "output": "tests/samples/format_tests/test_0003_3gp_mjpeg_eac3.3gp",
+    "command": "ffmpeg -y -i tests/samples/media/001.mp4 -t 3 -c:v mjpeg -c:a eac3 tests/samples/format_tests/test_0003_3gp_mjpeg_eac3.3gp"
+  },
+  {
+    "id": 4,
+    "type": "video",
+    "container": "3gp",
+    "video_codec": "mjpeg",
+    "audio_codec": "mp3",
+    "output": "tests/samples/format_tests/test_0004_3gp_mjpeg_mp3.3gp",
+    "command": "ffmpeg -y -i tests/samples/media/001.mp4 -t 3 -c:v mjpeg -c:a mp3 tests/samples/format_tests/test_0004_3gp_mjpeg_mp3.3gp"
+  },
+  {
+    "id": 5,
+    "type": "video",
+    "container": "3gp",
+    "video_codec": "mpeg1video",
+    "audio_codec": "aac",
+    "output": "tests/samples/format_tests/test_0005_3gp_mpeg1video_aac.3gp",
+    "command": "ffmpeg -y -i tests/samples/media/001.mp4 -t 3 -c:v mpeg1video -c:a aac tests/samples/format_tests/test_0005_3gp_mpeg1video_aac.3gp"
+  },
+  {
+    "id": 6,
+    "type": "video",
+    "container": "3gp",
+    "video_codec": "mpeg1video",
+    "audio_codec": "ac3",
+    "output": "tests/samples/format_tests/test_0006_3gp_mpeg1video_ac3.3gp",
+    "command": "ffmpeg -y -i tests/samples/media/001.mp4 -t 3 -c:v mpeg1video -c:a ac3 tests/samples/format_tests/test_0006_3gp_mpeg1video_ac3.3gp"
+  },
+  {
+    "id": 7,
+    "type": "video",
+    "container": "3gp",
+    "video_codec": "mpeg1video",
+    "audio_codec": "eac3",
+    "output": "tests/samples/format_tests/test_0007_3gp_mpeg1video_eac3.3gp",
+    "command": "ffmpeg -y -i tests/samples/media/001.mp4 -t 3 -c:v mpeg1video -c:a eac3 tests/samples/format_tests/test_0007_3gp_mpeg1video_eac3.3gp"
+  },
+  {
+    "id": 8,
+    "type": "video",
+    "container": "3gp",
+    "video_codec": "mpeg1video",
+    "audio_codec": "mp3",
+    "output": "tests/samples/format_tests/test_0008_3gp_mpeg1video_mp3.3gp",
+    "command": "ffmpeg -y -i tests/samples/media/001.mp4 -t 3 -c:v mpeg1video -c:a mp3 tests/samples/format_tests/test_0008_3gp_mpeg1video_mp3.3gp"
+  },
+  {
+    "id": 9,
+    "type": "video",
+    "container": "3gp",
+    "video_codec": "mpeg2video",
+    "audio_codec": "aac",
+    "output": "tests/samples/format_tests/test_0009_3gp_mpeg2video_aac.3gp",
+    "command": "ffmpeg -y -i tests/samples/media/001.mp4 -t 3 -c:v mpeg2video -c:a aac tests/samples/format_tests/test_0009_3gp_mpeg2video_aac.3gp"
+  },
+  {
+    "id": 10,
+    "type": "video",
+    "container": "3gp",
+    "video_codec": "mpeg2video",
+    "audio_codec": "ac3",
+    "output": "tests/samples/format_tests/test_0010_3gp_mpeg2video_ac3.3gp",
+    "command": "ffmpeg -y -i tests/samples/media/001.mp4 -t 3 -c:v mpeg2video -c:a ac3 tests/samples/format_tests/test_0010_3gp_mpeg2video_ac3.3gp"
+  },
+  {
+    "id": 11,
+    "type": "video",
+    "container": "3gp",
+    "video_codec": "mpeg2video",
+    "audio_codec": "eac3",
+    "output": "tests/samples/format_tests/test_0011_3gp_mpeg2video_eac3.3gp",
+    "command": "ffmpeg -y -i tests/samples/media/001.mp4 -t 3 -c:v mpeg2video -c:a eac3 tests/samples/format_tests/test_0011_3gp_mpeg2video_eac3.3gp"
+  },
+  {
+    "id": 12,
+    "type": "video",
+    "container": "3gp",
+    "video_codec": "mpeg2video",
+    "audio_codec": "mp3",
+    "output": "tests/samples/format_tests/test_0012_3gp_mpeg2video_mp3.3gp",
+    "command": "ffmpeg -y -i tests/samples/media/001.mp4 -t 3 -c:v mpeg2video -c:a mp3 tests/samples/format_tests/test_0012_3gp_mpeg2video_mp3.3gp"
+  },
+  {
+    "id": 13,
+    "type": "video",
+    "container": "3gp",
+    "video_codec": "mpeg4",
+    "audio_codec": "aac",
+    "output": "tests/samples/format_tests/test_0013_3gp_mpeg4_aac.3gp",
+    "command": "ffmpeg -y -i tests/samples/media/001.mp4 -t 3 -c:v mpeg4 -c:a aac tests/samples/format_tests/test_0013_3gp_mpeg4_aac.3gp"
+  },
+  {
+    "id": 14,
+    "type": "video",
+    "container": "3gp",
+    "video_codec": "mpeg4",
+    "audio_codec": "ac3",
+    "output": "tests/samples/format_tests/test_0014_3gp_mpeg4_ac3.3gp",
+    "command": "ffmpeg -y -i tests/samples/media/001.mp4 -t 3 -c:v mpeg4 -c:a ac3 tests/samples/format_tests/test_0014_3gp_mpeg4_ac3.3gp"
+  },
+  {
+    "id": 15,
+    "type": "video",
+    "container": "3gp",
+    "video_codec": "mpeg4",
+    "audio_codec": "eac3",
+    "output": "tests/samples/format_tests/test_0015_3gp_mpeg4_eac3.3gp",
+    "command": "ffmpeg -y -i tests/samples/media/001.mp4 -t 3 -c:v mpeg4 -c:a eac3 tests/samples/format_tests/test_0015_3gp_mpeg4_eac3.3gp"
+  },
+  {
+    "id": 16,
+    "type": "video",
+    "container": "3gp",
+    "video_codec": "mpeg4",
+    "audio_codec": "mp3",
+    "output": "tests/samples/format_tests/test_0016_3gp_mpeg4_mp3.3gp",
+    "command": "ffmpeg -y -i tests/samples/media/001.mp4 -t 3 -c:v mpeg4 -c:a mp3 tests/samples/format_tests/test_0016_3gp_mpeg4_mp3.3gp"
+  },
+  {
+    "id": 17,
+    "type": "video",
+    "container": "avi",
+    "video_codec": "mjpeg",
+    "audio_codec": "aac",
+    "output": "tests/samples/format_tests/test_0017_avi_mjpeg_aac.avi",
+    "command": "ffmpeg -y -i tests/samples/media/001.mp4 -t 3 -c:v mjpeg -c:a aac tests/samples/format_tests/test_0017_avi_mjpeg_aac.avi"
+  },
+  {
+    "id": 18,
+    "type": "video",
+    "container": "avi",
+    "video_codec": "mjpeg",
+    "audio_codec": "ac3",
+    "output": "tests/samples/format_tests/test_0018_avi_mjpeg_ac3.avi",
+    "command": "ffmpeg -y -i tests/samples/media/001.mp4 -t 3 -c:v mjpeg -c:a ac3 tests/samples/format_tests/test_0018_avi_mjpeg_ac3.avi"
+  },
+  {
+    "id": 19,
+    "type": "video",
+    "container": "avi",
+    "video_codec": "mjpeg",
+    "audio_codec": "eac3",
+    "output": "tests/samples/format_tests/test_0019_avi_mjpeg_eac3.avi",
+    "command": "ffmpeg -y -i tests/samples/media/001.mp4 -t 3 -c:v mjpeg -c:a eac3 tests/samples/format_tests/test_0019_avi_mjpeg_eac3.avi"
+  },
+  {
+    "id": 20,
+    "type": "video",
+    "container": "avi",
+    "video_codec": "mjpeg",
+    "audio_codec": "mp3",
+    "output": "tests/samples/format_tests/test_0020_avi_mjpeg_mp3.avi",
+    "command": "ffmpeg -y -i tests/samples/media/001.mp4 -t 3 -c:v mjpeg -c:a mp3 tests/samples/format_tests/test_0020_avi_mjpeg_mp3.avi"
+  },
+  {
+    "id": 21,
+    "type": "video",
+    "container": "avi",
+    "video_codec": "mpeg1video",
+    "audio_codec": "aac",
+    "output": "tests/samples/format_tests/test_0021_avi_mpeg1video_aac.avi",
+    "command": "ffmpeg -y -i tests/samples/media/001.mp4 -t 3 -c:v mpeg1video -c:a aac tests/samples/format_tests/test_0021_avi_mpeg1video_aac.avi"
+  },
+  {
+    "id": 22,
+    "type": "video",
+    "container": "avi",
+    "video_codec": "mpeg1video",
+    "audio_codec": "ac3",
+    "output": "tests/samples/format_tests/test_0022_avi_mpeg1video_ac3.avi",
+    "command": "ffmpeg -y -i tests/samples/media/001.mp4 -t 3 -c:v mpeg1video -c:a ac3 tests/samples/format_tests/test_0022_avi_mpeg1video_ac3.avi"
+  },
+  {
+    "id": 23,
+    "type": "video",
+    "container": "avi",
+    "video_codec": "mpeg1video",
+    "audio_codec": "eac3",
+    "output": "tests/samples/format_tests/test_0023_avi_mpeg1video_eac3.avi",
+    "command": "ffmpeg -y -i tests/samples/media/001.mp4 -t 3 -c:v mpeg1video -c:a eac3 tests/samples/format_tests/test_0023_avi_mpeg1video_eac3.avi"
+  },
+  {
+    "id": 24,
+    "type": "video",
+    "container": "avi",
+    "video_codec": "mpeg1video",
+    "audio_codec": "mp3",
+    "output": "tests/samples/format_tests/test_0024_avi_mpeg1video_mp3.avi",
+    "command": "ffmpeg -y -i tests/samples/media/001.mp4 -t 3 -c:v mpeg1video -c:a mp3 tests/samples/format_tests/test_0024_avi_mpeg1video_mp3.avi"
+  },
+  {
+    "id": 25,
+    "type": "video",
+    "container": "avi",
+    "video_codec": "mpeg2video",
+    "audio_codec": "aac",
+    "output": "tests/samples/format_tests/test_0025_avi_mpeg2video_aac.avi",
+    "command": "ffmpeg -y -i tests/samples/media/001.mp4 -t 3 -c:v mpeg2video -c:a aac tests/samples/format_tests/test_0025_avi_mpeg2video_aac.avi"
+  },
+  {
+    "id": 26,
+    "type": "video",
+    "container": "avi",
+    "video_codec": "mpeg2video",
+    "audio_codec": "ac3",
+    "output": "tests/samples/format_tests/test_0026_avi_mpeg2video_ac3.avi",
+    "command": "ffmpeg -y -i tests/samples/media/001.mp4 -t 3 -c:v mpeg2video -c:a ac3 tests/samples/format_tests/test_0026_avi_mpeg2video_ac3.avi"
+  },
+  {
+    "id": 27,
+    "type": "video",
+    "container": "avi",
+    "video_codec": "mpeg2video",
+    "audio_codec": "eac3",
+    "output": "tests/samples/format_tests/test_0027_avi_mpeg2video_eac3.avi",
+    "command": "ffmpeg -y -i tests/samples/media/001.mp4 -t 3 -c:v mpeg2video -c:a eac3 tests/samples/format_tests/test_0027_avi_mpeg2video_eac3.avi"
+  },
+  {
+    "id": 28,
+    "type": "video",
+    "container": "avi",
+    "video_codec": "mpeg2video",
+    "audio_codec": "mp3",
+    "output": "tests/samples/format_tests/test_0028_avi_mpeg2video_mp3.avi",
+    "command": "ffmpeg -y -i tests/samples/media/001.mp4 -t 3 -c:v mpeg2video -c:a mp3 tests/samples/format_tests/test_0028_avi_mpeg2video_mp3.avi"
+  },
+  {
+    "id": 29,
+    "type": "video",
+    "container": "avi",
+    "video_codec": "mpeg4",
+    "audio_codec": "aac",
+    "output": "tests/samples/format_tests/test_0029_avi_mpeg4_aac.avi",
+    "command": "ffmpeg -y -i tests/samples/media/001.mp4 -t 3 -c:v mpeg4 -c:a aac tests/samples/format_tests/test_0029_avi_mpeg4_aac.avi"
+  },
+  {
+    "id": 30,
+    "type": "video",
+    "container": "avi",
+    "video_codec": "mpeg4",
+    "audio_codec": "ac3",
+    "output": "tests/samples/format_tests/test_0030_avi_mpeg4_ac3.avi",
+    "command": "ffmpeg -y -i tests/samples/media/001.mp4 -t 3 -c:v mpeg4 -c:a ac3 tests/samples/format_tests/test_0030_avi_mpeg4_ac3.avi"
+  },
+  {
+    "id": 31,
+    "type": "video",
+    "container": "avi",
+    "video_codec": "mpeg4",
+    "audio_codec": "eac3",
+    "output": "tests/samples/format_tests/test_0031_avi_mpeg4_eac3.avi",
+    "command": "ffmpeg -y -i tests/samples/media/001.mp4 -t 3 -c:v mpeg4 -c:a eac3 tests/samples/format_tests/test_0031_avi_mpeg4_eac3.avi"
+  },
+  {
+    "id": 32,
+    "type": "video",
+    "container": "avi",
+    "video_codec": "mpeg4",
+    "audio_codec": "mp3",
+    "output": "tests/samples/format_tests/test_0032_avi_mpeg4_mp3.avi",
+    "command": "ffmpeg -y -i tests/samples/media/001.mp4 -t 3 -c:v mpeg4 -c:a mp3 tests/samples/format_tests/test_0032_avi_mpeg4_mp3.avi"
+  },
+  {
+    "id": 33,
+    "type": "video",
+    "container": "mov",
+    "video_codec": "mjpeg",
+    "audio_codec": "aac",
+    "output": "tests/samples/format_tests/test_0033_mov_mjpeg_aac.mov",
+    "command": "ffmpeg -y -i tests/samples/media/001.mp4 -t 3 -c:v mjpeg -c:a aac tests/samples/format_tests/test_0033_mov_mjpeg_aac.mov"
+  },
+  {
+    "id": 34,
+    "type": "video",
+    "container": "mov",
+    "video_codec": "mjpeg",
+    "audio_codec": "ac3",
+    "output": "tests/samples/format_tests/test_0034_mov_mjpeg_ac3.mov",
+    "command": "ffmpeg -y -i tests/samples/media/001.mp4 -t 3 -c:v mjpeg -c:a ac3 tests/samples/format_tests/test_0034_mov_mjpeg_ac3.mov"
+  },
+  {
+    "id": 35,
+    "type": "video",
+    "container": "mov",
+    "video_codec": "mjpeg",
+    "audio_codec": "eac3",
+    "output": "tests/samples/format_tests/test_0035_mov_mjpeg_eac3.mov",
+    "command": "ffmpeg -y -i tests/samples/media/001.mp4 -t 3 -c:v mjpeg -c:a eac3 tests/samples/format_tests/test_0035_mov_mjpeg_eac3.mov"
+  },
+  {
+    "id": 36,
+    "type": "video",
+    "container": "mov",
+    "video_codec": "mjpeg",
+    "audio_codec": "mp3",
+    "output": "tests/samples/format_tests/test_0036_mov_mjpeg_mp3.mov",
+    "command": "ffmpeg -y -i tests/samples/media/001.mp4 -t 3 -c:v mjpeg -c:a mp3 tests/samples/format_tests/test_0036_mov_mjpeg_mp3.mov"
+  },
+  {
+    "id": 37,
+    "type": "video",
+    "container": "mov",
+    "video_codec": "mpeg2video",
+    "audio_codec": "aac",
+    "output": "tests/samples/format_tests/test_0037_mov_mpeg2video_aac.mov",
+    "command": "ffmpeg -y -i tests/samples/media/001.mp4 -t 3 -c:v mpeg2video -c:a aac tests/samples/format_tests/test_0037_mov_mpeg2video_aac.mov"
+  },
+  {
+    "id": 38,
+    "type": "video",
+    "container": "mov",
+    "video_codec": "mpeg2video",
+    "audio_codec": "ac3",
+    "output": "tests/samples/format_tests/test_0038_mov_mpeg2video_ac3.mov",
+    "command": "ffmpeg -y -i tests/samples/media/001.mp4 -t 3 -c:v mpeg2video -c:a ac3 tests/samples/format_tests/test_0038_mov_mpeg2video_ac3.mov"
+  },
+  {
+    "id": 39,
+    "type": "video",
+    "container": "mov",
+    "video_codec": "mpeg2video",
+    "audio_codec": "eac3",
+    "output": "tests/samples/format_tests/test_0039_mov_mpeg2video_eac3.mov",
+    "command": "ffmpeg -y -i tests/samples/media/001.mp4 -t 3 -c:v mpeg2video -c:a eac3 tests/samples/format_tests/test_0039_mov_mpeg2video_eac3.mov"
+  },
+  {
+    "id": 40,
+    "type": "video",
+    "container": "mov",
+    "video_codec": "mpeg2video",
+    "audio_codec": "mp3",
+    "output": "tests/samples/format_tests/test_0040_mov_mpeg2video_mp3.mov",
+    "command": "ffmpeg -y -i tests/samples/media/001.mp4 -t 3 -c:v mpeg2video -c:a mp3 tests/samples/format_tests/test_0040_mov_mpeg2video_mp3.mov"
+  },
+  {
+    "id": 41,
+    "type": "video",
+    "container": "mov",
+    "video_codec": "mpeg4",
+    "audio_codec": "aac",
+    "output": "tests/samples/format_tests/test_0041_mov_mpeg4_aac.mov",
+    "command": "ffmpeg -y -i tests/samples/media/001.mp4 -t 3 -c:v mpeg4 -c:a aac tests/samples/format_tests/test_0041_mov_mpeg4_aac.mov"
+  },
+  {
+    "id": 42,
+    "type": "video",
+    "container": "mov",
+    "video_codec": "mpeg4",
+    "audio_codec": "ac3",
+    "output": "tests/samples/format_tests/test_0042_mov_mpeg4_ac3.mov",
+    "command": "ffmpeg -y -i tests/samples/media/001.mp4 -t 3 -c:v mpeg4 -c:a ac3 tests/samples/format_tests/test_0042_mov_mpeg4_ac3.mov"
+  },
+  {
+    "id": 43,
+    "type": "video",
+    "container": "mov",
+    "video_codec": "mpeg4",
+    "audio_codec": "eac3",
+    "output": "tests/samples/format_tests/test_0043_mov_mpeg4_eac3.mov",
+    "command": "ffmpeg -y -i tests/samples/media/001.mp4 -t 3 -c:v mpeg4 -c:a eac3 tests/samples/format_tests/test_0043_mov_mpeg4_eac3.mov"
+  },
+  {
+    "id": 44,
+    "type": "video",
+    "container": "mov",
+    "video_codec": "mpeg4",
+    "audio_codec": "mp3",
+    "output": "tests/samples/format_tests/test_0044_mov_mpeg4_mp3.mov",
+    "command": "ffmpeg -y -i tests/samples/media/001.mp4 -t 3 -c:v mpeg4 -c:a mp3 tests/samples/format_tests/test_0044_mov_mpeg4_mp3.mov"
+  },
+  {
+    "id": 45,
+    "type": "video",
+    "container": "mp4",
+    "video_codec": "mjpeg",
+    "audio_codec": "aac",
+    "output": "tests/samples/format_tests/test_0045_mp4_mjpeg_aac.mp4",
+    "command": "ffmpeg -y -i tests/samples/media/001.mp4 -t 3 -c:v mjpeg -c:a aac tests/samples/format_tests/test_0045_mp4_mjpeg_aac.mp4"
+  },
+  {
+    "id": 46,
+    "type": "video",
+    "container": "mp4",
+    "video_codec": "mjpeg",
+    "audio_codec": "ac3",
+    "output": "tests/samples/format_tests/test_0046_mp4_mjpeg_ac3.mp4",
+    "command": "ffmpeg -y -i tests/samples/media/001.mp4 -t 3 -c:v mjpeg -c:a ac3 tests/samples/format_tests/test_0046_mp4_mjpeg_ac3.mp4"
+  },
+  {
+    "id": 47,
+    "type": "video",
+    "container": "mp4",
+    "video_codec": "mjpeg",
+    "audio_codec": "eac3",
+    "output": "tests/samples/format_tests/test_0047_mp4_mjpeg_eac3.mp4",
+    "command": "ffmpeg -y -i tests/samples/media/001.mp4 -t 3 -c:v mjpeg -c:a eac3 tests/samples/format_tests/test_0047_mp4_mjpeg_eac3.mp4"
+  },
+  {
+    "id": 48,
+    "type": "video",
+    "container": "mp4",
+    "video_codec": "mjpeg",
+    "audio_codec": "mp3",
+    "output": "tests/samples/format_tests/test_0048_mp4_mjpeg_mp3.mp4",
+    "command": "ffmpeg -y -i tests/samples/media/001.mp4 -t 3 -c:v mjpeg -c:a mp3 tests/samples/format_tests/test_0048_mp4_mjpeg_mp3.mp4"
+  },
+  {
+    "id": 49,
+    "type": "video",
+    "container": "mp4",
+    "video_codec": "mpeg2video",
+    "audio_codec": "aac",
+    "output": "tests/samples/format_tests/test_0049_mp4_mpeg2video_aac.mp4",
+    "command": "ffmpeg -y -i tests/samples/media/001.mp4 -t 3 -c:v mpeg2video -c:a aac tests/samples/format_tests/test_0049_mp4_mpeg2video_aac.mp4"
+  },
+  {
+    "id": 50,
+    "type": "video",
+    "container": "mp4",
+    "video_codec": "mpeg2video",
+    "audio_codec": "ac3",
+    "output": "tests/samples/format_tests/test_0050_mp4_mpeg2video_ac3.mp4",
+    "command": "ffmpeg -y -i tests/samples/media/001.mp4 -t 3 -c:v mpeg2video -c:a ac3 tests/samples/format_tests/test_0050_mp4_mpeg2video_ac3.mp4"
+  },
+  {
+    "id": 51,
+    "type": "video",
+    "container": "mp4",
+    "video_codec": "mpeg2video",
+    "audio_codec": "eac3",
+    "output": "tests/samples/format_tests/test_0051_mp4_mpeg2video_eac3.mp4",
+    "command": "ffmpeg -y -i tests/samples/media/001.mp4 -t 3 -c:v mpeg2video -c:a eac3 tests/samples/format_tests/test_0051_mp4_mpeg2video_eac3.mp4"
+  },
+  {
+    "id": 52,
+    "type": "video",
+    "container": "mp4",
+    "video_codec": "mpeg2video",
+    "audio_codec": "mp3",
+    "output": "tests/samples/format_tests/test_0052_mp4_mpeg2video_mp3.mp4",
+    "command": "ffmpeg -y -i tests/samples/media/001.mp4 -t 3 -c:v mpeg2video -c:a mp3 tests/samples/format_tests/test_0052_mp4_mpeg2video_mp3.mp4"
+  },
+  {
+    "id": 53,
+    "type": "video",
+    "container": "mp4",
+    "video_codec": "mpeg4",
+    "audio_codec": "aac",
+    "output": "tests/samples/format_tests/test_0053_mp4_mpeg4_aac.mp4",
+    "command": "ffmpeg -y -i tests/samples/media/001.mp4 -t 3 -c:v mpeg4 -c:a aac tests/samples/format_tests/test_0053_mp4_mpeg4_aac.mp4"
+  },
+  {
+    "id": 54,
+    "type": "video",
+    "container": "mp4",
+    "video_codec": "mpeg4",
+    "audio_codec": "ac3",
+    "output": "tests/samples/format_tests/test_0054_mp4_mpeg4_ac3.mp4",
+    "command": "ffmpeg -y -i tests/samples/media/001.mp4 -t 3 -c:v mpeg4 -c:a ac3 tests/samples/format_tests/test_0054_mp4_mpeg4_ac3.mp4"
+  },
+  {
+    "id": 55,
+    "type": "video",
+    "container": "mp4",
+    "video_codec": "mpeg4",
+    "audio_codec": "eac3",
+    "output": "tests/samples/format_tests/test_0055_mp4_mpeg4_eac3.mp4",
+    "command": "ffmpeg -y -i tests/samples/media/001.mp4 -t 3 -c:v mpeg4 -c:a eac3 tests/samples/format_tests/test_0055_mp4_mpeg4_eac3.mp4"
+  },
+  {
+    "id": 56,
+    "type": "video",
+    "container": "mp4",
+    "video_codec": "mpeg4",
+    "audio_codec": "mp3",
+    "output": "tests/samples/format_tests/test_0056_mp4_mpeg4_mp3.mp4",
+    "command": "ffmpeg -y -i tests/samples/media/001.mp4 -t 3 -c:v mpeg4 -c:a mp3 tests/samples/format_tests/test_0056_mp4_mpeg4_mp3.mp4"
+  },
+  {
+    "id": 57,
+    "type": "video_pixfmt",
+    "container": "mp4",
+    "video_codec": "libx264",
+    "pix_fmt": "yuv420p",
+    "output": "tests/samples/format_tests/test_0057_pixfmt_yuv420p.mp4",
+    "command": "ffmpeg -y -i tests/samples/media/001.mp4 -t 3 -c:v libx264 -pix_fmt yuv420p -c:a aac -preset ultrafast tests/samples/format_tests/test_0057_pixfmt_yuv420p.mp4"
+  },
+  {
+    "id": 58,
+    "type": "video_pixfmt",
+    "container": "mp4",
+    "video_codec": "libx264",
+    "pix_fmt": "yuv422p",
+    "output": "tests/samples/format_tests/test_0058_pixfmt_yuv422p.mp4",
+    "command": "ffmpeg -y -i tests/samples/media/001.mp4 -t 3 -c:v libx264 -pix_fmt yuv422p -c:a aac -preset ultrafast tests/samples/format_tests/test_0058_pixfmt_yuv422p.mp4"
+  },
+  {
+    "id": 59,
+    "type": "video_pixfmt",
+    "container": "mp4",
+    "video_codec": "libx264",
+    "pix_fmt": "yuv444p",
+    "output": "tests/samples/format_tests/test_0059_pixfmt_yuv444p.mp4",
+    "command": "ffmpeg -y -i tests/samples/media/001.mp4 -t 3 -c:v libx264 -pix_fmt yuv444p -c:a aac -preset ultrafast tests/samples/format_tests/test_0059_pixfmt_yuv444p.mp4"
+  },
+  {
+    "id": 60,
+    "type": "video_pixfmt",
+    "container": "mp4",
+    "video_codec": "libx264",
+    "pix_fmt": "yuv420p10le",
+    "output": "tests/samples/format_tests/test_0060_pixfmt_yuv420p10le.mp4",
+    "command": "ffmpeg -y -i tests/samples/media/001.mp4 -t 3 -c:v libx264 -pix_fmt yuv420p10le -c:a aac -preset ultrafast tests/samples/format_tests/test_0060_pixfmt_yuv420p10le.mp4"
+  },
+  {
+    "id": 61,
+    "type": "video_pixfmt",
+    "container": "mp4",
+    "video_codec": "libx264",
+    "pix_fmt": "yuv422p10le",
+    "output": "tests/samples/format_tests/test_0061_pixfmt_yuv422p10le.mp4",
+    "command": "ffmpeg -y -i tests/samples/media/001.mp4 -t 3 -c:v libx264 -pix_fmt yuv422p10le -c:a aac -preset ultrafast tests/samples/format_tests/test_0061_pixfmt_yuv422p10le.mp4"
+  },
+  {
+    "id": 62,
+    "type": "video_pixfmt",
+    "container": "mp4",
+    "video_codec": "libx264",
+    "pix_fmt": "yuv444p10le",
+    "output": "tests/samples/format_tests/test_0062_pixfmt_yuv444p10le.mp4",
+    "command": "ffmpeg -y -i tests/samples/media/001.mp4 -t 3 -c:v libx264 -pix_fmt yuv444p10le -c:a aac -preset ultrafast tests/samples/format_tests/test_0062_pixfmt_yuv444p10le.mp4"
+  },
+  {
+    "id": 63,
+    "type": "video_pixfmt",
+    "container": "mp4",
+    "video_codec": "libx264",
+    "pix_fmt": "yuv420p12le",
+    "output": "tests/samples/format_tests/test_0063_pixfmt_yuv420p12le.mp4",
+    "command": "ffmpeg -y -i tests/samples/media/001.mp4 -t 3 -c:v libx264 -pix_fmt yuv420p12le -c:a aac -preset ultrafast tests/samples/format_tests/test_0063_pixfmt_yuv420p12le.mp4"
+  },
+  {
+    "id": 64,
+    "type": "video_pixfmt",
+    "container": "mp4",
+    "video_codec": "libx264",
+    "pix_fmt": "rgb24",
+    "output": "tests/samples/format_tests/test_0064_pixfmt_rgb24.mp4",
+    "command": "ffmpeg -y -i tests/samples/media/001.mp4 -t 3 -c:v libx264 -pix_fmt rgb24 -c:a aac -preset ultrafast tests/samples/format_tests/test_0064_pixfmt_rgb24.mp4"
+  },
+  {
+    "id": 65,
+    "type": "video_pixfmt",
+    "container": "mp4",
+    "video_codec": "libx264",
+    "pix_fmt": "rgba",
+    "output": "tests/samples/format_tests/test_0065_pixfmt_rgba.mp4",
+    "command": "ffmpeg -y -i tests/samples/media/001.mp4 -t 3 -c:v libx264 -pix_fmt rgba -c:a aac -preset ultrafast tests/samples/format_tests/test_0065_pixfmt_rgba.mp4"
+  },
+  {
+    "id": 66,
+    "type": "video_pixfmt",
+    "container": "mp4",
+    "video_codec": "libx264",
+    "pix_fmt": "bgr24",
+    "output": "tests/samples/format_tests/test_0066_pixfmt_bgr24.mp4",
+    "command": "ffmpeg -y -i tests/samples/media/001.mp4 -t 3 -c:v libx264 -pix_fmt bgr24 -c:a aac -preset ultrafast tests/samples/format_tests/test_0066_pixfmt_bgr24.mp4"
+  },
+  {
+    "id": 67,
+    "type": "audio_samplerate",
+    "sample_rate": 8000,
+    "output": "tests/samples/format_tests/test_0067_audio_8000hz.mp4",
+    "command": "ffmpeg -y -i tests/samples/media/001.mp4 -t 3 -c:v libx264 -c:a aac -ar 8000 -preset ultrafast tests/samples/format_tests/test_0067_audio_8000hz.mp4"
+  },
+  {
+    "id": 68,
+    "type": "audio_samplerate",
+    "sample_rate": 16000,
+    "output": "tests/samples/format_tests/test_0068_audio_16000hz.mp4",
+    "command": "ffmpeg -y -i tests/samples/media/001.mp4 -t 3 -c:v libx264 -c:a aac -ar 16000 -preset ultrafast tests/samples/format_tests/test_0068_audio_16000hz.mp4"
+  },
+  {
+    "id": 69,
+    "type": "audio_samplerate",
+    "sample_rate": 22050,
+    "output": "tests/samples/format_tests/test_0069_audio_22050hz.mp4",
+    "command": "ffmpeg -y -i tests/samples/media/001.mp4 -t 3 -c:v libx264 -c:a aac -ar 22050 -preset ultrafast tests/samples/format_tests/test_0069_audio_22050hz.mp4"
+  },
+  {
+    "id": 70,
+    "type": "audio_samplerate",
+    "sample_rate": 44100,
+    "output": "tests/samples/format_tests/test_0070_audio_44100hz.mp4",
+    "command": "ffmpeg -y -i tests/samples/media/001.mp4 -t 3 -c:v libx264 -c:a aac -ar 44100 -preset ultrafast tests/samples/format_tests/test_0070_audio_44100hz.mp4"
+  },
+  {
+    "id": 71,
+    "type": "audio_samplerate",
+    "sample_rate": 48000,
+    "output": "tests/samples/format_tests/test_0071_audio_48000hz.mp4",
+    "command": "ffmpeg -y -i tests/samples/media/001.mp4 -t 3 -c:v libx264 -c:a aac -ar 48000 -preset ultrafast tests/samples/format_tests/test_0071_audio_48000hz.mp4"
+  },
+  {
+    "id": 72,
+    "type": "audio_samplerate",
+    "sample_rate": 96000,
+    "output": "tests/samples/format_tests/test_0072_audio_96000hz.mp4",
+    "command": "ffmpeg -y -i tests/samples/media/001.mp4 -t 3 -c:v libx264 -c:a aac -ar 96000 -preset ultrafast tests/samples/format_tests/test_0072_audio_96000hz.mp4"
+  },
+  {
+    "id": 1,
+    "type": "image",
+    "format": "png",
+    "options": "-compression_level 0",
+    "output": "tests/samples/format_tests/test_0001_img_png_compression_level_0.png",
+    "command": "ffmpeg -y -i tests/samples/media/463108291_3854235968172130_2760581135168458128_n.jpg -vframes 1 -compression_level 0 tests/samples/format_tests/test_0001_img_png_compression_level_0.png"
+  },
+  {
+    "id": 2,
+    "type": "image",
+    "format": "png",
+    "options": "-compression_level 9",
+    "output": "tests/samples/format_tests/test_0002_img_png_compression_level_9.png",
+    "command": "ffmpeg -y -i tests/samples/media/463108291_3854235968172130_2760581135168458128_n.jpg -vframes 1 -compression_level 9 tests/samples/format_tests/test_0002_img_png_compression_level_9.png"
+  },
+  {
+    "id": 3,
+    "type": "image",
+    "format": "jpeg",
+    "options": "-q:v 2",
+    "output": "tests/samples/format_tests/test_0003_img_jpeg_q_v_2.jpg",
+    "command": "ffmpeg -y -i tests/samples/media/463108291_3854235968172130_2760581135168458128_n.jpg -vframes 1 -q:v 2 tests/samples/format_tests/test_0003_img_jpeg_q_v_2.jpg"
+  },
+  {
+    "id": 4,
+    "type": "image",
+    "format": "jpeg",
+    "options": "-q:v 10",
+    "output": "tests/samples/format_tests/test_0004_img_jpeg_q_v_10.jpg",
+    "command": "ffmpeg -y -i tests/samples/media/463108291_3854235968172130_2760581135168458128_n.jpg -vframes 1 -q:v 10 tests/samples/format_tests/test_0004_img_jpeg_q_v_10.jpg"
+  },
+  {
+    "id": 5,
+    "type": "image",
+    "format": "jpeg",
+    "options": "-q:v 31",
+    "output": "tests/samples/format_tests/test_0005_img_jpeg_q_v_31.jpg",
+    "command": "ffmpeg -y -i tests/samples/media/463108291_3854235968172130_2760581135168458128_n.jpg -vframes 1 -q:v 31 tests/samples/format_tests/test_0005_img_jpeg_q_v_31.jpg"
+  },
+  {
+    "id": 6,
+    "type": "image",
+    "format": "tiff",
+    "options": "-compression none",
+    "output": "tests/samples/format_tests/test_0006_img_tiff_compression_none.tiff",
+    "command": "ffmpeg -y -i tests/samples/media/463108291_3854235968172130_2760581135168458128_n.jpg -vframes 1 -compression none tests/samples/format_tests/test_0006_img_tiff_compression_none.tiff"
+  },
+  {
+    "id": 7,
+    "type": "image",
+    "format": "tiff",
+    "options": "-compression lzw",
+    "output": "tests/samples/format_tests/test_0007_img_tiff_compression_lzw.tiff",
+    "command": "ffmpeg -y -i tests/samples/media/463108291_3854235968172130_2760581135168458128_n.jpg -vframes 1 -compression lzw tests/samples/format_tests/test_0007_img_tiff_compression_lzw.tiff"
+  },
+  {
+    "id": 8,
+    "type": "image",
+    "format": "tiff",
+    "options": "-compression deflate",
+    "output": "tests/samples/format_tests/test_0008_img_tiff_compression_deflate.tiff",
+    "command": "ffmpeg -y -i tests/samples/media/463108291_3854235968172130_2760581135168458128_n.jpg -vframes 1 -compression deflate tests/samples/format_tests/test_0008_img_tiff_compression_deflate.tiff"
+  },
+  {
+    "id": 9,
+    "type": "image",
+    "format": "bmp",
+    "options": "",
+    "output": "tests/samples/format_tests/test_0009_img_bmp_default.bmp",
+    "command": "ffmpeg -y -i tests/samples/media/463108291_3854235968172130_2760581135168458128_n.jpg -vframes 1 tests/samples/format_tests/test_0009_img_bmp_default.bmp"
+  },
+  {
+    "id": 10,
+    "type": "image",
+    "format": "webp",
+    "options": "-lossless 0 -q:v 75",
+    "output": "tests/samples/format_tests/test_0010_img_webp_lossless_0_q_v_75.webp",
+    "command": "ffmpeg -y -i tests/samples/media/463108291_3854235968172130_2760581135168458128_n.jpg -vframes 1 -lossless 0 -q:v 75 tests/samples/format_tests/test_0010_img_webp_lossless_0_q_v_75.webp"
+  },
+  {
+    "id": 11,
+    "type": "image",
+    "format": "webp",
+    "options": "-lossless 1",
+    "output": "tests/samples/format_tests/test_0011_img_webp_lossless_1.webp",
+    "command": "ffmpeg -y -i tests/samples/media/463108291_3854235968172130_2760581135168458128_n.jpg -vframes 1 -lossless 1 tests/samples/format_tests/test_0011_img_webp_lossless_1.webp"
+  },
+  {
+    "id": 12,
+    "type": "image",
+    "format": "gif",
+    "options": "",
+    "output": "tests/samples/format_tests/test_0012_img_gif_default.gif",
+    "command": "ffmpeg -y -i tests/samples/media/463108291_3854235968172130_2760581135168458128_n.jpg -vframes 1 tests/samples/format_tests/test_0012_img_gif_default.gif"
+  },
+  {
+    "id": 13,
+    "type": "image",
+    "format": "avif",
+    "options": "-crf 23",
+    "output": "tests/samples/format_tests/test_0013_img_avif_crf_23.avif",
+    "command": "ffmpeg -y -i tests/samples/media/463108291_3854235968172130_2760581135168458128_n.jpg -vframes 1 -crf 23 tests/samples/format_tests/test_0013_img_avif_crf_23.avif"
+  },
+  {
+    "id": 14,
+    "type": "image",
+    "format": "avif",
+    "options": "-crf 40",
+    "output": "tests/samples/format_tests/test_0014_img_avif_crf_40.avif",
+    "command": "ffmpeg -y -i tests/samples/media/463108291_3854235968172130_2760581135168458128_n.jpg -vframes 1 -crf 40 tests/samples/format_tests/test_0014_img_avif_crf_40.avif"
+  }
+]

@@ -435,6 +435,7 @@ def main():
     except Exception as e:
         print(f"\n✗ JPEG no extension test FAILED: {e}")
         import traceback
+
         traceback.print_exc()
         results.append(("JPEG without extension → .jpg", False))
 
@@ -443,6 +444,7 @@ def main():
     except Exception as e:
         print(f"\n✗ JPEG .tiff test FAILED: {e}")
         import traceback
+
         traceback.print_exc()
         results.append(("JPEG with .tiff → .jpg", False))
 
@@ -451,6 +453,7 @@ def main():
     except Exception as e:
         print(f"\n✗ JPEG .tif test FAILED: {e}")
         import traceback
+
         traceback.print_exc()
         results.append(("JPEG with .tif → .jpg", False))
 
@@ -459,6 +462,7 @@ def main():
     except Exception as e:
         print(f"\n✗ PNG .jpeg test FAILED: {e}")
         import traceback
+
         traceback.print_exc()
         results.append(("PNG with .jpeg → .png", False))
 
@@ -467,6 +471,7 @@ def main():
     except Exception as e:
         print(f"\n✗ GIF .jpg test FAILED: {e}")
         import traceback
+
         traceback.print_exc()
         results.append(("GIF with .jpg → .gif", False))
 
@@ -475,6 +480,7 @@ def main():
     except Exception as e:
         print(f"\n✗ Correct extensions test FAILED: {e}")
         import traceback
+
         traceback.print_exc()
         results.append(("Correct extensions preserved", False))
 
@@ -483,6 +489,7 @@ def main():
     except Exception as e:
         print(f"\n✗ Batch correction test FAILED: {e}")
         import traceback
+
         traceback.print_exc()
         results.append(("Batch correction", False))
 

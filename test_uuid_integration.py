@@ -11,6 +11,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 
 from smart_media_manager import format_registry
 
+
 def test_file(filepath: Path):
     """Test UUID-based detection on a file."""
     print(f"\nTesting: {filepath.name}")
@@ -62,6 +63,7 @@ def test_file(filepath: Path):
             print(f"  Compatible: {format_registry.is_apple_photos_compatible(uuid)}")
             print(f"  Needs conversion: {format_registry.needs_conversion(uuid)}")
 
+
 def main():
     samples_dir = Path("tests/samples/media")
 
@@ -94,6 +96,7 @@ def main():
     print("=" * 60)
 
     return 0
+
 
 if __name__ == "__main__":
     sys.exit(main())

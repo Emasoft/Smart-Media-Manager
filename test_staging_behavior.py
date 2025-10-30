@@ -154,7 +154,7 @@ def test_move_to_staging_moves_file():
         assert media.stage_path.exists(), "Staged file should exist"
         assert not source_file.exists(), "Source file should no longer exist (moved, not copied)"
 
-        print(f"✓ Source file moved (not copied)")
+        print("✓ Source file moved (not copied)")
         print(f"✓ Staged at: {media.stage_path}")
 
         return True
@@ -205,8 +205,8 @@ def test_move_to_staging_handles_name_collision():
         # Original file should still exist (collision prevented move)
         assert (staging_dir / "photo.jpg").exists(), "Original file should still exist"
 
-        print(f"✓ Collision detected")
-        print(f"✓ Original:  photo.jpg")
+        print("✓ Collision detected")
+        print("✓ Original:  photo.jpg")
         print(f"✓ Unique:    {media.stage_path.name}")
 
         return True
@@ -369,6 +369,7 @@ def main():
     except Exception as e:
         print(f"\n✗ Preserve filename test FAILED: {e}")
         import traceback
+
         traceback.print_exc()
         results.append(("Preserves safe filename", False))
 
@@ -377,6 +378,7 @@ def main():
     except Exception as e:
         print(f"\n✗ Create directory test FAILED: {e}")
         import traceback
+
         traceback.print_exc()
         results.append(("Creates staging directory", False))
 
@@ -385,6 +387,7 @@ def main():
     except Exception as e:
         print(f"\n✗ Move file test FAILED: {e}")
         import traceback
+
         traceback.print_exc()
         results.append(("Moves file (not copy)", False))
 
@@ -393,6 +396,7 @@ def main():
     except Exception as e:
         print(f"\n✗ Name collision test FAILED: {e}")
         import traceback
+
         traceback.print_exc()
         results.append(("Handles name collision", False))
 
@@ -401,6 +405,7 @@ def main():
     except Exception as e:
         print(f"\n✗ Subdirectory test FAILED: {e}")
         import traceback
+
         traceback.print_exc()
         results.append(("Files from subdirectories", False))
 
@@ -409,6 +414,7 @@ def main():
     except Exception as e:
         print(f"\n✗ Content preservation test FAILED: {e}")
         import traceback
+
         traceback.print_exc()
         results.append(("Preserves file content", False))
 
@@ -417,6 +423,7 @@ def main():
     except Exception as e:
         print(f"\n✗ MediaFile update test FAILED: {e}")
         import traceback
+
         traceback.print_exc()
         results.append(("Updates MediaFile object", False))
 

@@ -1,6 +1,6 @@
 [project]
 name = "smart-media-manager"
-version = "0.4.0"
+version = "0.4.4"
 description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12"
@@ -28,6 +28,9 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
 include = ["smart_media_manager"]
+
+[tool.setuptools.package-data]
+smart_media_manager = ["*.json"]
 
 [tool.uv]
 default-groups = ["dev"]

@@ -37,7 +37,7 @@ def test_stem_needs_sanitization_safe_names():
         # Call ACTUAL function
         result = stem_needs_sanitization(stem)
 
-        if result == False:  # Expected: does NOT need sanitization
+        if not result:  # Expected: does NOT need sanitization
             passed += 1
             print(f"✓ {description}: '{stem}' - Safe (no sanitization needed)")
         else:
@@ -73,7 +73,7 @@ def test_stem_needs_sanitization_unsafe_names():
         # Call ACTUAL function
         result = stem_needs_sanitization(stem)
 
-        if result == True:  # Expected: DOES need sanitization
+        if result:  # Expected: DOES need sanitization
             passed += 1
             print(f"✓ {description} - Correctly flagged as needing sanitization")
         else:
@@ -150,7 +150,7 @@ def test_build_safe_stem_uniqueness():
         return True
     else:
         print(f"\n✗ FAILED: Only {len(unique_stems)} unique stems from {len(stems)} generations")
-        print(f"  Duplicates found!")
+        print("  Duplicates found!")
         return False
 
 
@@ -200,10 +200,10 @@ def test_build_safe_stem_empty_input():
     print(f"Empty input result: '{result}'")
 
     if not needs_sanitization and len(result) > 0:
-        print(f"✓ Empty input handled gracefully, generated safe stem")
+        print("✓ Empty input handled gracefully, generated safe stem")
         return True
     else:
-        print(f"✗ FAILED: Empty input produced invalid result")
+        print("✗ FAILED: Empty input produced invalid result")
         return False
 
 
@@ -263,10 +263,10 @@ def test_build_safe_stem_run_token_fragment():
 
     # Verify ACTUAL behavior - different run tokens should produce different results
     if result1 != result2:
-        print(f"\n✓ Different run tokens produce unique stems")
+        print("\n✓ Different run tokens produce unique stems")
         return True
     else:
-        print(f"\n✗ FAILED: Different run tokens produced same stem")
+        print("\n✗ FAILED: Different run tokens produced same stem")
         return False
 
 
@@ -283,6 +283,7 @@ def main():
     except Exception as e:
         print(f"\n✗ Safe names test FAILED: {e}")
         import traceback
+
         traceback.print_exc()
         results.append(("stem_needs_sanitization - Safe names", False))
 
@@ -291,6 +292,7 @@ def main():
     except Exception as e:
         print(f"\n✗ Unsafe names test FAILED: {e}")
         import traceback
+
         traceback.print_exc()
         results.append(("stem_needs_sanitization - Unsafe names", False))
 
@@ -299,6 +301,7 @@ def main():
     except Exception as e:
         print(f"\n✗ Basic functionality test FAILED: {e}")
         import traceback
+
         traceback.print_exc()
         results.append(("build_safe_stem - Basic functionality", False))
 
@@ -307,6 +310,7 @@ def main():
     except Exception as e:
         print(f"\n✗ Uniqueness test FAILED: {e}")
         import traceback
+
         traceback.print_exc()
         results.append(("build_safe_stem - Uniqueness", False))
 
@@ -315,6 +319,7 @@ def main():
     except Exception as e:
         print(f"\n✗ Length limit test FAILED: {e}")
         import traceback
+
         traceback.print_exc()
         results.append(("build_safe_stem - Length limit", False))
 
@@ -323,6 +328,7 @@ def main():
     except Exception as e:
         print(f"\n✗ Empty input test FAILED: {e}")
         import traceback
+
         traceback.print_exc()
         results.append(("build_safe_stem - Empty input", False))
 
@@ -331,6 +337,7 @@ def main():
     except Exception as e:
         print(f"\n✗ ASCII conversion test FAILED: {e}")
         import traceback
+
         traceback.print_exc()
         results.append(("build_safe_stem - ASCII conversion", False))
 
@@ -339,6 +346,7 @@ def main():
     except Exception as e:
         print(f"\n✗ Run token fragment test FAILED: {e}")
         import traceback
+
         traceback.print_exc()
         results.append(("build_safe_stem - Run token fragment", False))
 

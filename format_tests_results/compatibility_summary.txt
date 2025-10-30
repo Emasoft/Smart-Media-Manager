@@ -1,0 +1,15 @@
+FORMAT COMPATIBILITY TEST RESULTS
+================================================================================
+
+Total files tested:      58
+Successfully imported:   28 (48.3%)
+Marked as compatible:    28 (48.3%)
+Refused by Photos:       28 (48.3%)
+
+AUDIO: 0/6 imported
+CODEC: 2/8 imported
+CONTAINER: 1/9 imported
+EDGE: 16/17 imported
+IMAGE: 9/9 imported
+RAW: 0/1 imported
+VIDEO: 0/8 imported

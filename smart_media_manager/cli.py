@@ -45,11 +45,17 @@ _FILE_LOG_HANDLER: Optional[logging.Handler] = None
 SMM_LOGS_SUBDIR = ".smm__runtime_logs_"  # Unique prefix for timestamped log directories (created in CWD, excluded from scanning)
 
 SAFE_NAME_PATTERN = re.compile(r"[^A-Za-z0-9_.-]")
-MAX_APPLESCRIPT_ARGS = 100  # Reduced from 200 to prevent Photos.app rate-limiting errors
+MAX_APPLESCRIPT_ARGS = 50  # Reduced to 50 for more granular batch control and to prevent Photos.app resource exhaustion
 MAX_APPLESCRIPT_CHARS = 20000
 MAX_SAFE_STEM_LENGTH = 120
 APPLE_PHOTOS_IMPORT_TIMEOUT = 600  # seconds
-PHOTOS_BATCH_DELAY = 3  # seconds - delay AFTER batch completes, before starting next batch
+
+# Batch import delay configuration
+# Base delay between batches (can be overridden via SMM_BATCH_DELAY env var)
+PHOTOS_BATCH_DELAY = int(os.getenv("SMM_BATCH_DELAY", "10"))  # seconds - increased from 5 to 10 to prevent Photos.app resource exhaustion
+PHOTOS_EXTENDED_PAUSE_INTERVAL = 3  # batches - add extended pause every N batches (more frequent to prevent Photos.app backlog)
+PHOTOS_EXTENDED_PAUSE_DURATION = 30  # seconds - doubled pause duration to give Photos time to process backlog (thumbnails, iCloud sync, etc.)
+PHOTOS_FAILURE_RECOVERY_DELAY = 30  # seconds - wait after batch failures before continuing
 
 BINWALK_EXECUTABLE = shutil.which("binwalk")
 
@@ -1186,44 +1192,36 @@ def ensure_dot_extension(ext: Optional[str]) -> Optional[str]:
 
 def canonicalize_extension(ext: Optional[str]) -> Optional[str]:
     """
-    Canonicalize extension variants to preferred forms.
-    
+    Canonicalize media file extension variants to preferred forms.
+
     Examples:
         .jfif, .jpeg → .jpg
         .tif → .tiff
-        .htm → .html
-    
+
     This ensures consistent extension naming regardless of which detection tool
-    returned the extension.
+    returned the extension. Only handles media files (image/video/RAW formats).
+    Non-media files (HTML, text, etc.) are filtered out before this function is called.
     """
     if not ext:
         return None
-    
+
     # Ensure normalized form (lowercase, with dot)
     normalized = ensure_dot_extension(ext)
     if not normalized:
         return None
-    
-    # Canonical extension mappings
+
+    # Canonical extension mappings for MEDIA FILES ONLY
     # Format: variant → canonical
     CANONICAL_EXTENSIONS = {
         # JPEG variants → .jpg
         ".jfif": ".jpg",
         ".jpeg": ".jpg",
         ".jpe": ".jpg",
-        
         # TIFF variants → .tiff
         ".tif": ".tiff",
-        
-        # HTML variants → .html
-        ".htm": ".html",
-        
-        # MPEG variants → .mpg
-        ".mpeg": ".mpg",
-        
-        # Add more as needed based on detection tool outputs
+        # Add more media format variants as needed based on detection tool outputs
     }
-    
+
     return CANONICAL_EXTENSIONS.get(normalized, normalized)
 
 
@@ -2341,6 +2339,142 @@ def should_ignore(entry: Path) -> bool:
     return False
 
 
+def extract_live_photo_content_id(path: Path) -> Optional[str]:
+    """
+    Extract Live Photo content identifier from HEIC/MOV file using exiftool.
+
+    Live Photos have a content identifier that links the HEIC photo and MOV video.
+    This function extracts that identifier to enable pairing detection.
+
+    Args:
+        path: Path to HEIC or MOV file
+
+    Returns:
+        Content identifier string if found, None otherwise
+    """
+    exiftool = find_executable("exiftool")
+    if not exiftool:
+        LOG.debug("exiftool not available, skipping Live Photo content ID extraction")
+        return None
+
+    try:
+        result = subprocess.run(
+            [exiftool, "-ContentIdentifier", "-b", str(path)],
+            capture_output=True,
+            text=True,
+            timeout=10,
+            check=False,
+        )
+        if result.returncode == 0 and result.stdout.strip():
+            content_id = result.stdout.strip()
+            LOG.debug("Extracted Live Photo content ID from %s: %s", path.name, content_id)
+            return content_id
+    except Exception as exc:
+        LOG.debug("Failed to extract Live Photo content ID from %s: %s", path.name, exc)
+    return None
+
+
+def is_panoramic_photo(path: Path) -> bool:
+    """
+    Detect if a photo is a panoramic image using EXIF metadata.
+
+    Panoramic photos have special metadata tags that identify them as panoramas.
+    Common indicators include ProjectionType, UsePanoramaViewer, or PoseHeadingDegrees.
+
+    Args:
+        path: Path to image file
+
+    Returns:
+        True if panoramic metadata detected, False otherwise
+    """
+    exiftool = find_executable("exiftool")
+    if not exiftool:
+        LOG.debug("exiftool not available, skipping panoramic photo detection")
+        return False
+
+    try:
+        result = subprocess.run(
+            [exiftool, "-ProjectionType", "-UsePanoramaViewer", "-PoseHeadingDegrees", "-b", str(path)],
+            capture_output=True,
+            text=True,
+            timeout=10,
+            check=False,
+        )
+        if result.returncode == 0:
+            output = result.stdout.strip()
+            # Check for common panoramic indicators
+            if output and any(indicator in output.lower() for indicator in ["equirectangular", "cylindrical", "spherical", "true", "360"]):
+                LOG.debug("Detected panoramic photo: %s", path.name)
+                return True
+    except Exception as exc:
+        LOG.debug("Failed to check panoramic metadata for %s: %s", path.name, exc)
+    return False
+
+
+def detect_live_photo_pairs(media_files: list[MediaFile]) -> dict[str, tuple[MediaFile, MediaFile]]:
+    """
+    Detect Live Photo pairs (HEIC + MOV) by matching stems and content identifiers.
+
+    Live Photos consist of:
+    - A HEIC/JPG still image
+    - A MOV video clip
+    - Both files share the same stem (e.g., IMG_1234.HEIC + IMG_1234.MOV)
+    - Both files have matching ContentIdentifier metadata
+
+    Args:
+        media_files: List of detected media files
+
+    Returns:
+        Dictionary mapping content_id -> (image_file, video_file) for each Live Photo pair
+    """
+    # Group files by stem
+    files_by_stem: dict[str, list[MediaFile]] = {}
+    for media in media_files:
+        stem = media.source.stem
+        if stem not in files_by_stem:
+            files_by_stem[stem] = []
+        files_by_stem[stem].append(media)
+
+    live_photo_pairs: dict[str, tuple[MediaFile, MediaFile]] = {}
+
+    # Check each stem group for Live Photo patterns
+    for stem, files in files_by_stem.items():
+        if len(files) < 2:
+            continue
+
+        # Find HEIC/JPG and MOV candidates
+        image_candidates = [f for f in files if f.kind == "image" and f.extension.lower() in {".heic", ".heif", ".jpg", ".jpeg"}]
+        video_candidates = [f for f in files if f.kind == "video" and f.extension.lower() == ".mov"]
+
+        if not image_candidates or not video_candidates:
+            continue
+
+        # Try to match by content identifier
+        for img in image_candidates:
+            img_content_id = extract_live_photo_content_id(img.source)
+            if not img_content_id:
+                continue
+
+            for vid in video_candidates:
+                vid_content_id = extract_live_photo_content_id(vid.source)
+                if vid_content_id and vid_content_id == img_content_id:
+                    # Found a Live Photo pair!
+                    LOG.info("Detected Live Photo pair: %s + %s (content ID: %s)", img.source.name, vid.source.name, img_content_id)
+                    live_photo_pairs[img_content_id] = (img, vid)
+
+                    # Store pairing metadata in both files
+                    img.metadata["is_live_photo"] = True
+                    img.metadata["live_photo_pair"] = str(vid.source)
+                    img.metadata["live_photo_content_id"] = img_content_id
+
+                    vid.metadata["is_live_photo"] = True
+                    vid.metadata["live_photo_pair"] = str(img.source)
+                    vid.metadata["live_photo_content_id"] = vid_content_id
+                    break
+
+    return live_photo_pairs
+
+
 def gather_media_files(
     root: Path,
     recursive: bool,
@@ -2407,6 +2541,13 @@ def gather_media_files(
                 stats.media_incompatible += 1
                 if media.action and not media.action.startswith("skip"):
                     stats.incompatible_with_conversion_rule += 1
+
+            # Check for panoramic photos
+            if media.kind == "image" and media.extension.lower() in {".heic", ".heif", ".jpg", ".jpeg"}:
+                if is_panoramic_photo(file_path):
+                    media.metadata["is_panoramic"] = True
+                    LOG.info("Detected panoramic photo: %s", file_path.name)
+
             media_files.append(media)
             return
         if reject_reason:
@@ -2430,6 +2571,13 @@ def gather_media_files(
         scan_progress.update()
 
     scan_progress.finish()
+
+    # Detect Live Photo pairs after all files are scanned
+    if media_files:
+        live_photo_pairs = detect_live_photo_pairs(media_files)
+        if live_photo_pairs:
+            LOG.info("Found %d Live Photo pair(s)", len(live_photo_pairs))
+
     return media_files
 
 
@@ -2479,13 +2627,32 @@ def move_to_staging(media_files: Iterable[MediaFile], staging: Path) -> None:
     originals_dir = staging / "ORIGINALS"
     originals_dir.mkdir(parents=True, exist_ok=True)
     media_list = list(media_files)
+
+    # Track Live Photo pairs to ensure consistent naming
+    live_photo_stems: dict[str, str] = {}  # Maps content_id -> chosen_stem
+
     progress = ProgressReporter(len(media_list), "Staging media")
     for media in media_list:
         stem = media.source.stem
+
+        # Handle Live Photo pairs with consistent naming
+        if media.metadata.get("is_live_photo"):
+            content_id = media.metadata.get("live_photo_content_id")
+            if content_id:
+                if content_id in live_photo_stems:
+                    # Use the same stem as the paired file
+                    stem = live_photo_stems[content_id]
+                    LOG.debug("Using paired stem %s for Live Photo %s", stem, media.source.name)
+                else:
+                    # First file of the pair - store the stem for the paired file
+                    live_photo_stems[content_id] = stem
+                    LOG.debug("Set stem %s for Live Photo pair (content ID: %s)", stem, content_id)
+
         destination = next_available_name(staging, stem, media.extension)
         LOG.info("Moving %s -> %s", media.source, destination)
         shutil.move(str(media.source), str(destination))
         media.stage_path = destination
+
         if media.requires_processing:
             original_target = next_available_name(originals_dir, stem, media.original_suffix or media.extension)
             try:
@@ -3383,9 +3550,30 @@ end alias_from_posix
             batch_failed,
         )
 
-        # Add delay between batches to prevent Photos.app rate-limiting
+        # Progressive cooldown strategy to prevent Photos.app resource exhaustion
         if batch_num < num_batches:
+            # Base delay between all batches
             time.sleep(PHOTOS_BATCH_DELAY)
+
+            # Extended pause every N batches to let Photos catch up with:
+            # - Database writes
+            # - Thumbnail generation
+            # - iCloud sync queue
+            # - Memory management
+            if batch_num % PHOTOS_EXTENDED_PAUSE_INTERVAL == 0:
+                LOG.info("Taking extended pause (%ds) to let Apple Photos process backlog...", PHOTOS_EXTENDED_PAUSE_DURATION)
+                time.sleep(PHOTOS_EXTENDED_PAUSE_DURATION)
+
+            # Recovery delay after detecting batch failures
+            # If a batch failed completely, give Photos extra time to recover
+            if batch_failed == len(batch_media) and batch_failed > 0:
+                LOG.warning(
+                    "Batch %d failed completely (%d files). Waiting %ds before continuing...",
+                    batch_num,
+                    batch_failed,
+                    PHOTOS_FAILURE_RECOVERY_DELAY,
+                )
+                time.sleep(PHOTOS_FAILURE_RECOVERY_DELAY)
 
     progress.finish()
     stats.total_imported = total_imported

@@ -381,6 +381,7 @@ def main():
     except Exception as e:
         print(f"\n✗ Empty directory test FAILED: {e}")
         import traceback
+
         traceback.print_exc()
         results.append(("Empty directory", False))
 
@@ -389,6 +390,7 @@ def main():
     except Exception as e:
         print(f"\n✗ Single JPEG test FAILED: {e}")
         import traceback
+
         traceback.print_exc()
         results.append(("Single JPEG file", False))
 
@@ -397,6 +399,7 @@ def main():
     except Exception as e:
         print(f"\n✗ Recursive test FAILED: {e}")
         import traceback
+
         traceback.print_exc()
         results.append(("Recursive vs non-recursive", False))
 
@@ -405,6 +408,7 @@ def main():
     except Exception as e:
         print(f"\n✗ Log directory test FAILED: {e}")
         import traceback
+
         traceback.print_exc()
         results.append(("Ignores log directories", False))
 
@@ -413,6 +417,7 @@ def main():
     except Exception as e:
         print(f"\n✗ Text file test FAILED: {e}")
         import traceback
+
         traceback.print_exc()
         results.append(("Ignores text files", False))
 
@@ -421,6 +426,7 @@ def main():
     except Exception as e:
         print(f"\n✗ Mixed media test FAILED: {e}")
         import traceback
+
         traceback.print_exc()
         results.append(("Mixed media types", False))
 
@@ -429,6 +435,7 @@ def main():
     except Exception as e:
         print(f"\n✗ Nested directories test FAILED: {e}")
         import traceback
+
         traceback.print_exc()
         results.append(("Nested directories", False))
 

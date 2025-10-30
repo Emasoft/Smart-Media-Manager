@@ -6,7 +6,6 @@ Tests individual functions and edge cases in isolation.
 
 import sys
 import tempfile
-import logging
 from pathlib import Path
 import os
 
@@ -16,12 +15,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 from smart_media_manager.cli import (
     attach_file_logger,
     SMM_LOGS_SUBDIR,
-    timestamp,
-    _FILE_LOG_HANDLER,
     should_ignore,
-    gather_media_files,
-    SkipLogger,
-    RunStatistics,
 )
 
 
@@ -186,6 +180,7 @@ def test_attach_file_logger_creates_unique_dirs():
     # Reset global handler
     global _FILE_LOG_HANDLER
     from smart_media_manager import cli
+
     cli._FILE_LOG_HANDLER = None
 
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -241,6 +236,7 @@ def test_attach_file_logger_singleton_behavior():
 
     # Reset global handler
     from smart_media_manager import cli
+
     cli._FILE_LOG_HANDLER = None
 
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -286,6 +282,7 @@ def test_attach_file_logger_directory_structure():
 
     # Reset global handler
     from smart_media_manager import cli
+
     cli._FILE_LOG_HANDLER = None
 
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -342,6 +339,7 @@ def main():
     except Exception as e:
         print(f"\n✗ Log directories test FAILED: {e}")
         import traceback
+
         traceback.print_exc()
         results.append(("should_ignore - Log directories", False))
 
@@ -350,6 +348,7 @@ def main():
     except Exception as e:
         print(f"\n✗ Staging directories test FAILED: {e}")
         import traceback
+
         traceback.print_exc()
         results.append(("should_ignore - Staging directories", False))
 
@@ -358,6 +357,7 @@ def main():
     except Exception as e:
         print(f"\n✗ Log files test FAILED: {e}")
         import traceback
+
         traceback.print_exc()
         results.append(("should_ignore - Log files", False))
 
@@ -366,6 +366,7 @@ def main():
     except Exception as e:
         print(f"\n✗ Regular files test FAILED: {e}")
         import traceback
+
         traceback.print_exc()
         results.append(("should_ignore - Regular files", False))
 
@@ -374,6 +375,7 @@ def main():
     except Exception as e:
         print(f"\n✗ Unique directories test FAILED: {e}")
         import traceback
+
         traceback.print_exc()
         results.append(("attach_file_logger - Unique directories", False))
 
@@ -382,6 +384,7 @@ def main():
     except Exception as e:
         print(f"\n✗ Singleton behavior test FAILED: {e}")
         import traceback
+
         traceback.print_exc()
         results.append(("attach_file_logger - Singleton behavior", False))
 
@@ -390,6 +393,7 @@ def main():
     except Exception as e:
         print(f"\n✗ Directory structure test FAILED: {e}")
         import traceback
+
         traceback.print_exc()
         results.append(("attach_file_logger - Directory structure", False))
 
