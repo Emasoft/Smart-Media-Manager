@@ -45,17 +45,9 @@ _FILE_LOG_HANDLER: Optional[logging.Handler] = None
 SMM_LOGS_SUBDIR = ".smm__runtime_logs_"  # Unique prefix for timestamped log directories (created in CWD, excluded from scanning)
 
 SAFE_NAME_PATTERN = re.compile(r"[^A-Za-z0-9_.-]")
-MAX_APPLESCRIPT_ARGS = 50  # Reduced to 50 for more granular batch control and to prevent Photos.app resource exhaustion
-MAX_APPLESCRIPT_CHARS = 20000
-MAX_SAFE_STEM_LENGTH = 120
-APPLE_PHOTOS_IMPORT_TIMEOUT = 600  # seconds
-
-# Batch import delay configuration
-# Base delay between batches (can be overridden via SMM_BATCH_DELAY env var)
-PHOTOS_BATCH_DELAY = int(os.getenv("SMM_BATCH_DELAY", "10"))  # seconds - increased from 5 to 10 to prevent Photos.app resource exhaustion
-PHOTOS_EXTENDED_PAUSE_INTERVAL = 3  # batches - add extended pause every N batches (more frequent to prevent Photos.app backlog)
-PHOTOS_EXTENDED_PAUSE_DURATION = 30  # seconds - doubled pause duration to give Photos time to process backlog (thumbnails, iCloud sync, etc.)
-PHOTOS_FAILURE_RECOVERY_DELAY = 30  # seconds - wait after batch failures before continuing
+MAX_APPLESCRIPT_CHARS = 20000  # Max characters for AppleScript arguments
+MAX_SAFE_STEM_LENGTH = 120  # Max length for safe filename stems
+APPLE_PHOTOS_FOLDER_IMPORT_TIMEOUT = 1800  # seconds (30 min) - timeout for single folder import of large collections
 
 BINWALK_EXECUTABLE = shutil.which("binwalk")
 
@@ -1729,6 +1721,18 @@ def parse_args() -> argparse.Namespace:
         help="Skip all compatibility validation checks. ⚠️ WARNING: May cause Photos import errors! Use only for format testing.",
     )
     parser.add_argument(
+        "--album",
+        type=str,
+        default="Smart Media Manager",
+        help="Photos album name to import into (default: 'Smart Media Manager').",
+    )
+    parser.add_argument(
+        "--check-duplicates",
+        action="store_true",
+        default=False,
+        help="Enable duplicate checking during import (slower but safer). Default: skip duplicate check for faster imports.",
+    )
+    parser.add_argument(
         "--version",
         action="version",
         version=f"%(prog)s {__version__}",
@@ -2624,9 +2628,37 @@ def stem_needs_sanitization(stem: str) -> bool:
 
 
 def move_to_staging(media_files: Iterable[MediaFile], staging: Path) -> None:
+    """Stage media files with unique sequential suffix for folder import.
+
+    Every file gets a suffix like " (1)", " (2)", etc. before extension.
+    This enables deterministic filename reconciliation after Photos import,
+    eliminating the need for separate sanitization passes.
+
+    The sequential suffix ensures every file has a unique, predictable name
+    that can be matched against Photos' returned filenames to determine
+    which files were imported vs skipped.
+
+    Examples:
+        photo.jpg → photo (1).jpg
+        photo.jpg (from different subfolder) → photo (2).jpg
+        video.mov → video (1).mov
+        IMG_1234.HEIC (Live Photo) → IMG_1234 (1).HEIC
+        IMG_1234.MOV (paired) → IMG_1234 (2).MOV
+
+    Args:
+        media_files: Iterable of MediaFile objects to stage
+        staging: Path to staging directory (FOUND_MEDIA_FILES_*)
+
+    Note:
+        Live Photo pairs maintain consistent stems but get different suffixes
+        since they are separate files.
+    """
     originals_dir = staging / "ORIGINALS"
     originals_dir.mkdir(parents=True, exist_ok=True)
     media_list = list(media_files)
+
+    # Global sequence counter for ALL files (starts at 1)
+    sequence_counter = 1
 
     # Track Live Photo pairs to ensure consistent naming
     live_photo_stems: dict[str, str] = {}  # Maps content_id -> chosen_stem
@@ -2648,18 +2680,33 @@ def move_to_staging(media_files: Iterable[MediaFile], staging: Path) -> None:
                     live_photo_stems[content_id] = stem
                     LOG.debug("Set stem %s for Live Photo pair (content ID: %s)", stem, content_id)
 
-        destination = next_available_name(staging, stem, media.extension)
+        # Add unique sequential suffix to EVERY file: " (N)"
+        suffix = f" ({sequence_counter})"
+        unique_name = f"{stem}{suffix}{media.extension}"
+        destination = staging / unique_name
+
+        # Handle collision (very unlikely with global counter, but safety net)
+        collision_counter = 1
+        while destination.exists():
+            collision_counter += 1
+            unique_name = f"{stem} ({sequence_counter}-{collision_counter}){media.extension}"
+            destination = staging / unique_name
+
         LOG.info("Moving %s -> %s", media.source, destination)
         shutil.move(str(media.source), str(destination))
         media.stage_path = destination
+        sequence_counter += 1  # Increment for next file
 
+        # Archive original if processing is required (before conversion)
         if media.requires_processing:
+            # Use next_available_name for originals since they don't need reconciliation
             original_target = next_available_name(originals_dir, stem, media.original_suffix or media.extension)
             try:
                 shutil.copy2(destination, original_target)
                 media.metadata["original_archive"] = str(original_target)
             except Exception as exc:  # noqa: BLE001
                 LOG.warning("Failed to archive original %s: %s", destination, exc)
+
         progress.update()
     progress.finish()
 
@@ -3264,29 +3311,6 @@ def revert_media_files(media_files: Iterable[MediaFile], staging: Optional[Path]
         shutil.rmtree(staging, ignore_errors=True)
 
 
-def sanitize_stage_paths(
-    media_files: Iterable[MediaFile],
-    staging: Path,
-    run_token: str,
-    skip_renaming: bool = False,
-) -> None:
-    # Skip renaming if flag is set (for format testing)
-    if skip_renaming:
-        return
-
-    for index, media in enumerate(media_files, start=1):
-        if not media.stage_path or not media.stage_path.exists():
-            continue
-        stem = media.stage_path.stem
-        if not stem_needs_sanitization(stem):
-            continue
-        safe_stem = build_safe_stem(stem, run_token, index)
-        target = next_available_name(staging, safe_stem, media.stage_path.suffix)
-        LOG.info("Sanitizing filename %s -> %s", media.stage_path.name, target.name)
-        media.stage_path.rename(target)
-        media.stage_path = target
-
-
 def ensure_compatibility(
     media_files: list[MediaFile],
     skip_logger: SkipLogger,
@@ -3389,195 +3413,172 @@ def run_checked(cmd: list[str]) -> None:
         raise RuntimeError(f"Command '{cmd[0]}' failed with exit code {result.returncode}.")
 
 
-def import_into_photos(media_files: list[MediaFile], stats: RunStatistics) -> tuple[int, list[tuple[MediaFile, str]]]:
+def import_folder_to_photos(
+    staging_dir: Path,
+    media_files: list[MediaFile],
+    album_name: str,
+    skip_duplicates: bool = True,
+) -> tuple[int, int, list[MediaFile]]:
+    """Import entire staging folder in a single Photos.app call.
+
+    Uses Photos' native folder import which handles queue management natively.
+    Returns imported filenames and reconciles against staged files to determine
+    which files were imported vs skipped.
+
+    This eliminates ALL timing dependencies and batch management complexity.
+    Photos.app manages its own import queue, preventing resource exhaustion.
+
+    Args:
+        staging_dir: Path to staging folder containing all media files
+        media_files: List of MediaFile objects with stage_path set
+        album_name: Photos album name to import into
+        skip_duplicates: If True, skip duplicate checking (default: True)
+
+    Returns:
+        Tuple of (imported_count, skipped_count, skipped_media_files)
+
+    Raises:
+        RuntimeError: If Photos.app import fails with error
+    """
     staged_media = [media for media in media_files if media.stage_path and media.stage_path.exists()]
     if not staged_media:
-        return 0, []
-    script = """
+        return 0, 0, []
+
+    # Build AppleScript for folder import (based on import2photos.sh)
+    applescript = f'''
 on run argv
-    if (count of argv) is 0 then return "0"
-    set importedCount to 0
-    set failedPaths to {}
-    tell application "Photos"
+    if (count of argv) < 3 then return "ERR\\t0\\tMissing arguments"
+    set albumName to item 1 of argv
+    set skipDup to ((item 2 of argv) is "true")
+    set dirPath to item 3 of argv
+
+    script util
+        on sanitizeText(srcText)
+            set oldTIDs to AppleScript's text item delimiters
+            set AppleScript's text item delimiters to {{return, linefeed, tab}}
+            set parts to text items of srcText
+            set AppleScript's text item delimiters to " "
+            set out to parts as text
+            set AppleScript's text item delimiters to oldTIDs
+            return out
+        end sanitizeText
+    end script
+
+    try
+        set folderAlias to POSIX file (dirPath as text)
+    on error errMsg number errNum
+        return "ERR\\t" & (errNum as text) & "\\t" & errMsg
+    end try
+
+    set outLines to {{}}
+    tell application id "com.apple.Photos"
         activate
-        delay 2
-        repeat with itemPath in argv
-            try
-                set mediaAlias to my alias_from_posix(itemPath)
-                set importedItems to import mediaAlias with skip check duplicates
-                if importedItems is missing value then
-                    set importedItems to {}
-                end if
-                if (count of importedItems) = 0 then
-                    set end of failedPaths to itemPath
-                else
-                    set importedCount to importedCount + (count of importedItems)
-                end if
-            on error errMsg number errNum
-                set end of failedPaths to (itemPath & "|ERROR:" & errMsg)
-            end try
-        end repeat
+        try
+            if (count of (albums whose name is albumName)) = 0 then
+                make new album named albumName
+            end if
+            set tgtAlbum to first album whose name is albumName
+
+            -- SINGLE folder import call - Photos manages the queue natively
+            set importedItems to import folderAlias skip check duplicates skipDup
+
+            if (count of importedItems) > 0 then
+                add importedItems to tgtAlbum
+            end if
+
+            -- Return filenames of imported items for reconciliation
+            repeat with mi in importedItems
+                try
+                    set fn to filename of mi
+                    set fn2 to util's sanitizeText(fn)
+                    set end of outLines to "FN\\t" & fn2
+                end try
+            end repeat
+        on error errMsg number errNum
+            return "ERR\\t" & (errNum as text) & "\\t" & errMsg
+        end try
     end tell
 
-    -- Return format: "imported_count|failed_path1|failed_path2|..."
-    set resultStr to importedCount as text
-    repeat with failedPath in failedPaths
-        set resultStr to resultStr & "|" & failedPath
-    end repeat
-    return resultStr
+    set oldTIDs to AppleScript's text item delimiters
+    set AppleScript's text item delimiters to linefeed
+    set outText to outLines as text
+    set AppleScript's text item delimiters to oldTIDs
+    return outText
 end run
+'''
 
-on alias_from_posix(itemPath)
-    set posixPath to itemPath as text
-    try
-        return POSIX file posixPath
-    on error errMsg number errNum
-        error "Unable to resolve path: " & posixPath number -1728
-    end try
-end alias_from_posix
-"""
-    batches: list[tuple[list[MediaFile], list[str]]] = []
-    current_media: list[MediaFile] = []
-    current_batch: list[str] = []
-    current_length = 0
-    for media in staged_media:
-        arg = str(media.stage_path)
-        prospective = current_length + len(arg) + 1
-        if current_batch and (len(current_batch) >= MAX_APPLESCRIPT_ARGS or prospective > MAX_APPLESCRIPT_CHARS):
-            batches.append((current_media, current_batch))
-            current_batch = []
-            current_media = []
-            current_length = 0
-        current_batch.append(arg)
-        current_media.append(media)
-        current_length += len(arg) + 1
-    if current_batch:
-        batches.append((current_media, current_batch))
-
-    total_imported = 0
-    failed: list[tuple[MediaFile, str]] = []
-    progress = ProgressReporter(len(staged_media), "Importing into Photos")
-    num_batches = len(batches)
-    for batch_num, (batch_media, batch_args) in enumerate(batches, start=1):
-        cmd = ["osascript", "-", *batch_args]
-        reason: Optional[str] = None
-        try:
-            result = subprocess.run(
-                cmd,
-                input=script,
-                text=True,
-                capture_output=True,
-                check=False,
-                timeout=APPLE_PHOTOS_IMPORT_TIMEOUT,
-            )
-            if result.returncode != 0:
-                reason = result.stderr.strip() or "AppleScript import failed"
-            else:
-                try:
-                    total_imported += int(result.stdout.strip() or "0")
-                except ValueError:
-                    reason = "Unexpected response from AppleScript import"
-        except subprocess.TimeoutExpired:
-            reason = f"AppleScript import timed out after {APPLE_PHOTOS_IMPORT_TIMEOUT} seconds"
-        except Exception as exc:  # pragma: no cover - subprocess errors
-            reason = str(exc)
-
-        if reason:
-            # Generic error for entire batch
-            failed.extend((media, reason) for media in batch_media)
-            stats.refused_by_apple_photos += len(batch_media)
-            for media in batch_media:
-                stats.refused_filenames.append((media.source, reason))
-        else:
-            # Parse the enhanced result format: "imported_count|failed_path1|failed_path2|..."
-            result_str = result.stdout.strip()
-            parts = result_str.split("|")
-            try:
-                batch_imported = int(parts[0])
-                total_imported += batch_imported
-
-                # Build a map of stage_path to media
-                media_by_path = {str(m.stage_path): m for m in batch_media if m.stage_path}
-
-                # Process failures reported by AppleScript
-                for i in range(1, len(parts)):
-                    failed_info = parts[i]
-                    if "|ERROR:" in failed_info:
-                        path_part, error_part = failed_info.split("|ERROR:", 1)
-                        media_obj = media_by_path.get(path_part)
-                        if media_obj:
-                            failed.append((media_obj, error_part))
-                            stats.refused_by_apple_photos += 1
-                            stats.refused_filenames.append((media_obj.source, error_part))
-                    else:
-                        # No error message, just failed to import
-                        media_obj = media_by_path.get(failed_info)
-                        if media_obj:
-                            failed.append(
-                                (
-                                    media_obj,
-                                    "import returned 0 items (file may be unsupported)",
-                                )
-                            )
-                            stats.refused_by_apple_photos += 1
-                            stats.refused_filenames.append((media_obj.source, "import returned 0 items"))
-
-                # Track successful imports
-                successful_media = [m for m in batch_media if m not in [f[0] for f in failed]]
-                for media in successful_media:
-                    if media.requires_processing:
-                        stats.imported_after_conversion += 1
-                    else:
-                        stats.imported_without_conversion += 1
-            except (ValueError, IndexError) as exc:
-                # Fallback: if parsing fails, treat as generic error
-                reason = f"failed to parse AppleScript result: {exc}"
-                failed.extend((media, reason) for media in batch_media)
-                stats.refused_by_apple_photos += len(batch_media)
-                for media in batch_media:
-                    stats.refused_filenames.append((media.source, reason))
-
-        progress.update(len(batch_media))
-
-        # Log batch completion for user visibility
-        batch_failed = len([m for m in batch_media if any(m == f[0] for f in failed)])
-        batch_success = len(batch_media) - batch_failed
-        LOG.info(
-            "Batch %d/%d: %d imported, %d failed",
-            batch_num,
-            num_batches,
-            batch_success,
-            batch_failed,
+    # Execute AppleScript with folder import
+    LOG.info("Importing staging folder into Photos album '%s'...", album_name)
+    try:
+        result = subprocess.run(
+            ["osascript", "-", album_name, str(skip_duplicates).lower(), str(staging_dir)],
+            input=applescript,
+            capture_output=True,
+            text=True,
+            timeout=APPLE_PHOTOS_FOLDER_IMPORT_TIMEOUT,
+            check=False,
         )
+    except subprocess.TimeoutExpired as exc:
+        raise RuntimeError(
+            f"Photos folder import timed out after {APPLE_PHOTOS_FOLDER_IMPORT_TIMEOUT} seconds. "
+            "This usually indicates Photos.app is stuck or the folder is too large. "
+            "Try splitting the import into smaller batches."
+        ) from exc
 
-        # Progressive cooldown strategy to prevent Photos.app resource exhaustion
-        if batch_num < num_batches:
-            # Base delay between all batches
-            time.sleep(PHOTOS_BATCH_DELAY)
+    output = result.stdout.strip()
 
-            # Extended pause every N batches to let Photos catch up with:
-            # - Database writes
-            # - Thumbnail generation
-            # - iCloud sync queue
-            # - Memory management
-            if batch_num % PHOTOS_EXTENDED_PAUSE_INTERVAL == 0:
-                LOG.info("Taking extended pause (%ds) to let Apple Photos process backlog...", PHOTOS_EXTENDED_PAUSE_DURATION)
-                time.sleep(PHOTOS_EXTENDED_PAUSE_DURATION)
+    # Check for fatal AppleScript error
+    if output.startswith("ERR\t"):
+        parts = output.split("\t")
+        err_code = parts[1] if len(parts) > 1 else "0"
+        err_msg = parts[2] if len(parts) > 2 else "Unknown error"
+        raise RuntimeError(f"Photos import failed [{err_code}]: {err_msg}")
 
-            # Recovery delay after detecting batch failures
-            # If a batch failed completely, give Photos extra time to recover
-            if batch_failed == len(batch_media) and batch_failed > 0:
-                LOG.warning(
-                    "Batch %d failed completely (%d files). Waiting %ds before continuing...",
-                    batch_num,
-                    batch_failed,
-                    PHOTOS_FAILURE_RECOVERY_DELAY,
-                )
-                time.sleep(PHOTOS_FAILURE_RECOVERY_DELAY)
+    # Parse imported filenames from AppleScript output
+    # Format: "FN\t<filename>" per line
+    imported_names = []
+    for line in output.split("\n"):
+        line = line.strip()
+        if line.startswith("FN\t"):
+            filename = line[3:]  # Remove "FN\t" prefix
+            imported_names.append(filename)
 
-    progress.finish()
-    stats.total_imported = total_imported
-    return total_imported, failed
+    LOG.info("Photos returned %d imported filenames", len(imported_names))
+
+    # Reconcile: match imported names against staged files
+    # Build multiset of imported names to handle duplicate filenames correctly
+    imported_multiset: dict[str, int] = {}
+    for name in imported_names:
+        imported_multiset[name] = imported_multiset.get(name, 0) + 1
+
+    # Match staged files against imported multiset
+    imported_media: list[MediaFile] = []
+    skipped_media: list[MediaFile] = []
+
+    for media in staged_media:
+        if not media.stage_path:
+            skipped_media.append(media)
+            continue
+
+        basename = media.stage_path.name
+        if basename in imported_multiset and imported_multiset[basename] > 0:
+            # This file was imported by Photos
+            imported_media.append(media)
+            imported_multiset[basename] -= 1
+        else:
+            # This file was skipped (duplicate or rejected)
+            skipped_media.append(media)
+
+    imported_count = len(imported_media)
+    skipped_count = len(skipped_media)
+
+    LOG.info(
+        "Folder import complete: %d imported, %d skipped (duplicates or rejected by Photos)",
+        imported_count,
+        skipped_count,
+    )
+
+    return imported_count, skipped_count, skipped_media
 
 
 def prompt_retry_failed_imports() -> bool:
@@ -3751,7 +3752,7 @@ def main() -> int:
         staging_root.mkdir(parents=True, exist_ok=False)
         move_to_staging(media_files, staging_root)
         ensure_compatibility(media_files, skip_logger, stats, args.skip_convert)
-        sanitize_stage_paths(media_files, staging_root, run_ts, args.skip_renaming)
+        # No sanitization needed - sequential suffix already ensures uniqueness
 
         missing_media: list[MediaFile] = [media for media in media_files if not media.stage_path or not media.stage_path.exists()]
 
@@ -3760,38 +3761,41 @@ def main() -> int:
             raise RuntimeError(f"Missing staged file(s): {missing_listing}")
 
         staged_count = len(media_files)
-        LOG.info("Importing %d file(s) into Apple Photos...", staged_count)
-        imported_count, failed_imports = import_into_photos(media_files, stats)
-        if failed_imports:
-            # skip_logger is always created at line 3480, so no need to check for None
-            for media, reason in failed_imports:
-                skip_logger.log(media.source, f"Apple Photos import failed: {reason}")
-            LOG.warning("Apple Photos rejected %d file(s); see skip log.", len(failed_imports))
+        LOG.info("Importing %d file(s) into Apple Photos via folder import...", staged_count)
+
+        # Single folder import replaces batch import - no timing dependencies
+        imported_count, skipped_count, skipped_media = import_folder_to_photos(
+            staging_dir=staging_root,
+            media_files=media_files,
+            album_name=args.album,
+            skip_duplicates=not args.check_duplicates,
+        )
+
+        # Log skipped files (duplicates or rejected by Photos)
+        if skipped_media:
+            for media in skipped_media:
+                skip_logger.log(
+                    media.source,
+                    "Skipped by Photos (duplicate or incompatible format)"
+                )
+            LOG.info("%d file(s) skipped by Photos (see skip log)", skipped_count)
+
+        # Update statistics
+        stats.total_imported = imported_count
+        for media in media_files:
+            if media not in skipped_media:
+                if media.requires_processing:
+                    stats.imported_after_conversion += 1
+                else:
+                    stats.imported_without_conversion += 1
 
         # Print statistics summary
         stats.print_summary()
         stats.log_summary()
 
-        # Retry prompt if there were failures
-        if failed_imports and prompt_retry_failed_imports():
-            LOG.info("Retrying import for %d failed file(s)...", len(failed_imports))
-            print(f"\nRetrying {len(failed_imports)} failed import(s)...")
-            failed_media = [media for media, _ in failed_imports]
-            retry_imported, retry_failed = import_into_photos(failed_media, stats)
-            LOG.info("Retry: imported %d, still failed %d", retry_imported, len(retry_failed))
-            if retry_imported > 0:
-                print(f"Successfully imported {retry_imported} file(s) on retry.")
-            if retry_failed:
-                print(f"{len(retry_failed)} file(s) still failed after retry.")
-                for media, reason in retry_failed:
-                    skip_logger.log(media.source, f"Apple Photos import retry failed: {reason}")
-            # Update final statistics
-            stats.print_summary()
-            stats.log_summary()
-
         LOG.info(
             "Successfully imported %d media file(s) into Apple Photos.",
-            stats.total_imported,
+            imported_count,
         )
         if args.delete:
             cleanup_staging(staging_root)
