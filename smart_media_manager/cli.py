@@ -29,6 +29,7 @@ from isbinary import is_binary_file  # type: ignore[import-not-found]
 from smart_media_manager import __version__
 from smart_media_manager.format_rules import FormatRule, match_rule
 from smart_media_manager import format_registry
+from smart_media_manager import metadata_registry
 from smart_media_manager import uuid_generator
 
 try:
@@ -1131,6 +1132,16 @@ def ensure_system_dependencies() -> None:
 
 
 def copy_metadata_from_source(source: Path, target: Path) -> None:
+    """Copy all metadata from source to target using exiftool with comprehensive field translation.
+
+    Uses exiftool's built-in metadata translation to handle cross-format field mapping:
+    - EXIF:DateTimeOriginal → XMP:CreateDate (when needed)
+    - IPTC:Caption → XMP:Description (when needed)
+    - Preserves GPS, copyright, camera info, etc.
+
+    ExifTool automatically normalizes field names across EXIF, IPTC, and XMP standards,
+    acting as a metadata translation layer similar to our UUID system for format names.
+    """
     exiftool = find_executable("exiftool")
     if not exiftool or not source.exists() or not target.exists():
         return
@@ -1139,12 +1150,15 @@ def copy_metadata_from_source(source: Path, target: Path) -> None:
         "-overwrite_original",
         "-TagsFromFile",
         str(source),
+        "-all:all",  # Copy all writable tags preserving group structure
+        "-unsafe",   # Include normally unsafe tags (needed for some JPEG repairs)
         str(target),
     ]
     try:
         subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    except Exception:
-        LOG.debug("Exiftool metadata copy failed for %s -> %s", source, target)
+        LOG.debug("Metadata copied from %s to %s via exiftool", source.name, target.name)
+    except Exception as e:
+        LOG.debug("Exiftool metadata copy failed for %s -> %s: %s", source, target, e)
 
 
 def ensure_raw_dependencies_for_files(media_files: Iterable[MediaFile]) -> None:
@@ -1779,6 +1793,56 @@ def ffprobe(path: Path) -> Optional[dict[str, Any]]:
         return None
 
 
+def extract_and_normalize_metadata(probe_data: dict[str, Any]) -> dict[str, Any]:
+    """
+    Extract metadata from ffprobe JSON and normalize field names to UUIDs.
+
+    Extracts metadata from both format-level and stream-level tags, then uses
+    the metadata registry to translate ffprobe field names to canonical UUIDs.
+
+    Args:
+        probe_data: FFprobe JSON output with 'format' and 'streams' keys
+
+    Returns:
+        Dictionary with UUID keys mapping to metadata values
+
+    Example:
+        >>> probe = {"format": {"tags": {"creation_time": "2024-01-15"}}}
+        >>> metadata = extract_and_normalize_metadata(probe)
+        >>> # Returns: {'3d4f8a9c-1e7b-5c3d-9a2f-4e8c1b7d3a9f-M': '2024-01-15'}
+    """
+    raw_metadata: dict[str, Any] = {}
+
+    # Extract format-level tags (creation_time, artist, title, etc.)
+    format_info = probe_data.get("format", {})
+    format_tags = format_info.get("tags", {})
+    if format_tags:
+        # FFprobe tags can have mixed case, normalize to lowercase keys
+        for key, value in format_tags.items():
+            # Store with lowercase key for consistency
+            raw_metadata[key.lower()] = value
+
+    # Extract stream-level tags (for multi-stream files)
+    streams = probe_data.get("streams", [])
+    for stream in streams:
+        stream_tags = stream.get("tags", {})
+        if stream_tags:
+            for key, value in stream_tags.items():
+                # Only add if not already present (format-level takes precedence)
+                lower_key = key.lower()
+                if lower_key not in raw_metadata:
+                    raw_metadata[lower_key] = value
+
+    # Normalize metadata using UUID translation layer
+    # This converts ffprobe field names to canonical UUIDs
+    if raw_metadata:
+        normalized = metadata_registry.normalize_metadata_dict("ffprobe", raw_metadata)
+        LOG.debug(f"Extracted and normalized {len(normalized)} metadata fields from ffprobe")
+        return normalized
+
+    return {}
+
+
 def is_video_corrupt_or_truncated(path: Path) -> tuple[bool, Optional[str]]:
     """
     FAST corruption detection for video files (<1 second for most files).
@@ -2043,6 +2107,9 @@ def detect_media(path: Path, skip_compatibility_check: bool = False) -> tuple[Op
     video_profile = None
     audio_sample_rate = None
     audio_sample_fmt = None
+    # Initialize UUID variables for all file types (not just videos)
+    video_codec_uuid = None
+    audio_codec_uuid = None
 
     if detected_kind == "video":
         # Check for corruption before further processing
@@ -2053,6 +2120,11 @@ def detect_media(path: Path, skip_compatibility_check: bool = False) -> tuple[Op
         probe = ffprobe(path)
         if not probe:
             return None, "video probe failed"
+
+        # Extract and normalize metadata fields using UUID translation layer
+        # This converts ffprobe field names (creation_time, artist, etc.) to UUIDs
+        normalized_metadata = extract_and_normalize_metadata(probe)
+
         streams = probe.get("streams", [])
         format_info = probe.get("format", {})
         format_name = format_info.get("format_name", "").lower()
@@ -2086,31 +2158,96 @@ def detect_media(path: Path, skip_compatibility_check: bool = False) -> tuple[Op
 
         # Generate expanded UUID for video codec with format parameters
         # This provides granular format identification (e.g., H.264 8-bit vs 10-bit)
-        video_codec_uuid = None
+        # IMPORTANT: Use the translation layer to get the base codec UUID
         if video_codec:
             try:
-                # Convert bit_depth to int if it's a string
-                bit_depth_int = None
-                if video_bit_depth:
-                    bit_depth_int = int(video_bit_depth) if isinstance(video_bit_depth, str) else video_bit_depth
+                # Translate ffprobe codec name to base UUID using the unified translation layer
+                base_codec_uuid = format_registry.lookup_format_uuid("ffprobe", video_codec)
+                if base_codec_uuid:
+                    # Extract the base UUID (everything before the type suffix)
+                    # E.g., "b2e62c4a-6122-548c-9bfa-0fcf3613942a-V" → "b2e62c4a-6122-548c-9bfa-0fcf3613942a"
+                    base_uuid_parts = base_codec_uuid.split("-")
+                    if len(base_uuid_parts) >= 5:
+                        base_uuid = "-".join(base_uuid_parts[:5])
 
-                # Convert sample_rate to int if it's a string
-                sample_rate_int = None
-                if audio_sample_rate:
-                    sample_rate_int = int(audio_sample_rate) if isinstance(audio_sample_rate, str) else audio_sample_rate
+                        # Convert bit_depth to int if it's a string
+                        bit_depth_int = None
+                        if video_bit_depth:
+                            bit_depth_int = int(video_bit_depth) if isinstance(video_bit_depth, str) else video_bit_depth
 
-                # Generate expanded UUID with format parameters
-                video_codec_uuid = uuid_generator.generate_video_uuid(
-                    codec=video_codec,
-                    bit_depth=bit_depth_int,
-                    pix_fmt=video_pix_fmt,
-                    profile=video_profile
-                )
-                LOG.debug(f"Generated expanded video codec UUID for {path.name}: {video_codec_uuid} (codec={video_codec}, bit_depth={bit_depth_int}, pix_fmt={video_pix_fmt}, profile={video_profile})")
+                        # Build expanded UUID with format parameters
+                        # Start with base UUID, append parameters, then type suffix
+                        params = []
+                        if bit_depth_int:
+                            params.append(f"{bit_depth_int}bit")
+                        if video_pix_fmt:
+                            params.append(video_pix_fmt)
+                        if video_profile:
+                            params.append(video_profile.lower())
+
+                        if params:
+                            param_suffix = "-".join(params)
+                            video_codec_uuid = f"{base_uuid}-{param_suffix}-V"
+                        else:
+                            # No parameters, use base UUID with type suffix
+                            video_codec_uuid = base_codec_uuid
+
+                        LOG.debug(f"Generated expanded video codec UUID for {path.name}: {video_codec_uuid} (base={base_uuid}, codec={video_codec}, bit_depth={bit_depth_int}, pix_fmt={video_pix_fmt}, profile={video_profile})")
+                    else:
+                        LOG.warning(f"Base codec UUID has unexpected format for {path.name}: {base_codec_uuid}")
+                        video_codec_uuid = base_codec_uuid  # Use as-is
+                else:
+                    LOG.warning(f"No UUID mapping found for ffprobe codec '{video_codec}' for {path.name}")
             except Exception as e:
                 LOG.warning(f"Failed to generate expanded video codec UUID for {path.name}: {e}")
                 # Fall back to base UUID without parameters
                 video_codec_uuid = None
+
+        # Generate expanded UUID for audio codec with format parameters
+        # This provides granular format identification (e.g., AAC 48kHz vs 6kHz)
+        # IMPORTANT: Use the translation layer to get the base codec UUID
+        audio_codec_uuid = None
+        if audio_codec:
+            try:
+                # Translate ffprobe codec name to base UUID using the unified translation layer
+                base_audio_uuid = format_registry.lookup_format_uuid("ffprobe", audio_codec)
+                if base_audio_uuid:
+                    # Extract the base UUID (everything before the type suffix)
+                    # E.g., "501331ba-42ea-561c-e5df-8a824df17e3f-A" → "501331ba-42ea-561c-e5df-8a824df17e3f"
+                    base_uuid_parts = base_audio_uuid.split("-")
+                    if len(base_uuid_parts) >= 5:
+                        base_uuid = "-".join(base_uuid_parts[:5])
+
+                        # Build expanded UUID with format parameters
+                        # Start with base UUID, append parameters, then type suffix
+                        params = []
+                        if audio_sample_rate:
+                            # Convert sample rate to int/string for consistency
+                            try:
+                                sample_rate_val = int(audio_sample_rate) if isinstance(audio_sample_rate, str) else audio_sample_rate
+                                params.append(str(sample_rate_val))
+                            except (ValueError, TypeError):
+                                pass
+                        if audio_sample_fmt:
+                            params.append(audio_sample_fmt)
+
+                        if params:
+                            param_suffix = "-".join(params)
+                            audio_codec_uuid = f"{base_uuid}-{param_suffix}-A"
+                        else:
+                            # No parameters, use base UUID with type suffix
+                            audio_codec_uuid = base_audio_uuid
+
+                        LOG.debug(f"Generated expanded audio codec UUID for {path.name}: {audio_codec_uuid} (base={base_uuid}, codec={audio_codec}, sample_rate={audio_sample_rate}, sample_fmt={audio_sample_fmt})")
+                    else:
+                        LOG.warning(f"Base audio codec UUID has unexpected format for {path.name}: {base_audio_uuid}")
+                        audio_codec_uuid = base_audio_uuid  # Use as-is
+                else:
+                    LOG.warning(f"No UUID mapping found for ffprobe audio codec '{audio_codec}' for {path.name}")
+            except Exception as e:
+                LOG.warning(f"Failed to generate expanded audio codec UUID for {path.name}: {e}")
+                # Fall back to None
+                audio_codec_uuid = None
 
     extension_candidates: list[Optional[str]] = []
     if consensus:
@@ -2157,7 +2294,8 @@ def detect_media(path: Path, skip_compatibility_check: bool = False) -> tuple[Op
         LOG.debug(f"Using expanded video codec UUID for {path.name}: {video_codec_uuid} (container UUID: {detected_uuid})")
 
     # UUID detected - determine action from JSON
-    uuid_action = format_registry.get_format_action(primary_uuid, video_codec, audio_codec, container_uuid_param)
+    # Pass audio_codec_uuid instead of audio_codec to use UUID-based compatibility checking
+    uuid_action = format_registry.get_format_action(primary_uuid, video_codec, audio_codec_uuid, container_uuid_param)
     if not uuid_action:
         # UUID identified but format is unsupported
         LOG.debug(f"UUID {primary_uuid} identified but unsupported for {path.name}")
@@ -2265,6 +2403,10 @@ def detect_media(path: Path, skip_compatibility_check: bool = False) -> tuple[Op
                 "audio_layout": audio_layout,
             }
         )
+        # Add normalized metadata from ffprobe (UUID-keyed fields)
+        # This includes creation_time, artist, title, etc. with UUID keys
+        if normalized_metadata:
+            media.metadata.update(normalized_metadata)
         refined_media, refine_reason = refine_video_media(media, skip_compatibility_check)
         if refined_media is None:
             return None, refine_reason or "video validation failed"
