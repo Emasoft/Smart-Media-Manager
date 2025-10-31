@@ -22,9 +22,32 @@ from smart_media_manager.cli import (
     SkipLogger,
     ensure_compatibility,
     gather_media_files,
-    import_into_photos,
+    import_folder_to_photos,
     move_to_staging,
 )
+
+
+# Compatibility wrapper for old batch import tests
+def import_into_photos(media_files, stats):
+    """Wrapper to adapt old tests to new folder import API.
+
+    Note: These tests use the old batch import signature.
+    They will be fully updated in a future PR to test the new folder import behavior.
+    """
+    if not media_files:
+        return 0, []
+
+    staging = media_files[0].stage_path.parent
+    imported_count, skipped_count, skipped_media = import_folder_to_photos(
+        staging_dir=staging,
+        media_files=media_files,
+        album_name="Test Album",
+        skip_duplicates=True,
+    )
+
+    # Convert to old signature: (imported_count, failed_list)
+    failed_list = [(m, "Skipped by Photos") for m in skipped_media]
+    return imported_count, failed_list
 
 SAMPLES_DIR = Path(__file__).parent / "samples" / "media"
 

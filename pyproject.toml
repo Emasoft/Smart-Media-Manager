@@ -17,7 +17,10 @@ dependencies = [
 dev = ["pytest>=8.4.2"]
 
 [dependency-groups]
-dev = ["pytest>=8.4.2"]
+dev = [
+    "pytest>=8.4.2",
+    "pytest-cov>=7.0.0",
+]
 
 [project.scripts]
 smart-media-manager = "smart_media_manager.cli:run"
