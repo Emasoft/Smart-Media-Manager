@@ -30,6 +30,8 @@ scripts_dev/
 tests/results/
 tests/samples/
 tests/fixtures/
+tests/sample.*
+tests/**/sample*
 
 # Serena MCP working directory
 .serena/
