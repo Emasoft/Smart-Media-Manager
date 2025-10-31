@@ -1,7 +1,7 @@
 {
   "$schema": "metadata_registry_schema",
-  "version": "1.0.0",
-  "description": "Metadata field UUID registry for unified field identification across tools and formats",
+  "version": "2.0.0",
+  "description": "Comprehensive metadata field UUID registry for unified field identification across tools and formats",
   "metadata_fields": {
     "temporal": {
       "creation_datetime": {
@@ -22,7 +22,8 @@
             "date"
           ],
           "ffmpeg": [
-            "creation_time"
+            "creation_time",
+            "date"
           ]
         }
       },
@@ -38,7 +39,23 @@
           ],
           "ffprobe": [
             "modification_time"
+          ],
+          "ffmpeg": [
+            "modification_time"
           ]
+        }
+      },
+      "digitized_datetime": {
+        "uuid": "37bd7fb9-3629-9bfc-b8d5-c47118ddbe9d-M",
+        "canonical": "digitized_datetime",
+        "description": "Date and time when the media was digitized",
+        "tool_mappings": {
+          "exiftool": [
+            "EXIF:DateTimeDigitized",
+            "XMP:DateTimeDigitized"
+          ],
+          "ffprobe": [],
+          "ffmpeg": []
         }
       }
     },
@@ -54,6 +71,10 @@
             "Composite:GPSLatitude"
           ],
           "ffprobe": [
+            "location",
+            "com.apple.quicktime.location.ISO6709"
+          ],
+          "ffmpeg": [
             "location",
             "com.apple.quicktime.location.ISO6709"
           ]
@@ -72,6 +93,10 @@
           "ffprobe": [
             "location",
             "com.apple.quicktime.location.ISO6709"
+          ],
+          "ffmpeg": [
+            "location",
+            "com.apple.quicktime.location.ISO6709"
           ]
         }
       },
@@ -83,7 +108,8 @@
           "exiftool": [
             "GPS:GPSAltitude",
             "XMP:GPSAltitude"
-          ]
+          ],
+          "ffmpeg": []
         }
       }
     },
@@ -126,6 +152,32 @@
           "ffmpeg": [
             "copyright"
           ]
+        }
+      },
+      "credit": {
+        "uuid": "0eb2fe00-5121-3648-eea0-35387014cfb7-M",
+        "canonical": "credit",
+        "description": "Credit line or acknowledgment",
+        "tool_mappings": {
+          "exiftool": [
+            "IPTC:Credit",
+            "XMP:Credit"
+          ],
+          "ffprobe": [],
+          "ffmpeg": []
+        }
+      },
+      "source": {
+        "uuid": "f4fe81c5-1e65-91e0-d16d-80d1a50a4fbe-M",
+        "canonical": "source",
+        "description": "Original source or provider of the media",
+        "tool_mappings": {
+          "exiftool": [
+            "IPTC:Source",
+            "XMP:Source"
+          ],
+          "ffprobe": [],
+          "ffmpeg": []
         }
       }
     },
@@ -180,6 +232,19 @@
             "IPTC:Keywords",
             "PDF:Keywords"
           ]
+        }
+      },
+      "rating": {
+        "uuid": "19129b1f-d80b-f85f-3d2a-806d6be1bcf0-M",
+        "canonical": "rating",
+        "description": "User rating or quality score",
+        "tool_mappings": {
+          "exiftool": [
+            "XMP:Rating",
+            "EXIF:Rating"
+          ],
+          "ffprobe": [],
+          "ffmpeg": []
         }
       }
     },
@@ -248,6 +313,97 @@
             "rotation"
           ]
         }
+      },
+      "serial_number": {
+        "uuid": "bfa984a6-28b8-235f-e680-ddcc84c3df35-M",
+        "canonical": "serial_number",
+        "description": "Camera serial number",
+        "tool_mappings": {
+          "exiftool": [
+            "EXIF:SerialNumber",
+            "XMP:SerialNumber"
+          ],
+          "ffprobe": [],
+          "ffmpeg": []
+        }
+      },
+      "image_width": {
+        "uuid": "c7df44a2-8edc-2de2-618e-ab2dd3bf3372-M",
+        "canonical": "image_width",
+        "description": "Image width in pixels",
+        "tool_mappings": {
+          "exiftool": [
+            "EXIF:ImageWidth",
+            "File:ImageWidth"
+          ],
+          "ffprobe": [
+            "width"
+          ],
+          "ffmpeg": []
+        }
+      },
+      "image_height": {
+        "uuid": "c91392c8-a880-e62f-3f6d-91e45b098c5c-M",
+        "canonical": "image_height",
+        "description": "Image height in pixels",
+        "tool_mappings": {
+          "exiftool": [
+            "EXIF:ImageHeight",
+            "File:ImageHeight"
+          ],
+          "ffprobe": [
+            "height"
+          ],
+          "ffmpeg": []
+        }
+      },
+      "color_space": {
+        "uuid": "e67ad23c-85b5-cb70-26c5-e80adb6231ff-M",
+        "canonical": "color_space",
+        "description": "Color space (sRGB, Adobe RGB, etc.)",
+        "tool_mappings": {
+          "exiftool": [
+            "EXIF:ColorSpace",
+            "ICC_Profile:ColorSpaceData"
+          ],
+          "ffprobe": [
+            "color_space",
+            "pix_fmt"
+          ],
+          "ffmpeg": [
+            "color_space"
+          ]
+        }
+      },
+      "bits_per_sample": {
+        "uuid": "9f574f06-3870-dbb7-cdd4-13ccee84e29a-M",
+        "canonical": "bits_per_sample",
+        "description": "Bits per color channel",
+        "tool_mappings": {
+          "exiftool": [
+            "EXIF:BitsPerSample"
+          ],
+          "ffprobe": [
+            "bits_per_raw_sample"
+          ],
+          "ffmpeg": []
+        }
+      },
+      "compression": {
+        "uuid": "d6e6613c-34b5-045d-b512-5da3c4707e40-M",
+        "canonical": "compression",
+        "description": "Compression algorithm used",
+        "tool_mappings": {
+          "exiftool": [
+            "EXIF:Compression"
+          ],
+          "ffprobe": [
+            "codec_name"
+          ],
+          "ffmpeg": [
+            "codec"
+          ]
+        }
       }
     },
     "apple_specific": {
@@ -261,6 +417,10 @@
             "XMP:ContentIdentifier"
           ],
           "ffprobe": [
+            "content_identifier",
+            "com.apple.quicktime.content.identifier"
+          ],
+          "ffmpeg": [
             "content_identifier",
             "com.apple.quicktime.content.identifier"
           ]
@@ -277,7 +437,336 @@
           ],
           "ffprobe": [
             "projection_type"
+          ],
+          "ffmpeg": [
+            "projection_type"
           ]
+        }
+      },
+      "hdr_format": {
+        "uuid": "02952bc0-7a4a-c6b3-d096-6d9be794a1db-M",
+        "canonical": "hdr_format",
+        "description": "HDR format (HDR10, Dolby Vision, HLG, etc.)",
+        "tool_mappings": {
+          "exiftool": [
+            "QuickTime:HDRFormat"
+          ],
+          "ffprobe": [
+            "color_transfer"
+          ],
+          "ffmpeg": [
+            "color_transfer"
+          ]
+        }
+      }
+    },
+    "camera_exposure": {
+      "iso_speed": {
+        "uuid": "01127263-c9d7-3af6-f749-f7e8eb2e4135-M",
+        "canonical": "iso_speed",
+        "description": "ISO sensitivity setting",
+        "tool_mappings": {
+          "exiftool": [
+            "EXIF:ISO",
+            "EXIF:ISOSpeedRatings",
+            "XMP:ISO"
+          ],
+          "ffprobe": [],
+          "ffmpeg": []
+        }
+      },
+      "aperture": {
+        "uuid": "aa262fb1-bc4d-5ff8-e3c0-f721aa2a5152-M",
+        "canonical": "aperture",
+        "description": "Lens aperture f-number",
+        "tool_mappings": {
+          "exiftool": [
+            "EXIF:FNumber",
+            "EXIF:ApertureValue",
+            "XMP:FNumber"
+          ],
+          "ffprobe": [],
+          "ffmpeg": []
+        }
+      },
+      "shutter_speed": {
+        "uuid": "90520f09-c651-f98e-f3ec-af7eec7c343a-M",
+        "canonical": "shutter_speed",
+        "description": "Shutter speed / exposure time",
+        "tool_mappings": {
+          "exiftool": [
+            "EXIF:ShutterSpeedValue",
+            "EXIF:ExposureTime",
+            "XMP:ShutterSpeedValue"
+          ],
+          "ffprobe": [],
+          "ffmpeg": []
+        }
+      },
+      "exposure_compensation": {
+        "uuid": "9400931d-ad11-52d5-113b-3d4143d00645-M",
+        "canonical": "exposure_compensation",
+        "description": "Exposure compensation value in EV",
+        "tool_mappings": {
+          "exiftool": [
+            "EXIF:ExposureCompensation",
+            "XMP:ExposureCompensation"
+          ],
+          "ffprobe": [],
+          "ffmpeg": []
+        }
+      },
+      "metering_mode": {
+        "uuid": "e50fe2db-3c65-eb08-cb60-851130b89544-M",
+        "canonical": "metering_mode",
+        "description": "Metering mode used (matrix, center-weighted, spot)",
+        "tool_mappings": {
+          "exiftool": [
+            "EXIF:MeteringMode",
+            "XMP:MeteringMode"
+          ],
+          "ffprobe": [],
+          "ffmpeg": []
+        }
+      },
+      "white_balance": {
+        "uuid": "3631dd47-db2d-0598-de6b-55168fe78e61-M",
+        "canonical": "white_balance",
+        "description": "White balance setting",
+        "tool_mappings": {
+          "exiftool": [
+            "EXIF:WhiteBalance",
+            "XMP:WhiteBalance"
+          ],
+          "ffprobe": [],
+          "ffmpeg": []
+        }
+      },
+      "flash": {
+        "uuid": "51b78911-8bf7-135d-7820-d195bf587b59-M",
+        "canonical": "flash",
+        "description": "Flash mode and status",
+        "tool_mappings": {
+          "exiftool": [
+            "EXIF:Flash",
+            "XMP:Flash"
+          ],
+          "ffprobe": [],
+          "ffmpeg": []
+        }
+      },
+      "exposure_mode": {
+        "uuid": "4cc3b48f-f1b3-5f17-a21a-db03b83c259e-M",
+        "canonical": "exposure_mode",
+        "description": "Exposure mode (auto, manual, aperture priority, etc.)",
+        "tool_mappings": {
+          "exiftool": [
+            "EXIF:ExposureMode",
+            "EXIF:ExposureProgram"
+          ],
+          "ffprobe": [],
+          "ffmpeg": []
+        }
+      }
+    },
+    "lens_info": {
+      "focal_length": {
+        "uuid": "dd357da0-2263-cb50-3b85-26abfd564e86-M",
+        "canonical": "focal_length",
+        "description": "Focal length in mm",
+        "tool_mappings": {
+          "exiftool": [
+            "EXIF:FocalLength",
+            "XMP:FocalLength"
+          ],
+          "ffprobe": [],
+          "ffmpeg": []
+        }
+      },
+      "focal_length_35mm": {
+        "uuid": "bcd33dc1-7cc2-84d4-20ec-d6d206cb1419-M",
+        "canonical": "focal_length_35mm",
+        "description": "Focal length in 35mm equivalent",
+        "tool_mappings": {
+          "exiftool": [
+            "EXIF:FocalLengthIn35mmFormat"
+          ],
+          "ffprobe": [],
+          "ffmpeg": []
+        }
+      },
+      "lens_model": {
+        "uuid": "939c4e47-7f97-a9fb-c8e2-05a171353baf-M",
+        "canonical": "lens_model",
+        "description": "Lens model name",
+        "tool_mappings": {
+          "exiftool": [
+            "EXIF:LensModel",
+            "XMP:Lens"
+          ],
+          "ffprobe": [],
+          "ffmpeg": []
+        }
+      },
+      "lens_make": {
+        "uuid": "b6c13430-9b2e-804f-bbf5-1917e99757ac-M",
+        "canonical": "lens_make",
+        "description": "Lens manufacturer",
+        "tool_mappings": {
+          "exiftool": [
+            "EXIF:LensMake"
+          ],
+          "ffprobe": [],
+          "ffmpeg": []
+        }
+      }
+    },
+    "technical_video": {
+      "duration": {
+        "uuid": "60cf874f-9f7c-08c0-8d62-d8766ad5cbf0-M",
+        "canonical": "duration",
+        "description": "Duration in seconds",
+        "tool_mappings": {
+          "exiftool": [
+            "QuickTime:Duration"
+          ],
+          "ffprobe": [
+            "duration"
+          ],
+          "ffmpeg": []
+        }
+      },
+      "bitrate": {
+        "uuid": "d830eedb-d81b-173d-f60b-1923f967d6ac-M",
+        "canonical": "bitrate",
+        "description": "Bitrate in bits per second",
+        "tool_mappings": {
+          "exiftool": [
+            "QuickTime:AvgBitrate"
+          ],
+          "ffprobe": [
+            "bit_rate"
+          ],
+          "ffmpeg": []
+        }
+      },
+      "frame_rate": {
+        "uuid": "c7626f2e-b1c0-1bea-475a-273d418726f6-M",
+        "canonical": "frame_rate",
+        "description": "Frame rate in frames per second",
+        "tool_mappings": {
+          "exiftool": [
+            "QuickTime:VideoFrameRate"
+          ],
+          "ffprobe": [
+            "r_frame_rate",
+            "avg_frame_rate"
+          ],
+          "ffmpeg": []
+        }
+      },
+      "video_codec": {
+        "uuid": "c91bcc02-56ad-b27c-b317-0c48a5216ac6-M",
+        "canonical": "video_codec",
+        "description": "Video codec identifier",
+        "tool_mappings": {
+          "exiftool": [
+            "QuickTime:VideoCodec"
+          ],
+          "ffprobe": [
+            "codec_name"
+          ],
+          "ffmpeg": [
+            "vcodec"
+          ]
+        }
+      },
+      "audio_codec": {
+        "uuid": "1b4d1e2c-d37b-21c9-17f4-14632ee59f1b-M",
+        "canonical": "audio_codec",
+        "description": "Audio codec identifier",
+        "tool_mappings": {
+          "exiftool": [
+            "QuickTime:AudioCodec"
+          ],
+          "ffprobe": [
+            "codec_name"
+          ],
+          "ffmpeg": [
+            "acodec"
+          ]
+        }
+      },
+      "audio_sample_rate": {
+        "uuid": "fd644399-1b29-983a-6005-ba1cf3564068-M",
+        "canonical": "audio_sample_rate",
+        "description": "Audio sample rate in Hz",
+        "tool_mappings": {
+          "exiftool": [
+            "QuickTime:AudioSampleRate"
+          ],
+          "ffprobe": [
+            "sample_rate"
+          ],
+          "ffmpeg": []
+        }
+      },
+      "audio_channels": {
+        "uuid": "20d3715c-6d35-4143-d079-479dc8d28646-M",
+        "canonical": "audio_channels",
+        "description": "Number of audio channels",
+        "tool_mappings": {
+          "exiftool": [
+            "QuickTime:AudioChannels"
+          ],
+          "ffprobe": [
+            "channels"
+          ],
+          "ffmpeg": []
+        }
+      }
+    },
+    "file_technical": {
+      "file_size": {
+        "uuid": "e34bf65b-cdfc-c495-dba9-5f6d0c4deff5-M",
+        "canonical": "file_size",
+        "description": "File size in bytes",
+        "tool_mappings": {
+          "exiftool": [
+            "File:FileSize"
+          ],
+          "ffprobe": [
+            "size"
+          ],
+          "ffmpeg": []
+        }
+      },
+      "file_type": {
+        "uuid": "11f2c835-5a42-1083-d3de-152d7e1a6936-M",
+        "canonical": "file_type",
+        "description": "File format or container type",
+        "tool_mappings": {
+          "exiftool": [
+            "File:FileType"
+          ],
+          "ffprobe": [
+            "format_name"
+          ],
+          "ffmpeg": []
+        }
+      },
+      "encoding_settings": {
+        "uuid": "99978114-10ff-19f2-c62f-91eae32a8f08-M",
+        "canonical": "encoding_settings",
+        "description": "Encoding settings used during creation",
+        "tool_mappings": {
+          "exiftool": [
+            "QuickTime:EncodingSettings"
+          ],
+          "ffprobe": [
+            "encoder_options"
+          ],
+          "ffmpeg": []
         }
       }
     }
