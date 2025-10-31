@@ -194,28 +194,70 @@ def needs_conversion(format_uuid: str) -> bool:
     return False
 
 
-def get_format_action(format_uuid: str, video_codec: Optional[str] = None, audio_codec: Optional[str] = None) -> Optional[str]:
+def get_format_action(format_uuid: str, video_codec: Optional[str] = None, audio_codec: Optional[str] = None, container_uuid: Optional[str] = None) -> Optional[str]:
     """Determine the required action for a format based on Apple Photos compatibility.
-    
+
+    Supports both exact UUID matching and pattern-based matching for expanded UUIDs.
+    For video codecs, checks format parameters (bit depth, pixel format, profile).
+    For videos, checks BOTH container and video codec compatibility.
+
     Args:
-        format_uuid: Format UUID with type suffix
+        format_uuid: Format UUID with type suffix (may include parameters like "8bit-yuv420p-high")
         video_codec: Video codec name (for videos)
         audio_codec: Audio codec name (for videos)
-        
+        container_uuid: Container UUID (for videos, to check container compatibility separately)
+
     Returns:
         Action string: "import", "rewrap_to_mp4", "transcode_to_hevc_mp4", "transcode_audio_to_supported", "convert_to_png", or None if unsupported
     """
     compat = load_compatibility_data()
     apple_compat = compat.get("apple_photos_compatible", {})
-    
-    # Check if directly compatible
+
+    # Check if directly compatible (exact match)
     if format_uuid in apple_compat.get("images", {}).get("direct_import", []):
         return "import"
-    
+
     if format_uuid in apple_compat.get("images", {}).get("raw_formats", []):
         return "import"
-    
+
     # For videos, check container AND codecs
+    # If container_uuid is provided, check container compatibility first
+    if container_uuid:
+        container_compatible = container_uuid in apple_compat.get("videos", {}).get("compatible_containers", [])
+        container_needs_rewrap = container_uuid in apple_compat.get("videos", {}).get("needs_rewrap", [])
+
+        # Check video codec compatibility
+        video_codec_compatible = format_uuid in apple_compat.get("videos", {}).get("compatible_video_codecs", [])
+
+        # Pattern-based matching for video codecs
+        video_needs_transcode = False
+        for transcode_pattern in apple_compat.get("videos", {}).get("needs_transcode_video", []):
+            if _uuid_matches_pattern(format_uuid, transcode_pattern):
+                video_needs_transcode = True
+                break
+
+        # Decision logic for videos with both container and codec info
+        if not container_compatible and container_needs_rewrap:
+            # Container needs rewrap
+            if video_codec_compatible and not video_needs_transcode:
+                return "rewrap_to_mp4"  # Container incompatible, but codec compatible
+            else:
+                return "transcode_to_hevc_mp4"  # Both container and codec incompatible
+        elif container_compatible:
+            # Container is compatible, check codecs
+            if video_needs_transcode:
+                return "transcode_to_hevc_mp4"  # Video codec needs transcode
+            if audio_codec and audio_codec in ["opus", "vorbis", "dts"]:
+                return "transcode_audio_to_supported"  # Audio codec needs transcode
+            return "import"  # Container and codecs are compatible
+        else:
+            # Container is neither compatible nor needs rewrap (unknown container)
+            if video_codec_compatible:
+                return "rewrap_to_mp4"  # Assume container needs rewrap if codec is compatible
+            else:
+                return "transcode_to_hevc_mp4"  # Full transcode needed
+
+    # Legacy path for non-video or when container_uuid not provided
     if format_uuid in apple_compat.get("videos", {}).get("compatible_containers", []):
         # Container is compatible, check codecs
         if video_codec and video_codec not in ["h264", "hevc", "av1"]:
@@ -223,28 +265,76 @@ def get_format_action(format_uuid: str, video_codec: Optional[str] = None, audio
         if audio_codec and audio_codec in ["opus", "vorbis", "dts"]:
             return "transcode_audio_to_supported"  # Need to transcode audio codec
         return "import"  # Container and codecs are compatible
-    
+
+    # Check video codec UUID (exact match first)
     if format_uuid in apple_compat.get("videos", {}).get("compatible_video_codecs", []):
         return "import"  # Video codec is compatible
-    
+
+    # Pattern-based matching for video codecs with parameters
+    # Check if UUID matches any transcode patterns (10-bit H.264, 4:2:2, 4:4:4)
+    for transcode_pattern in apple_compat.get("videos", {}).get("needs_transcode_video", []):
+        if _uuid_matches_pattern(format_uuid, transcode_pattern):
+            return "transcode_to_hevc_mp4"
+
     # Check if conversion needed
     if format_uuid in apple_compat.get("images", {}).get("needs_conversion", []):
         return "convert_to_png"  # Convert incompatible image formats
-    
+
     if format_uuid in apple_compat.get("videos", {}).get("needs_rewrap", []):
         return "rewrap_to_mp4"  # Container incompatible, but codecs compatible
-    
-    if format_uuid in apple_compat.get("videos", {}).get("needs_transcode_video", []):
-        return "transcode_to_hevc_mp4"  # Video codec incompatible
-    
+
     if format_uuid in apple_compat.get("videos", {}).get("needs_transcode_container", []):
         return "transcode_to_hevc_mp4"  # Container always needs full transcode (e.g., AVI)
-    
+
     # Check audio codec separately
     if audio_codec and audio_codec in apple_compat.get("videos", {}).get("needs_transcode_audio", []):
         return "transcode_audio_to_supported"
-    
-    return None  # Unsupported format  # Unsupported format
+
+    return None  # Unsupported format
+
+
+def _uuid_matches_pattern(uuid: str, pattern: str) -> bool:
+    """Check if a UUID matches a pattern (for expanded UUIDs with wildcards).
+
+    Supports wildcard patterns like:
+    - "b2e62c4a-6122-548c-9bfa-0fcf3613942a-10bit-V" (matches any 10-bit H.264)
+    - "b2e62c4a-6122-548c-9bfa-0fcf3613942a-yuv422p-V" (matches any 4:2:2 H.264)
+
+    Args:
+        uuid: The UUID to check
+        pattern: The pattern to match against
+
+    Returns:
+        True if UUID matches the pattern
+    """
+    # Exact match
+    if uuid == pattern:
+        return True
+
+    # Extract base UUID (first 5 parts: xxxx-xxxx-xxxx-xxxx-xxxx)
+    uuid_parts = uuid.split("-")
+    pattern_parts = pattern.split("-")
+
+    if len(uuid_parts) < 5 or len(pattern_parts) < 5:
+        return False
+
+    # Base UUIDs must match
+    uuid_base = "-".join(uuid_parts[:5])
+    pattern_base = "-".join(pattern_parts[:5])
+
+    if uuid_base != pattern_base:
+        return False
+
+    # If pattern has no parameters, match any UUID with same base
+    if len(pattern_parts) == 6 and pattern_parts[5] in ["V", "A", "I", "C", "R"]:
+        return True
+
+    # Check if UUID contains the pattern's key parameters
+    uuid_params = set(uuid_parts[5:])
+    pattern_params = set(pattern_parts[5:])
+
+    # Pattern parameters must be present in UUID
+    return pattern_params.issubset(uuid_params)
 
 
 def get_compatible_formats() -> Set[str]:

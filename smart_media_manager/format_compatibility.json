@@ -36,8 +36,16 @@
       ],
       "compatible_video_codecs": [
         "b2e62c4a-6122-548c-9bfa-0fcf3613942a-V",
+        "b2e62c4a-6122-548c-9bfa-0fcf3613942a-8bit-yuv420p-high-V",
+        "b2e62c4a-6122-548c-9bfa-0fcf3613942a-8bit-yuv420p-main-V",
+        "b2e62c4a-6122-548c-9bfa-0fcf3613942a-8bit-yuv420p-baseline-V",
+        "b2e62c4a-6122-548c-9bfa-0fcf3613942a-8bit-yuv420p-constrained baseline-V",
         "faf4b553-de47-5bc8-80ea-d026a2571456-V",
-        "c69693cd-1fcd-5608-a8df-9476a00cfa9b-V"
+        "faf4b553-de47-5bc8-80ea-d026a2571456-8bit-yuv420p-main-V",
+        "faf4b553-de47-5bc8-80ea-d026a2571456-yuv420p-main-V",
+        "faf4b553-de47-5bc8-80ea-d026a2571456-10bit-yuv420p-main 10-V",
+        "c69693cd-1fcd-5608-a8df-9476a00cfa9b-V",
+        "c69693cd-1fcd-5608-a8df-9476a00cfa9b-8bit-yuv420p-V"
       ],
       "compatible_audio_codecs": [
         "aac",
@@ -53,7 +61,12 @@
         "f8f9aed9-bdeb-5fe7-b77b-b3c94c9c0ae0-C"
       ],
       "needs_transcode_video": [
-        "4c9b19a7-ec9f-57c2-98ca-3ac8432b27cc-V"
+        "4c9b19a7-ec9f-57c2-98ca-3ac8432b27cc-V",
+        "b2e62c4a-6122-548c-9bfa-0fcf3613942a-10bit-V",
+        "b2e62c4a-6122-548c-9bfa-0fcf3613942a-yuv422p-V",
+        "b2e62c4a-6122-548c-9bfa-0fcf3613942a-yuv444p-V",
+        "faf4b553-de47-5bc8-80ea-d026a2571456-yuv422p-V",
+        "faf4b553-de47-5bc8-80ea-d026a2571456-yuv444p-V"
       ],
       "needs_transcode_audio": [
         "opus",

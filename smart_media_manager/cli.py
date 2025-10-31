@@ -29,6 +29,7 @@ from isbinary import is_binary_file  # type: ignore[import-not-found]
 from smart_media_manager import __version__
 from smart_media_manager.format_rules import FormatRule, match_rule
 from smart_media_manager import format_registry
+from smart_media_manager import uuid_generator
 
 try:
     import magic  # type: ignore[import-not-found]
@@ -2036,6 +2037,12 @@ def detect_media(path: Path, skip_compatibility_check: bool = False) -> tuple[Op
     audio_layout = None
     container = None
     ffprobe_tokens: list[str] = []
+    # Format parameters for expanded UUID generation
+    video_bit_depth = None
+    video_pix_fmt = None
+    video_profile = None
+    audio_sample_rate = None
+    audio_sample_fmt = None
 
     if detected_kind == "video":
         # Check for corruption before further processing
@@ -2056,16 +2063,54 @@ def detect_media(path: Path, skip_compatibility_check: bool = False) -> tuple[Op
             codec_type = stream.get("codec_type")
             if codec_type == "video" and not video_codec:
                 video_codec = (stream.get("codec_name") or "").lower() or None
+                # Extract format parameters for expanded UUID generation
+                video_bit_depth = stream.get("bits_per_raw_sample")  # Bit depth (8, 10, 12, 16)
+                if not video_bit_depth:
+                    # Fallback: try bits_per_component or pix_fmt parsing
+                    video_bit_depth = stream.get("bits_per_component")
+                video_pix_fmt = stream.get("pix_fmt")  # Pixel format (yuv420p, yuv422p, etc.)
+                video_profile = stream.get("profile")  # Profile (High, Main, Main 10, etc.)
             elif codec_type == "audio" and not audio_codec:
                 audio_codec = (stream.get("codec_name") or "").lower() or None
                 audio_channels = stream.get("channels")
                 audio_layout = stream.get("channel_layout")
+                # Extract audio format parameters
+                audio_sample_rate = stream.get("sample_rate")
+                audio_sample_fmt = stream.get("sample_fmt")
         if container:
             ffprobe_tokens.append(f"container:{container}")
         if video_codec:
             ffprobe_tokens.append(f"video:{video_codec}")
         if audio_codec:
             ffprobe_tokens.append(f"audio:{audio_codec}")
+
+        # Generate expanded UUID for video codec with format parameters
+        # This provides granular format identification (e.g., H.264 8-bit vs 10-bit)
+        video_codec_uuid = None
+        if video_codec:
+            try:
+                # Convert bit_depth to int if it's a string
+                bit_depth_int = None
+                if video_bit_depth:
+                    bit_depth_int = int(video_bit_depth) if isinstance(video_bit_depth, str) else video_bit_depth
+
+                # Convert sample_rate to int if it's a string
+                sample_rate_int = None
+                if audio_sample_rate:
+                    sample_rate_int = int(audio_sample_rate) if isinstance(audio_sample_rate, str) else audio_sample_rate
+
+                # Generate expanded UUID with format parameters
+                video_codec_uuid = uuid_generator.generate_video_uuid(
+                    codec=video_codec,
+                    bit_depth=bit_depth_int,
+                    pix_fmt=video_pix_fmt,
+                    profile=video_profile
+                )
+                LOG.debug(f"Generated expanded video codec UUID for {path.name}: {video_codec_uuid} (codec={video_codec}, bit_depth={bit_depth_int}, pix_fmt={video_pix_fmt}, profile={video_profile})")
+            except Exception as e:
+                LOG.warning(f"Failed to generate expanded video codec UUID for {path.name}: {e}")
+                # Fall back to base UUID without parameters
+                video_codec_uuid = None
 
     extension_candidates: list[Optional[str]] = []
     if consensus:
@@ -2100,15 +2145,26 @@ def detect_media(path: Path, skip_compatibility_check: bool = False) -> tuple[Op
         LOG.debug(f"UUID detection failed for {path.name} - file not identified")
         return None, "format not identified by UUID system"
 
+    # For video files, pass both container UUID and video codec UUID
+    # This provides granular format identification (e.g., H.264 8-bit vs 10-bit)
+    # while also checking container compatibility (MP4/MOV vs MKV)
+    primary_uuid = detected_uuid
+    container_uuid_param = None
+    if detected_kind == "video" and 'video_codec_uuid' in locals() and video_codec_uuid:
+        # Use expanded video codec UUID as primary, pass container UUID separately
+        primary_uuid = video_codec_uuid
+        container_uuid_param = detected_uuid
+        LOG.debug(f"Using expanded video codec UUID for {path.name}: {video_codec_uuid} (container UUID: {detected_uuid})")
+
     # UUID detected - determine action from JSON
-    uuid_action = format_registry.get_format_action(detected_uuid, video_codec, audio_codec)
+    uuid_action = format_registry.get_format_action(primary_uuid, video_codec, audio_codec, container_uuid_param)
     if not uuid_action:
         # UUID identified but format is unsupported
-        LOG.debug(f"UUID {detected_uuid} identified but unsupported for {path.name}")
-        return None, f"unsupported format (UUID={detected_uuid})"
+        LOG.debug(f"UUID {primary_uuid} identified but unsupported for {path.name}")
+        return None, f"unsupported format (UUID={primary_uuid})"
 
     # UUID system says this format is supported - use its action
-    LOG.debug(f"UUID-based action for {path.name}: {uuid_action} (UUID={detected_uuid})")
+    LOG.debug(f"UUID-based action for {path.name}: {uuid_action} (UUID={primary_uuid}, container={container_uuid_param})")
 
     # JSON is the sole source of truth - we already have uuid_action from above
     # Keep rule for metadata only (rule_id, notes, extensions for legacy compatibility)
