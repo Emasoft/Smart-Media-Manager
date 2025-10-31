@@ -1,0 +1,285 @@
+{
+  "$schema": "metadata_registry_schema",
+  "version": "1.0.0",
+  "description": "Metadata field UUID registry for unified field identification across tools and formats",
+  "metadata_fields": {
+    "temporal": {
+      "creation_datetime": {
+        "uuid": "3d4f8a9c-1e7b-5c3d-9a2f-4e8c1b7d3a9f-M",
+        "canonical": "creation_datetime",
+        "description": "Date and time when the media was originally created/captured",
+        "tool_mappings": {
+          "exiftool": [
+            "EXIF:DateTimeOriginal",
+            "EXIF:CreateDate",
+            "XMP:CreateDate",
+            "IPTC:DateCreated",
+            "QuickTime:CreateDate",
+            "QuickTime:CreationDate"
+          ],
+          "ffprobe": [
+            "creation_time",
+            "date"
+          ],
+          "ffmpeg": [
+            "creation_time"
+          ]
+        }
+      },
+      "modification_datetime": {
+        "uuid": "7b2c5e8d-4a1f-5d9c-8e3b-2f7a9c4d1e6b-M",
+        "canonical": "modification_datetime",
+        "description": "Date and time when the media was last modified",
+        "tool_mappings": {
+          "exiftool": [
+            "EXIF:ModifyDate",
+            "XMP:ModifyDate",
+            "File:FileModifyDate"
+          ],
+          "ffprobe": [
+            "modification_time"
+          ]
+        }
+      }
+    },
+    "spatial": {
+      "gps_latitude": {
+        "uuid": "9e1f3b7d-6c4a-5e8d-7f2b-1a9c4e3d8b5f-M",
+        "canonical": "gps_latitude",
+        "description": "Geographic latitude coordinate",
+        "tool_mappings": {
+          "exiftool": [
+            "GPS:GPSLatitude",
+            "XMP:GPSLatitude",
+            "Composite:GPSLatitude"
+          ],
+          "ffprobe": [
+            "location",
+            "com.apple.quicktime.location.ISO6709"
+          ]
+        }
+      },
+      "gps_longitude": {
+        "uuid": "4c8d2f7a-9e1b-5c3d-8a4f-6e2b9c7d1a3e-M",
+        "canonical": "gps_longitude",
+        "description": "Geographic longitude coordinate",
+        "tool_mappings": {
+          "exiftool": [
+            "GPS:GPSLongitude",
+            "XMP:GPSLongitude",
+            "Composite:GPSLongitude"
+          ],
+          "ffprobe": [
+            "location",
+            "com.apple.quicktime.location.ISO6709"
+          ]
+        }
+      },
+      "gps_altitude": {
+        "uuid": "2f5b8c9d-7e3a-5d1f-9c4b-8a2e6d7f1c3b-M",
+        "canonical": "gps_altitude",
+        "description": "Altitude above sea level in meters",
+        "tool_mappings": {
+          "exiftool": [
+            "GPS:GPSAltitude",
+            "XMP:GPSAltitude"
+          ]
+        }
+      }
+    },
+    "authorship": {
+      "creator": {
+        "uuid": "8a3d9f2c-5e7b-5c1d-9f4a-3e8b2c7d1f9a-M",
+        "canonical": "creator",
+        "description": "Person or entity that created the media",
+        "tool_mappings": {
+          "exiftool": [
+            "EXIF:Artist",
+            "XMP:Creator",
+            "IPTC:By-line",
+            "PDF:Author"
+          ],
+          "ffprobe": [
+            "artist",
+            "author"
+          ],
+          "ffmpeg": [
+            "artist",
+            "author"
+          ]
+        }
+      },
+      "copyright": {
+        "uuid": "5f9c2d8a-3e1b-5c7d-8a4f-9e2c7b1d3a5f-M",
+        "canonical": "copyright",
+        "description": "Copyright notice and owner information",
+        "tool_mappings": {
+          "exiftool": [
+            "EXIF:Copyright",
+            "XMP:Rights",
+            "IPTC:CopyrightNotice",
+            "PDF:Copyright"
+          ],
+          "ffprobe": [
+            "copyright"
+          ],
+          "ffmpeg": [
+            "copyright"
+          ]
+        }
+      }
+    },
+    "descriptive": {
+      "title": {
+        "uuid": "1c7d9f3a-8e2b-5d4c-9a7f-2e8b3c1d9f5a-M",
+        "canonical": "title",
+        "description": "Title or name of the media",
+        "tool_mappings": {
+          "exiftool": [
+            "XMP:Title",
+            "IPTC:ObjectName",
+            "QuickTime:Title",
+            "PDF:Title"
+          ],
+          "ffprobe": [
+            "title"
+          ],
+          "ffmpeg": [
+            "title"
+          ]
+        }
+      },
+      "description": {
+        "uuid": "6e8b4c2d-9f1a-5c7d-8e3b-4f9a2c7d1e5b-M",
+        "canonical": "description",
+        "description": "Textual description or caption of the media content",
+        "tool_mappings": {
+          "exiftool": [
+            "XMP:Description",
+            "IPTC:Caption-Abstract",
+            "EXIF:ImageDescription",
+            "PDF:Subject"
+          ],
+          "ffprobe": [
+            "comment",
+            "description"
+          ],
+          "ffmpeg": [
+            "comment",
+            "description"
+          ]
+        }
+      },
+      "keywords": {
+        "uuid": "9f3b7d2c-1e8a-5c4d-7f9b-2a8c3e1d9f5b-M",
+        "canonical": "keywords",
+        "description": "Keywords or tags describing the media content",
+        "tool_mappings": {
+          "exiftool": [
+            "XMP:Subject",
+            "IPTC:Keywords",
+            "PDF:Keywords"
+          ]
+        }
+      }
+    },
+    "technical": {
+      "camera_make": {
+        "uuid": "4d8f9c2a-7e3b-5d1c-9a4f-8e2b7c3d1f9a-M",
+        "canonical": "camera_make",
+        "description": "Camera or device manufacturer",
+        "tool_mappings": {
+          "exiftool": [
+            "EXIF:Make",
+            "XMP:Make"
+          ],
+          "ffprobe": [
+            "make",
+            "com.apple.quicktime.make"
+          ]
+        }
+      },
+      "camera_model": {
+        "uuid": "2c9f7d3a-5e1b-5c8d-9f4a-7e3b2c1d8f9a-M",
+        "canonical": "camera_model",
+        "description": "Camera or device model name",
+        "tool_mappings": {
+          "exiftool": [
+            "EXIF:Model",
+            "XMP:Model"
+          ],
+          "ffprobe": [
+            "model",
+            "com.apple.quicktime.model"
+          ]
+        }
+      },
+      "software": {
+        "uuid": "7f3d8c9a-2e1b-5c4d-8f9a-3e7b2c1d9f5a-M",
+        "canonical": "software",
+        "description": "Software or application used to create/edit the media",
+        "tool_mappings": {
+          "exiftool": [
+            "EXIF:Software",
+            "XMP:CreatorTool",
+            "PDF:Creator",
+            "PDF:Producer"
+          ],
+          "ffprobe": [
+            "encoder",
+            "com.apple.quicktime.software"
+          ],
+          "ffmpeg": [
+            "encoder"
+          ]
+        }
+      },
+      "orientation": {
+        "uuid": "5c8d9f2a-7e3b-5d1c-9a4f-2e8b3c7d1f9a-M",
+        "canonical": "orientation",
+        "description": "Image rotation/orientation (0, 90, 180, 270 degrees)",
+        "tool_mappings": {
+          "exiftool": [
+            "EXIF:Orientation",
+            "XMP:Orientation"
+          ],
+          "ffprobe": [
+            "rotate",
+            "rotation"
+          ]
+        }
+      }
+    },
+    "apple_specific": {
+      "live_photo_content_id": {
+        "uuid": "a9e7f3d2-8c1b-5c4d-9f7a-3e2b8c1d9f5a-M",
+        "canonical": "live_photo_content_id",
+        "description": "Apple Live Photo content identifier linking HEIC+MOV pairs",
+        "tool_mappings": {
+          "exiftool": [
+            "QuickTime:ContentIdentifier",
+            "XMP:ContentIdentifier"
+          ],
+          "ffprobe": [
+            "content_identifier",
+            "com.apple.quicktime.content.identifier"
+          ]
+        }
+      },
+      "panorama_projection": {
+        "uuid": "3d7f9c2a-5e8b-5c1d-9a4f-7e2b3c8d1f9a-M",
+        "canonical": "panorama_projection",
+        "description": "Panoramic photo projection type (equirectangular, cylindrical, etc.)",
+        "tool_mappings": {
+          "exiftool": [
+            "XMP:ProjectionType",
+            "XMP:UsePanoramaViewer"
+          ],
+          "ffprobe": [
+            "projection_type"
+          ]
+        }
+      }
+    }
+  }
+}
