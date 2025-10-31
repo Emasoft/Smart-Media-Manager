@@ -110,7 +110,7 @@ jobs:
       run: uv python install ${{ matrix.python-version }}
 
     - name: Install dependencies
-      run: uv sync --extra dev
+      run: uv sync
 
     - name: Run tests with pytest
       run: |
@@ -151,7 +151,7 @@ jobs:
       run: uv python install 3.12
 
     - name: Install dependencies
-      run: uv sync --extra dev
+      run: uv sync
 
     - name: Run ruff check
       run: |
@@ -199,7 +199,7 @@ jobs:
       run: uv python install 3.12
 
     - name: Install dependencies
-      run: uv sync --extra dev
+      run: uv sync
 
     - name: Run mypy
       run: |
