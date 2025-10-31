@@ -29,6 +29,7 @@ scripts_dev/
 # Test results (logs are preserved locally but not committed)
 tests/results/
 tests/samples/
+tests/fixtures/
 
 # Serena MCP working directory
 .serena/
