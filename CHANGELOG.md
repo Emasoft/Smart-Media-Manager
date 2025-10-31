@@ -1,6 +1,42 @@
 # Changelog
 All notable changes to this project will be documented here, following [Keep a Changelog](https://keepachangelog.com/) and Semantic Versioning (pre-release identifiers included).
 
+## [0.5.1a1] - 2025-10-31
+### Added
+- Optional dependencies for enhanced media detection (binwalk, rawpy) in pyproject.toml
+- Comprehensive development documentation in docs_dev/ (gitignored)
+  - Metadata registry research findings and test results
+  - Format compatibility test results (223MB empirical data)
+  - Development scripts catalog and usage guides
+
+### Changed
+- Reorganized repository structure with strict production/development separation
+  - All development scripts moved from scripts/ to scripts_dev/ (gitignored)
+  - Development documentation moved to docs_dev/ (gitignored)
+  - Production directories (scripts/, docs/) now contain only distribution-ready files
+- Migrated audio codec detection from string-based to UUID-based matching
+  - Enhanced format_compatibility.json with audio codec UUIDs
+  - Improved format_registry.py with flexible UUID pattern matching
+- Updated CLAUDE.md with directory organization guidelines
+
+### Fixed
+- Cleaned up repository by removing old logs and misplaced development files
+- Improved gitignore coverage for development artifacts
+
+## [0.5.0] - 2025-10-30
+### Changed
+- Extension normalization improvements for MP4 files
+- Removed backup system entirely (no more .bak files)
+
+## [0.4.0] - 2025-10-29
+### Changed
+- Major refactor: backup system removed for simplicity
+- Fixed .mp4 extension normalization bug
+
+## [0.3.4] - 2025-10-29
+### Fixed
+- Skip .bak files during scanning to prevent double extension bug
+
 ## [0.3.0a1] - 2025-10-26
 ### Added
 - Comprehensive README, CONTRIBUTING, LICENSE, and CHANGELOG plus expanded `.gitignore` coverage.

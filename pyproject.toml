@@ -1,6 +1,6 @@
 [project]
 name = "smart-media-manager"
-version = "0.5.0"
+version = "0.5.1a1"
 description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12"
@@ -15,6 +15,11 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = ["pytest>=8.4.2"]
+# Optional dependencies for enhanced media detection
+optional = [
+    "binwalk>=2.3.3",  # Enhanced binary file analysis
+    "rawpy>=0.17.0",   # RAW image format support
+]
 
 [dependency-groups]
 dev = [
