@@ -10,6 +10,11 @@ All notable changes to this project will be documented here, following [Keep a C
   - Development scripts catalog and usage guides
 - Minimal CI test suite with small samples (under 300KB) in tests/samples/ci/
   - Basic image and video detection tests
+  - Comprehensive bootstrap and dependency installation tests (11 new tests)
+    - Homebrew detection and installation logic
+    - Brew package installation and upgrade verification
+    - System dependencies installation (ffmpeg, jpeg-xl, libheif, imagemagick, webp, exiftool)
+    - RAW dependency groups for camera families (Canon, Nikon, Sony, Sigma, etc.)
   - Pytest markers for test categorization (minimal, e2e, slow)
   - CI-tracked minimal samples: test_image.jpg (38KB), test_video.mp4 (13KB)
 
