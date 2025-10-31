@@ -7,7 +7,7 @@ without requiring large test fixtures.
 
 import pytest
 from pathlib import Path
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import Mock, patch
 import subprocess
 
 
@@ -66,7 +66,7 @@ def test_video_file_exists_and_small():
 @pytest.mark.minimal
 def test_homebrew_detection_already_installed():
     """Test that ensure_homebrew detects existing Homebrew installation."""
-    from smart_media_manager.cli import ensure_homebrew, _BREW_PATH_CACHE
+    from smart_media_manager.cli import ensure_homebrew
 
     with patch("shutil.which") as mock_which:
         mock_which.return_value = "/opt/homebrew/bin/brew"
@@ -92,11 +92,7 @@ def test_brew_package_installed_check():
         assert brew_package_installed("/opt/homebrew/bin/brew", "ffmpeg") is False
 
         # Verify correct command was called
-        mock_run.assert_called_with(
-            ["/opt/homebrew/bin/brew", "list", "ffmpeg"],
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL
-        )
+        mock_run.assert_called_with(["/opt/homebrew/bin/brew", "list", "ffmpeg"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 
 @pytest.mark.minimal
@@ -104,19 +100,14 @@ def test_ensure_brew_package_installs_missing_package():
     """Test that ensure_brew_package installs a missing package."""
     from smart_media_manager.cli import ensure_brew_package
 
-    with patch("smart_media_manager.cli.brew_package_installed") as mock_installed, \
-         patch("smart_media_manager.cli.run_command_with_progress") as mock_run:
-
+    with patch("smart_media_manager.cli.brew_package_installed") as mock_installed, patch("smart_media_manager.cli.run_command_with_progress") as mock_run:
         # Package not installed
         mock_installed.return_value = False
 
         ensure_brew_package("/opt/homebrew/bin/brew", "ffmpeg")
 
         # Should attempt to install
-        mock_run.assert_called_once_with(
-            ["/opt/homebrew/bin/brew", "install", "--quiet", "ffmpeg"],
-            "Installing ffmpeg"
-        )
+        mock_run.assert_called_once_with(["/opt/homebrew/bin/brew", "install", "--quiet", "ffmpeg"], "Installing ffmpeg")
 
 
 @pytest.mark.minimal
@@ -124,29 +115,22 @@ def test_ensure_brew_package_upgrades_existing_package():
     """Test that ensure_brew_package upgrades an already installed package."""
     from smart_media_manager.cli import ensure_brew_package
 
-    with patch("smart_media_manager.cli.brew_package_installed") as mock_installed, \
-         patch("smart_media_manager.cli.run_command_with_progress") as mock_run:
-
+    with patch("smart_media_manager.cli.brew_package_installed") as mock_installed, patch("smart_media_manager.cli.run_command_with_progress") as mock_run:
         # Package already installed
         mock_installed.return_value = True
 
         ensure_brew_package("/opt/homebrew/bin/brew", "ffmpeg")
 
         # Should attempt to upgrade
-        mock_run.assert_called_once_with(
-            ["/opt/homebrew/bin/brew", "upgrade", "--quiet", "ffmpeg"],
-            "Updating ffmpeg"
-        )
+        mock_run.assert_called_once_with(["/opt/homebrew/bin/brew", "upgrade", "--quiet", "ffmpeg"], "Updating ffmpeg")
 
 
 @pytest.mark.minimal
 def test_ensure_system_dependencies_installs_all_required_packages():
     """Test that ensure_system_dependencies installs all 6 required packages."""
-    from smart_media_manager.cli import ensure_system_dependencies, REQUIRED_BREW_PACKAGES
+    from smart_media_manager.cli import ensure_system_dependencies
 
-    with patch("smart_media_manager.cli.ensure_homebrew") as mock_ensure_brew, \
-         patch("smart_media_manager.cli.ensure_brew_package") as mock_ensure_pkg:
-
+    with patch("smart_media_manager.cli.ensure_homebrew") as mock_ensure_brew, patch("smart_media_manager.cli.ensure_brew_package") as mock_ensure_pkg:
         mock_ensure_brew.return_value = "/opt/homebrew/bin/brew"
 
         ensure_system_dependencies()
@@ -165,11 +149,7 @@ def test_raw_dependency_group_canon():
     """Test Canon RAW dependency group installation."""
     from smart_media_manager.cli import install_raw_dependency_groups
 
-    with patch("smart_media_manager.cli.ensure_homebrew") as mock_ensure_brew, \
-         patch("smart_media_manager.cli.ensure_brew_package") as mock_ensure_pkg, \
-         patch("smart_media_manager.cli.ensure_brew_cask") as mock_ensure_cask, \
-         patch("smart_media_manager.cli.ensure_pip_package") as mock_ensure_pip:
-
+    with patch("smart_media_manager.cli.ensure_homebrew") as mock_ensure_brew, patch("smart_media_manager.cli.ensure_brew_package") as mock_ensure_pkg, patch("smart_media_manager.cli.ensure_brew_cask") as mock_ensure_cask, patch("smart_media_manager.cli.ensure_pip_package") as mock_ensure_pip:
         mock_ensure_brew.return_value = "/opt/homebrew/bin/brew"
 
         install_raw_dependency_groups(["canon"])
@@ -188,11 +168,7 @@ def test_raw_dependency_group_nikon():
     # Clear any previously installed groups
     _INSTALLED_RAW_GROUPS.clear()
 
-    with patch("smart_media_manager.cli.ensure_homebrew") as mock_ensure_brew, \
-         patch("smart_media_manager.cli.ensure_brew_package") as mock_ensure_pkg, \
-         patch("smart_media_manager.cli.ensure_brew_cask") as mock_ensure_cask, \
-         patch("smart_media_manager.cli.ensure_pip_package") as mock_ensure_pip:
-
+    with patch("smart_media_manager.cli.ensure_homebrew") as mock_ensure_brew, patch("smart_media_manager.cli.ensure_brew_package") as mock_ensure_pkg, patch("smart_media_manager.cli.ensure_brew_cask") as mock_ensure_cask, patch("smart_media_manager.cli.ensure_pip_package") as mock_ensure_pip:
         mock_ensure_brew.return_value = "/opt/homebrew/bin/brew"
 
         install_raw_dependency_groups(["nikon"])
@@ -211,10 +187,7 @@ def test_raw_dependency_group_sony():
     # Clear any previously installed groups
     _INSTALLED_RAW_GROUPS.clear()
 
-    with patch("smart_media_manager.cli.ensure_homebrew") as mock_ensure_brew, \
-         patch("smart_media_manager.cli.ensure_brew_package") as mock_ensure_pkg, \
-         patch("smart_media_manager.cli.ensure_pip_package") as mock_ensure_pip:
-
+    with patch("smart_media_manager.cli.ensure_homebrew") as mock_ensure_brew, patch("smart_media_manager.cli.ensure_brew_package") as mock_ensure_pkg, patch("smart_media_manager.cli.ensure_pip_package") as mock_ensure_pip:
         mock_ensure_brew.return_value = "/opt/homebrew/bin/brew"
 
         install_raw_dependency_groups(["sony"])
@@ -232,10 +205,7 @@ def test_raw_dependency_group_sigma_with_multiple_brew_packages():
     # Clear any previously installed groups
     _INSTALLED_RAW_GROUPS.clear()
 
-    with patch("smart_media_manager.cli.ensure_homebrew") as mock_ensure_brew, \
-         patch("smart_media_manager.cli.ensure_brew_package") as mock_ensure_pkg, \
-         patch("smart_media_manager.cli.ensure_pip_package") as mock_ensure_pip:
-
+    with patch("smart_media_manager.cli.ensure_homebrew") as mock_ensure_brew, patch("smart_media_manager.cli.ensure_brew_package") as mock_ensure_pkg, patch("smart_media_manager.cli.ensure_pip_package") as mock_ensure_pip:
         mock_ensure_brew.return_value = "/opt/homebrew/bin/brew"
 
         install_raw_dependency_groups(["sigma"])
@@ -255,11 +225,7 @@ def test_raw_dependency_group_multiple_cameras():
     # Clear any previously installed groups
     _INSTALLED_RAW_GROUPS.clear()
 
-    with patch("smart_media_manager.cli.ensure_homebrew") as mock_ensure_brew, \
-         patch("smart_media_manager.cli.ensure_brew_package") as mock_ensure_pkg, \
-         patch("smart_media_manager.cli.ensure_brew_cask") as mock_ensure_cask, \
-         patch("smart_media_manager.cli.ensure_pip_package") as mock_ensure_pip:
-
+    with patch("smart_media_manager.cli.ensure_homebrew") as mock_ensure_brew, patch("smart_media_manager.cli.ensure_brew_package") as mock_ensure_pkg, patch("smart_media_manager.cli.ensure_brew_cask") as mock_ensure_cask, patch("smart_media_manager.cli.ensure_pip_package") as mock_ensure_pip:
         mock_ensure_brew.return_value = "/opt/homebrew/bin/brew"
 
         # Install Canon, Nikon, Sony
@@ -283,9 +249,7 @@ def test_raw_dependency_group_skips_already_installed():
     _INSTALLED_RAW_GROUPS.clear()
     _INSTALLED_RAW_GROUPS.add("canon")
 
-    with patch("smart_media_manager.cli.ensure_homebrew") as mock_ensure_brew, \
-         patch("smart_media_manager.cli.ensure_brew_package") as mock_ensure_pkg:
-
+    with patch("smart_media_manager.cli.ensure_homebrew") as mock_ensure_brew, patch("smart_media_manager.cli.ensure_brew_package") as mock_ensure_pkg:
         mock_ensure_brew.return_value = "/opt/homebrew/bin/brew"
 
         # Try to install canon again

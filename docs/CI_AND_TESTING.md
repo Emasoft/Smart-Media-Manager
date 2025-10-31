@@ -99,7 +99,7 @@ def test_import_photos_batch():
 pytest -m minimal
 ```
 
-**Result:** 3 minimal tests, 103 deselected (e2e + unmarked tests)
+**Result:** 14 minimal tests, 103 deselected (e2e + unmarked tests)
 
 ### Locally (Full Suite)
 
