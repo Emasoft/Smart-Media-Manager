@@ -42,3 +42,12 @@ smart_media_manager = ["*.json"]
 
 [tool.uv]
 default-groups = ["dev"]
+
+[tool.pytest.ini_options]
+markers = [
+    "minimal: Minimal CI tests that run with small samples (under 300KB)",
+    "e2e: End-to-end tests that require large sample files",
+    "slow: Tests that take significant time to run",
+]
+# Default: run all tests except e2e (which need large samples)
+addopts = "-v --tb=short -m 'not e2e'"

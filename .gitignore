@@ -28,10 +28,12 @@ scripts_dev/
 
 # Test results (logs are preserved locally but not committed)
 tests/results/
-tests/samples/
+tests/samples/media/
+tests/samples/format_tests/
 tests/fixtures/
 tests/sample.*
-tests/**/sample*
+# Allow minimal CI samples (under 300KB each) for basic tests
+!tests/samples/ci/
 
 # Serena MCP working directory
 .serena/

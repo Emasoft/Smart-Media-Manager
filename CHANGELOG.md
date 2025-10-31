@@ -8,6 +8,10 @@ All notable changes to this project will be documented here, following [Keep a C
   - Metadata registry research findings and test results
   - Format compatibility test results (223MB empirical data)
   - Development scripts catalog and usage guides
+- Minimal CI test suite with small samples (under 300KB) in tests/samples/ci/
+  - Basic image and video detection tests
+  - Pytest markers for test categorization (minimal, e2e, slow)
+  - CI-tracked minimal samples: test_image.jpg (38KB), test_video.mp4 (13KB)
 
 ### Changed
 - Reorganized repository structure with strict production/development separation
@@ -19,13 +23,15 @@ All notable changes to this project will be documented here, following [Keep a C
   - Enhanced format_compatibility.json with audio codec UUIDs
   - Improved format_registry.py with flexible UUID pattern matching
 - Updated CLAUDE.md with directory organization guidelines
-- Updated CI workflow to ignore dev directories and test samples
+- Updated CI workflow to run only minimal tests (excludes e2e tests requiring large samples)
+- Refined gitignore: track tests/samples/ci/ but ignore tests/samples/media/ and tests/samples/format_tests/
 
 ### Fixed
 - Cleaned up repository by removing old logs and misplaced development files
 - Improved gitignore coverage for development artifacts (tests/samples/, tests/fixtures/, docs_dev/, scripts_dev/)
 - Removed binwalk from optional dependencies (installed via Homebrew, not pip)
 - Fixed duplicate dev dependency entries in pyproject.toml
+- Fixed CI dependency resolution by using 'uv sync' instead of '--extra dev'
 
 ## [0.5.0] - 2025-10-30
 ### Changed

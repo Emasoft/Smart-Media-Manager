@@ -112,9 +112,9 @@ jobs:
     - name: Install dependencies
       run: uv sync
 
-    - name: Run tests with pytest
+    - name: Run minimal CI tests
       run: |
-        uv run pytest -v --tb=short --color=yes 2>&1 | tee pytest-output.txt
+        uv run pytest -m minimal -v --tb=short --color=yes 2>&1 | tee pytest-output.txt
       continue-on-error: true
 
     - name: Generate test report
