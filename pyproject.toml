@@ -14,10 +14,9 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["pytest>=8.4.2"]
 # Optional dependencies for enhanced media detection
-optional = [
-    "binwalk>=2.3.3",  # Enhanced binary file analysis
+# Note: binwalk is installed via Homebrew, not pip
+enhanced = [
     "rawpy>=0.17.0",   # RAW image format support
 ]
 
