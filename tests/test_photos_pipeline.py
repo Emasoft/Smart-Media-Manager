@@ -25,7 +25,7 @@ def test_png_import_pipeline(monkeypatch, tmp_path: Path) -> None:
     png_path = source_dir / "photo.png"
     shutil.copy(Path(__file__).parent / "sample.png", png_path)
 
-    def fake_detect(path: Path):
+    def fake_detect(path: Path, skip_compatibility_check: bool = False):
         media = MediaFile(
             source=path,
             kind="image",

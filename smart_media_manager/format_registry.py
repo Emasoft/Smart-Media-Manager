@@ -194,6 +194,59 @@ def needs_conversion(format_uuid: str) -> bool:
     return False
 
 
+def get_format_action(format_uuid: str, video_codec: Optional[str] = None, audio_codec: Optional[str] = None) -> Optional[str]:
+    """Determine the required action for a format based on Apple Photos compatibility.
+    
+    Args:
+        format_uuid: Format UUID with type suffix
+        video_codec: Video codec name (for videos)
+        audio_codec: Audio codec name (for videos)
+        
+    Returns:
+        Action string: "import", "rewrap_to_mp4", "transcode_to_hevc_mp4", "transcode_audio_to_supported", "convert_to_png", or None if unsupported
+    """
+    compat = load_compatibility_data()
+    apple_compat = compat.get("apple_photos_compatible", {})
+    
+    # Check if directly compatible
+    if format_uuid in apple_compat.get("images", {}).get("direct_import", []):
+        return "import"
+    
+    if format_uuid in apple_compat.get("images", {}).get("raw_formats", []):
+        return "import"
+    
+    # For videos, check container AND codecs
+    if format_uuid in apple_compat.get("videos", {}).get("compatible_containers", []):
+        # Container is compatible, check codecs
+        if video_codec and video_codec not in ["h264", "hevc", "av1"]:
+            return "transcode_to_hevc_mp4"  # Need to transcode video codec
+        if audio_codec and audio_codec in ["opus", "vorbis", "dts"]:
+            return "transcode_audio_to_supported"  # Need to transcode audio codec
+        return "import"  # Container and codecs are compatible
+    
+    if format_uuid in apple_compat.get("videos", {}).get("compatible_video_codecs", []):
+        return "import"  # Video codec is compatible
+    
+    # Check if conversion needed
+    if format_uuid in apple_compat.get("images", {}).get("needs_conversion", []):
+        return "convert_to_png"  # Convert incompatible image formats
+    
+    if format_uuid in apple_compat.get("videos", {}).get("needs_rewrap", []):
+        return "rewrap_to_mp4"  # Container incompatible, but codecs compatible
+    
+    if format_uuid in apple_compat.get("videos", {}).get("needs_transcode_video", []):
+        return "transcode_to_hevc_mp4"  # Video codec incompatible
+    
+    if format_uuid in apple_compat.get("videos", {}).get("needs_transcode_container", []):
+        return "transcode_to_hevc_mp4"  # Container always needs full transcode (e.g., AVI)
+    
+    # Check audio codec separately
+    if audio_codec and audio_codec in apple_compat.get("videos", {}).get("needs_transcode_audio", []):
+        return "transcode_audio_to_supported"
+    
+    return None  # Unsupported format  # Unsupported format
+
+
 def get_compatible_formats() -> Set[str]:
     """Get set of all Apple Photos compatible format UUIDs.
 

@@ -48,6 +48,7 @@ def import_into_photos(media_files, stats):
     return imported_count, failed_list
 
 SAMPLES_DIR = Path(__file__).parent / "samples" / "media"
+FIXTURES_DIR = Path(__file__).parent / "fixtures"
 
 
 def check_photos_available() -> None:
@@ -169,13 +170,13 @@ def test_import_mp4_video_to_photos(tmp_path: Path) -> None:
     source_dir = tmp_path / "input"
     source_dir.mkdir()
 
-    # Copy an MP4 sample
-    mp4_samples = list(SAMPLES_DIR.glob("*.mp4"))
-    if not mp4_samples:
-        pytest.skip("No MP4 samples found")
+    # Use dedicated compatible MP4 fixture
+    mp4_fixture = FIXTURES_DIR / "compatible_h264.mp4"
+    if not mp4_fixture.exists():
+        pytest.skip("MP4 fixture not found - run: cd tests/fixtures && bash README.md commands")
 
     test_file = source_dir / "test.mp4"
-    shutil.copy(mp4_samples[0], test_file)
+    shutil.copy(mp4_fixture, test_file)
 
     # Scan and stage
     stats = RunStatistics()
@@ -228,19 +229,20 @@ def test_import_webp_converts_and_imports(tmp_path: Path) -> None:
     assert len(media_files) == 1, "Should find exactly one WebP"
     webp = media_files[0]
     assert webp.kind == "image"
-    assert webp.requires_processing, "WebP should require processing"
+    # Empirical evidence: WebP imports directly into Apple Photos
+    assert not webp.requires_processing, "WebP is compatible with Apple Photos (direct import)"
+    assert webp.compatible, "WebP should be marked compatible"
 
     # Stage files
     staging_dir = tmp_path / "FOUND_MEDIA_FILES_test"
     staging_dir.mkdir()
     move_to_staging(media_files, staging_dir)
 
-    # Ensure compatibility - this should convert WebP to PNG
+    # Ensure compatibility - WebP should not need conversion
     ensure_compatibility(media_files, skip_logger, stats)
 
-    # After conversion, file should be PNG
-    assert webp.extension == ".png", "WebP should be converted to PNG"
-    assert webp.compatible, "Converted file should be compatible"
+    # Extension should remain .webp (no conversion needed)
+    assert webp.extension == ".webp", "WebP extension should be preserved"
 
     # THE REAL TEST: Import into Apple Photos
     imported_count, failed_list = import_into_photos(media_files, stats)

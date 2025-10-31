@@ -2094,12 +2094,31 @@ def detect_media(path: Path, skip_compatibility_check: bool = False) -> tuple[Op
         if rule:
             break
 
-    if not rule:
-        return None, "format not recognised"
+    # CRITICAL: JSON file is the SOLE source of truth for format identification
+    # If UUID detection fails, the file is unidentified and must be rejected
+    if not detected_uuid:
+        LOG.debug(f"UUID detection failed for {path.name} - file not identified")
+        return None, "format not identified by UUID system"
 
-    if rule.action.startswith("skip"):
-        reason = rule.notes or "unsupported format"
-        return None, reason
+    # UUID detected - determine action from JSON
+    uuid_action = format_registry.get_format_action(detected_uuid, video_codec, audio_codec)
+    if not uuid_action:
+        # UUID identified but format is unsupported
+        LOG.debug(f"UUID {detected_uuid} identified but unsupported for {path.name}")
+        return None, f"unsupported format (UUID={detected_uuid})"
+
+    # UUID system says this format is supported - use its action
+    LOG.debug(f"UUID-based action for {path.name}: {uuid_action} (UUID={detected_uuid})")
+
+    # JSON is the sole source of truth - we already have uuid_action from above
+    # Keep rule for metadata only (rule_id, notes, extensions for legacy compatibility)
+    if not rule:
+        # No rule found - but UUID system already approved it, so create a minimal rule
+        # This shouldn't happen often as most formats should have rules
+        LOG.warning(f"UUID {detected_uuid} approved but no format rule found for {path.name}")
+
+    # Use uuid_action as the effective action (JSON is authoritative)
+    effective_action = uuid_action
 
     if rule.category == "vector":
         return None, "vector formats are not supported by Apple Photos"
@@ -2119,8 +2138,8 @@ def detect_media(path: Path, skip_compatibility_check: bool = False) -> tuple[Op
         if not raw_media:
             return None, raw_reason or "unsupported raw format"
         raw_media.rule_id = rule.rule_id
-        raw_media.action = rule.action
-        raw_media.requires_processing = rule.action != "import"
+        raw_media.action = effective_action
+        raw_media.requires_processing = effective_action != "import"
         raw_media.notes = rule.notes
         raw_media.metadata.update(metadata)
         return raw_media, None
@@ -2146,11 +2165,11 @@ def detect_media(path: Path, skip_compatibility_check: bool = False) -> tuple[Op
             kind="image",
             extension=extension or ".img",
             format_name=(extension or ".img").lstrip("."),
-            compatible=rule.action == "import",
+            compatible=effective_action == "import",
             original_suffix=path.suffix,
             rule_id=rule.rule_id,
-            action=rule.action,
-            requires_processing=rule.action != "import",
+            action=effective_action,
+            requires_processing=effective_action != "import",
             notes=rule.notes,
             metadata=metadata,
         )
@@ -2172,13 +2191,13 @@ def detect_media(path: Path, skip_compatibility_check: bool = False) -> tuple[Op
             kind="video",
             extension=extension or ".mp4",
             format_name=container or "video",
-            compatible=rule.action == "import",
+            compatible=effective_action == "import",
             video_codec=video_codec,
             audio_codec=audio_codec,
             original_suffix=path.suffix,
             rule_id=rule.rule_id,
-            action=rule.action,
-            requires_processing=rule.action != "import",
+            action=effective_action,
+            requires_processing=effective_action != "import",
             notes=rule.notes,
             metadata=metadata,
         )

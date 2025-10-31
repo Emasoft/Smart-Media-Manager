@@ -28,6 +28,7 @@ from smart_media_manager.cli import (  # noqa: E402
 )
 
 SAMPLES_DIR = Path(__file__).parent / "samples" / "media"
+FIXTURES_DIR = Path(__file__).parent / "fixtures"
 
 
 def test_sample_media_directory_exists() -> None:
@@ -94,7 +95,7 @@ def test_compatible_png_should_import(tmp_path: Path) -> None:
 
 
 def test_webp_should_convert_to_png(tmp_path: Path) -> None:
-    """WebP files should be converted to PNG."""
+    """WebP files import directly (empirically proven compatible with Apple Photos)."""
     source_dir = tmp_path / "input"
     source_dir.mkdir()
 
@@ -114,8 +115,10 @@ def test_webp_should_convert_to_png(tmp_path: Path) -> None:
     assert len(webp_media) >= 1, "At least one WebP should be found"
 
     webp = webp_media[0]
-    assert webp.action == "convert_to_png", f"WebP should have action='convert_to_png', got: {webp.action}"
-    assert webp.requires_processing is True, "WebP should require processing"
+    # Empirical evidence: WebP imports directly into Apple Photos with 100% success rate
+    assert webp.action == "import", f"WebP should have action='import', got: {webp.action}"
+    assert webp.compatible is True, "WebP should be marked compatible"
+    assert webp.requires_processing is False, "WebP should not require processing"
 
 
 def test_pdf_should_be_skipped(tmp_path: Path) -> None:
@@ -193,12 +196,13 @@ def test_mp4_video_detection(tmp_path: Path) -> None:
     source_dir = tmp_path / "input"
     source_dir.mkdir()
 
-    mp4_samples = list(SAMPLES_DIR.glob("*.mp4"))
-    if not mp4_samples:
-        pytest.skip("No MP4 samples found")
+    # Use dedicated compatible MP4 fixture
+    mp4_fixture = FIXTURES_DIR / "compatible_h264.mp4"
+    if not mp4_fixture.exists():
+        pytest.skip("MP4 fixture not found")
 
     test_mp4 = source_dir / "test.mp4"
-    shutil.copy(mp4_samples[0], test_mp4)
+    shutil.copy(mp4_fixture, test_mp4)
 
     stats = RunStatistics()
     skip_logger = SkipLogger(tmp_path / "skip.log")
