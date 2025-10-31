@@ -1,7 +1,7 @@
 {
   "$schema": "metadata_registry_schema",
-  "version": "2.0.0",
-  "description": "Comprehensive metadata field UUID registry for unified field identification across tools and formats",
+  "version": "3.0.0",
+  "description": "Comprehensive metadata field UUID registry for unified field identification across tools and formats (with audio/music and broadcast metadata)",
   "metadata_fields": {
     "temporal": {
       "creation_datetime": {
@@ -56,6 +56,26 @@
           ],
           "ffprobe": [],
           "ffmpeg": []
+        }
+      },
+      "year": {
+        "uuid": "a0731c4e-8b98-840f-2dc4-a68963f12319-M",
+        "canonical": "year",
+        "description": "Year of creation/release",
+        "tool_mappings": {
+          "exiftool": [
+            "XMP:Year",
+            "ID3:Year",
+            "QuickTime:Year"
+          ],
+          "ffprobe": [
+            "year",
+            "date"
+          ],
+          "ffmpeg": [
+            "year",
+            "date"
+          ]
         }
       }
     },
@@ -245,6 +265,23 @@
           ],
           "ffprobe": [],
           "ffmpeg": []
+        }
+      },
+      "language": {
+        "uuid": "d80fcf97-3528-76bf-ade7-01440ef55e8f-M",
+        "canonical": "language",
+        "description": "Content language (ISO 639 code)",
+        "tool_mappings": {
+          "exiftool": [
+            "QuickTime:Language",
+            "XMP:Language"
+          ],
+          "ffprobe": [
+            "language"
+          ],
+          "ffmpeg": [
+            "language"
+          ]
         }
       }
     },
@@ -767,6 +804,308 @@
             "encoder_options"
           ],
           "ffmpeg": []
+        }
+      }
+    },
+    "audio_music": {
+      "album": {
+        "uuid": "45de98e7-9139-b226-a638-1b5014579f4b-M",
+        "canonical": "album",
+        "description": "Album name for music/audio content",
+        "tool_mappings": {
+          "exiftool": [
+            "XMP:Album",
+            "ID3:Album"
+          ],
+          "ffprobe": [
+            "album"
+          ],
+          "ffmpeg": [
+            "album"
+          ]
+        }
+      },
+      "album_artist": {
+        "uuid": "19552d34-d5e3-7bed-396e-7c5214b22fa7-M",
+        "canonical": "album_artist",
+        "description": "Album artist (different from track artist)",
+        "tool_mappings": {
+          "exiftool": [
+            "XMP:AlbumArtist",
+            "ID3:AlbumArtist"
+          ],
+          "ffprobe": [
+            "album_artist"
+          ],
+          "ffmpeg": [
+            "album_artist"
+          ]
+        }
+      },
+      "composer": {
+        "uuid": "29774ef3-28a4-46e1-02c7-b0b3c8dd5fda-M",
+        "canonical": "composer",
+        "description": "Music composer",
+        "tool_mappings": {
+          "exiftool": [
+            "XMP:Composer",
+            "ID3:Composer"
+          ],
+          "ffprobe": [
+            "composer"
+          ],
+          "ffmpeg": [
+            "composer"
+          ]
+        }
+      },
+      "genre": {
+        "uuid": "237dceaf-f077-74fb-c17e-f22de3135c61-M",
+        "canonical": "genre",
+        "description": "Genre classification (music, film, etc.)",
+        "tool_mappings": {
+          "exiftool": [
+            "XMP:Genre",
+            "ID3:Genre",
+            "QuickTime:Genre"
+          ],
+          "ffprobe": [
+            "genre"
+          ],
+          "ffmpeg": [
+            "genre"
+          ]
+        }
+      },
+      "track_number": {
+        "uuid": "f8cd59fc-cf3e-0569-432d-f74b2c424660-M",
+        "canonical": "track_number",
+        "description": "Track number in album/collection",
+        "tool_mappings": {
+          "exiftool": [
+            "XMP:TrackNumber",
+            "ID3:Track"
+          ],
+          "ffprobe": [
+            "track"
+          ],
+          "ffmpeg": [
+            "track"
+          ]
+        }
+      },
+      "disc_number": {
+        "uuid": "08806a5e-2635-935d-b040-cc988d4a85db-M",
+        "canonical": "disc_number",
+        "description": "Disc number in multi-disc set",
+        "tool_mappings": {
+          "exiftool": [
+            "XMP:DiscNumber",
+            "ID3:Disc"
+          ],
+          "ffprobe": [
+            "disc"
+          ],
+          "ffmpeg": [
+            "disc"
+          ]
+        }
+      },
+      "performer": {
+        "uuid": "a0be6763-cbe8-7edf-eff1-29717391bd52-M",
+        "canonical": "performer",
+        "description": "Performer (different from composer/artist)",
+        "tool_mappings": {
+          "exiftool": [
+            "XMP:Performer",
+            "ID3:Performer"
+          ],
+          "ffprobe": [
+            "performer"
+          ],
+          "ffmpeg": [
+            "performer"
+          ]
+        }
+      },
+      "publisher": {
+        "uuid": "ae105005-7517-21a6-dff7-a676c6cd62b7-M",
+        "canonical": "publisher",
+        "description": "Publisher or record label",
+        "tool_mappings": {
+          "exiftool": [
+            "XMP:Publisher",
+            "ID3:Publisher"
+          ],
+          "ffprobe": [
+            "publisher"
+          ],
+          "ffmpeg": [
+            "publisher"
+          ]
+        }
+      },
+      "lyrics": {
+        "uuid": "b35bd25e-4b32-b505-e2e9-ec8f85f86ae8-M",
+        "canonical": "lyrics",
+        "description": "Song lyrics text",
+        "tool_mappings": {
+          "exiftool": [
+            "ID3:Lyrics"
+          ],
+          "ffprobe": [
+            "lyrics"
+          ],
+          "ffmpeg": [
+            "lyrics"
+          ]
+        }
+      },
+      "compilation": {
+        "uuid": "4d1f54b9-73e8-f067-13cc-a4ef1463d672-M",
+        "canonical": "compilation",
+        "description": "Compilation flag (boolean)",
+        "tool_mappings": {
+          "exiftool": [
+            "ID3:Compilation"
+          ],
+          "ffprobe": [
+            "compilation"
+          ],
+          "ffmpeg": [
+            "compilation"
+          ]
+        }
+      },
+      "grouping": {
+        "uuid": "825ed000-3676-655d-3d82-e64d5a2fb1b2-M",
+        "canonical": "grouping",
+        "description": "Music grouping or collection",
+        "tool_mappings": {
+          "exiftool": [
+            "ID3:Grouping",
+            "QuickTime:Grouping"
+          ],
+          "ffprobe": [
+            "grouping"
+          ],
+          "ffmpeg": [
+            "grouping"
+          ]
+        }
+      },
+      "encoded_by": {
+        "uuid": "bdd7da33-bb13-4ed1-3bac-a4b0aeb2e58b-M",
+        "canonical": "encoded_by",
+        "description": "Person/organization that encoded the file",
+        "tool_mappings": {
+          "exiftool": [
+            "ID3:EncodedBy"
+          ],
+          "ffprobe": [
+            "encoded_by"
+          ],
+          "ffmpeg": [
+            "encoded_by"
+          ]
+        }
+      }
+    },
+    "broadcast_video": {
+      "show": {
+        "uuid": "40d2829b-7e91-0f1a-0267-d89a1467b1c6-M",
+        "canonical": "show",
+        "description": "TV show or series name",
+        "tool_mappings": {
+          "exiftool": [
+            "QuickTime:Show"
+          ],
+          "ffprobe": [
+            "show"
+          ],
+          "ffmpeg": [
+            "show"
+          ]
+        }
+      },
+      "episode_id": {
+        "uuid": "1a68aaa6-feca-a464-11fe-27b113103c59-M",
+        "canonical": "episode_id",
+        "description": "Episode identifier",
+        "tool_mappings": {
+          "exiftool": [
+            "QuickTime:EpisodeID"
+          ],
+          "ffprobe": [
+            "episode_id"
+          ],
+          "ffmpeg": [
+            "episode_id"
+          ]
+        }
+      },
+      "season_number": {
+        "uuid": "ba5c57e9-e4b3-8c3d-78c5-8d4b4f1a064c-M",
+        "canonical": "season_number",
+        "description": "Season number for TV series",
+        "tool_mappings": {
+          "exiftool": [
+            "QuickTime:Season"
+          ],
+          "ffprobe": [
+            "season_number"
+          ],
+          "ffmpeg": [
+            "season_number"
+          ]
+        }
+      },
+      "episode_sort": {
+        "uuid": "25146ec2-176f-f619-f3a7-f8bb7a0ff76f-M",
+        "canonical": "episode_sort",
+        "description": "Episode sort order",
+        "tool_mappings": {
+          "exiftool": [
+            "QuickTime:EpisodeSort"
+          ],
+          "ffprobe": [
+            "episode_sort"
+          ],
+          "ffmpeg": [
+            "episode_sort"
+          ]
+        }
+      },
+      "network": {
+        "uuid": "f433b128-5ddd-8a1a-cfff-5786e6d628d2-M",
+        "canonical": "network",
+        "description": "Broadcast network or channel",
+        "tool_mappings": {
+          "exiftool": [
+            "QuickTime:Network"
+          ],
+          "ffprobe": [
+            "network"
+          ],
+          "ffmpeg": [
+            "network"
+          ]
+        }
+      },
+      "synopsis": {
+        "uuid": "c784cc01-b0ac-4703-a594-fccadbb72c42-M",
+        "canonical": "synopsis",
+        "description": "Extended synopsis or summary",
+        "tool_mappings": {
+          "exiftool": [
+            "QuickTime:Synopsis"
+          ],
+          "ffprobe": [
+            "synopsis"
+          ],
+          "ffmpeg": [
+            "synopsis"
+          ]
         }
       }
     }
