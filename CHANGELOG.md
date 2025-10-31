@@ -3,7 +3,7 @@ All notable changes to this project will be documented here, following [Keep a C
 
 ## [0.5.1a1] - 2025-10-31
 ### Added
-- Optional dependencies for enhanced media detection (binwalk, rawpy) in pyproject.toml
+- Optional dependencies for enhanced media detection (rawpy) in pyproject.toml
 - Comprehensive development documentation in docs_dev/ (gitignored)
   - Metadata registry research findings and test results
   - Format compatibility test results (223MB empirical data)
@@ -14,14 +14,18 @@ All notable changes to this project will be documented here, following [Keep a C
   - All development scripts moved from scripts/ to scripts_dev/ (gitignored)
   - Development documentation moved to docs_dev/ (gitignored)
   - Production directories (scripts/, docs/) now contain only distribution-ready files
+  - Removed 15,822 binary test sample files from git history (99.997% size reduction)
 - Migrated audio codec detection from string-based to UUID-based matching
   - Enhanced format_compatibility.json with audio codec UUIDs
   - Improved format_registry.py with flexible UUID pattern matching
 - Updated CLAUDE.md with directory organization guidelines
+- Updated CI workflow to ignore dev directories and test samples
 
 ### Fixed
 - Cleaned up repository by removing old logs and misplaced development files
-- Improved gitignore coverage for development artifacts
+- Improved gitignore coverage for development artifacts (tests/samples/, tests/fixtures/, docs_dev/, scripts_dev/)
+- Removed binwalk from optional dependencies (installed via Homebrew, not pip)
+- Fixed duplicate dev dependency entries in pyproject.toml
 
 ## [0.5.0] - 2025-10-30
 ### Changed
