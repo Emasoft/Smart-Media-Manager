@@ -1,7 +1,7 @@
 {
   "$schema": "metadata_registry_schema",
-  "version": "3.0.0",
-  "description": "Comprehensive metadata field UUID registry for unified field identification across tools and formats (with audio/music and broadcast metadata)",
+  "version": "3.1.0",
+  "description": "Comprehensive metadata field UUID registry with fixed semantic duplicates",
   "metadata_fields": {
     "temporal": {
       "creation_datetime": {
@@ -69,12 +69,10 @@
             "QuickTime:Year"
           ],
           "ffprobe": [
-            "year",
-            "date"
+            "year"
           ],
           "ffmpeg": [
-            "year",
-            "date"
+            "year"
           ]
         }
       }
@@ -90,14 +88,8 @@
             "XMP:GPSLatitude",
             "Composite:GPSLatitude"
           ],
-          "ffprobe": [
-            "location",
-            "com.apple.quicktime.location.ISO6709"
-          ],
-          "ffmpeg": [
-            "location",
-            "com.apple.quicktime.location.ISO6709"
-          ]
+          "ffprobe": [],
+          "ffmpeg": []
         }
       },
       "gps_longitude": {
@@ -110,14 +102,8 @@
             "XMP:GPSLongitude",
             "Composite:GPSLongitude"
           ],
-          "ffprobe": [
-            "location",
-            "com.apple.quicktime.location.ISO6709"
-          ],
-          "ffmpeg": [
-            "location",
-            "com.apple.quicktime.location.ISO6709"
-          ]
+          "ffprobe": [],
+          "ffmpeg": []
         }
       },
       "gps_altitude": {
@@ -130,6 +116,22 @@
             "XMP:GPSAltitude"
           ],
           "ffmpeg": []
+        }
+      },
+      "gps_location_composite": {
+        "uuid": "6050efe3-e892-750c-7fb6-80b59809ceb6-M",
+        "canonical": "gps_location_composite",
+        "description": "Composite GPS location (contains both latitude and longitude in ISO 6709 format)",
+        "tool_mappings": {
+          "exiftool": [],
+          "ffprobe": [
+            "location",
+            "com.apple.quicktime.location.ISO6709"
+          ],
+          "ffmpeg": [
+            "location",
+            "com.apple.quicktime.location.ISO6709"
+          ]
         }
       }
     },
@@ -434,9 +436,7 @@
           "exiftool": [
             "EXIF:Compression"
           ],
-          "ffprobe": [
-            "codec_name"
-          ],
+          "ffprobe": [],
           "ffmpeg": [
             "codec"
           ]
