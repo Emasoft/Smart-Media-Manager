@@ -48,14 +48,14 @@
         "c69693cd-1fcd-5608-a8df-9476a00cfa9b-8bit-yuv420p-V"
       ],
       "compatible_audio_codecs": [
-        "aac",
-        "ac3",
-        "eac3",
-        "alac",
-        "pcm_s16le",
-        "pcm_s16be",
-        "pcm_s24le",
-        "pcm_s24be"
+        "501331ba-42ea-561c-e5df-8a824df17e3f-A",
+        "924f0afb-5820-b044-ef80-c4c1cbaf2fe9-A",
+        "56fcc40c-9499-baac-9f12-e4f2975c79bb-A",
+        "0504814b-150b-1a9e-b3e1-ca9cce0335ae-A",
+        "c6c39c20-724f-674a-33ee-43c45c0e843b-A",
+        "472043db-a1b4-e42a-0c3f-65786c75d59d-A",
+        "e99eab18-ef55-fc36-5724-a1a5d7ff8e14-A",
+        "5a841245-3eb3-8a93-2f11-d1d5214cbee1-A"
       ],
       "needs_rewrap": [
         "f8f9aed9-bdeb-5fe7-b77b-b3c94c9c0ae0-C"
@@ -69,9 +69,9 @@
         "faf4b553-de47-5bc8-80ea-d026a2571456-yuv444p-V"
       ],
       "needs_transcode_audio": [
-        "opus",
-        "vorbis",
-        "dts"
+        "e12ce828-5efc-67c6-d93d-3a122e2589ed-A",
+        "c78d7a55-dd41-17c5-1451-acae5737e459-A",
+        "4dbf9b52-09f8-cc9e-1c5c-9d31a74da309-A"
       ]
     }
   },
@@ -198,6 +198,64 @@
     "4c9b19a7-ec9f-57c2-98ca-3ac8432b27cc-V": {
       "canonical": "vp9",
       "category": "video_codec"
+    },
+    "501331ba-42ea-561c-e5df-8a824df17e3f-A": {
+      "canonical": "aac",
+      "aliases": ["aac_lc", "aac_he", "aac_he_v2"],
+      "category": "audio_codec"
+    },
+    "924f0afb-5820-b044-ef80-c4c1cbaf2fe9-A": {
+      "canonical": "ac3",
+      "aliases": ["ac-3", "dolby_digital"],
+      "category": "audio_codec"
+    },
+    "56fcc40c-9499-baac-9f12-e4f2975c79bb-A": {
+      "canonical": "eac3",
+      "aliases": ["e-ac-3", "eac-3", "dolby_digital_plus"],
+      "category": "audio_codec"
+    },
+    "0504814b-150b-1a9e-b3e1-ca9cce0335ae-A": {
+      "canonical": "alac",
+      "aliases": ["apple_lossless"],
+      "category": "audio_codec"
+    },
+    "c6c39c20-724f-674a-33ee-43c45c0e843b-A": {
+      "canonical": "pcm_s16le",
+      "category": "audio_codec"
+    },
+    "472043db-a1b4-e42a-0c3f-65786c75d59d-A": {
+      "canonical": "pcm_s16be",
+      "category": "audio_codec"
+    },
+    "e99eab18-ef55-fc36-5724-a1a5d7ff8e14-A": {
+      "canonical": "pcm_s24le",
+      "category": "audio_codec"
+    },
+    "5a841245-3eb3-8a93-2f11-d1d5214cbee1-A": {
+      "canonical": "pcm_s24be",
+      "category": "audio_codec"
+    },
+    "e12ce828-5efc-67c6-d93d-3a122e2589ed-A": {
+      "canonical": "opus",
+      "category": "audio_codec"
+    },
+    "c78d7a55-dd41-17c5-1451-acae5737e459-A": {
+      "canonical": "vorbis",
+      "category": "audio_codec"
+    },
+    "4dbf9b52-09f8-cc9e-1c5c-9d31a74da309-A": {
+      "canonical": "dts",
+      "aliases": ["dts-hd", "dtshd"],
+      "category": "audio_codec"
+    },
+    "27656ffd-5a01-dc64-0a8f-9d96a8684be7-A": {
+      "canonical": "mp3",
+      "aliases": ["mp3float", "mpeg_audio"],
+      "category": "audio_codec"
+    },
+    "920ca0bd-e474-4c77-125c-3118a1107af4-A": {
+      "canonical": "flac",
+      "category": "audio_codec"
     }
   },
   "tool_mappings": {
@@ -246,7 +304,24 @@
       "h264": "b2e62c4a-6122-548c-9bfa-0fcf3613942a-V",
       "hevc": "faf4b553-de47-5bc8-80ea-d026a2571456-V",
       "av1": "c69693cd-1fcd-5608-a8df-9476a00cfa9b-V",
-      "vp9": "4c9b19a7-ec9f-57c2-98ca-3ac8432b27cc-V"
+      "vp9": "4c9b19a7-ec9f-57c2-98ca-3ac8432b27cc-V",
+      "aac": "501331ba-42ea-561c-e5df-8a824df17e3f-A",
+      "aac_lc": "501331ba-42ea-561c-e5df-8a824df17e3f-A",
+      "aac_he": "501331ba-42ea-561c-e5df-8a824df17e3f-A",
+      "aac_he_v2": "501331ba-42ea-561c-e5df-8a824df17e3f-A",
+      "ac3": "924f0afb-5820-b044-ef80-c4c1cbaf2fe9-A",
+      "eac3": "56fcc40c-9499-baac-9f12-e4f2975c79bb-A",
+      "alac": "0504814b-150b-1a9e-b3e1-ca9cce0335ae-A",
+      "pcm_s16le": "c6c39c20-724f-674a-33ee-43c45c0e843b-A",
+      "pcm_s16be": "472043db-a1b4-e42a-0c3f-65786c75d59d-A",
+      "pcm_s24le": "e99eab18-ef55-fc36-5724-a1a5d7ff8e14-A",
+      "pcm_s24be": "5a841245-3eb3-8a93-2f11-d1d5214cbee1-A",
+      "opus": "e12ce828-5efc-67c6-d93d-3a122e2589ed-A",
+      "vorbis": "c78d7a55-dd41-17c5-1451-acae5737e459-A",
+      "dts": "4dbf9b52-09f8-cc9e-1c5c-9d31a74da309-A",
+      "mp3": "27656ffd-5a01-dc64-0a8f-9d96a8684be7-A",
+      "mp3float": "27656ffd-5a01-dc64-0a8f-9d96a8684be7-A",
+      "flac": "920ca0bd-e474-4c77-125c-3118a1107af4-A"
     }
   }
 }

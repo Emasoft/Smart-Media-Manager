@@ -18,6 +18,7 @@ smm_skipped_files_*.log
 AGENTS.md
 CLAUDE.md
 docs_dev/
+scripts_dev/
 *.log
 *.tmp
 

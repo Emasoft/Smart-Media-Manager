@@ -247,8 +247,16 @@ def get_format_action(format_uuid: str, video_codec: Optional[str] = None, audio
             # Container is compatible, check codecs
             if video_needs_transcode:
                 return "transcode_to_hevc_mp4"  # Video codec needs transcode
-            if audio_codec and audio_codec in ["opus", "vorbis", "dts"]:
-                return "transcode_audio_to_supported"  # Audio codec needs transcode
+            # Check audio codec compatibility using UUID matching
+            if audio_codec:
+                # Extract base UUID from expanded audio codec UUID
+                audio_needs_transcode = False
+                for transcode_pattern in apple_compat.get("videos", {}).get("needs_transcode_audio", []):
+                    if _uuid_matches_pattern(audio_codec, transcode_pattern):
+                        audio_needs_transcode = True
+                        break
+                if audio_needs_transcode:
+                    return "transcode_audio_to_supported"  # Audio codec needs transcode
             return "import"  # Container and codecs are compatible
         else:
             # Container is neither compatible nor needs rewrap (unknown container)
@@ -262,8 +270,15 @@ def get_format_action(format_uuid: str, video_codec: Optional[str] = None, audio
         # Container is compatible, check codecs
         if video_codec and video_codec not in ["h264", "hevc", "av1"]:
             return "transcode_to_hevc_mp4"  # Need to transcode video codec
-        if audio_codec and audio_codec in ["opus", "vorbis", "dts"]:
-            return "transcode_audio_to_supported"  # Need to transcode audio codec
+        # Check audio codec compatibility using UUID matching
+        if audio_codec:
+            audio_needs_transcode = False
+            for transcode_pattern in apple_compat.get("videos", {}).get("needs_transcode_audio", []):
+                if _uuid_matches_pattern(audio_codec, transcode_pattern):
+                    audio_needs_transcode = True
+                    break
+            if audio_needs_transcode:
+                return "transcode_audio_to_supported"  # Need to transcode audio codec
         return "import"  # Container and codecs are compatible
 
     # Check video codec UUID (exact match first)
@@ -286,9 +301,15 @@ def get_format_action(format_uuid: str, video_codec: Optional[str] = None, audio
     if format_uuid in apple_compat.get("videos", {}).get("needs_transcode_container", []):
         return "transcode_to_hevc_mp4"  # Container always needs full transcode (e.g., AVI)
 
-    # Check audio codec separately
-    if audio_codec and audio_codec in apple_compat.get("videos", {}).get("needs_transcode_audio", []):
-        return "transcode_audio_to_supported"
+    # Check audio codec separately using UUID matching
+    if audio_codec:
+        audio_needs_transcode = False
+        for transcode_pattern in apple_compat.get("videos", {}).get("needs_transcode_audio", []):
+            if _uuid_matches_pattern(audio_codec, transcode_pattern):
+                audio_needs_transcode = True
+                break
+        if audio_needs_transcode:
+            return "transcode_audio_to_supported"
 
     return None  # Unsupported format
 
