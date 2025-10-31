@@ -8,6 +8,9 @@ on:
       - '**.md'
       - 'docs/**'
       - 'docs_dev/**'
+      - 'scripts_dev/**'
+      - 'tests/samples/**'
+      - 'tests/fixtures/**'
       - 'LICENSE'
 
   # Trigger on pull requests to main
@@ -17,6 +20,9 @@ on:
       - '**.md'
       - 'docs/**'
       - 'docs_dev/**'
+      - 'scripts_dev/**'
+      - 'tests/samples/**'
+      - 'tests/fixtures/**'
       - 'LICENSE'
 
   # Allow manual triggering from GitHub UI or CLI
