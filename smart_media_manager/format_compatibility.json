@@ -62,6 +62,7 @@
       ],
       "needs_transcode_video": [
         "4c9b19a7-ec9f-57c2-98ca-3ac8432b27cc-V",
+        "d91b7c22-6d8b-52a9-b17a-6eda5c3aedac-V",
         "b2e62c4a-6122-548c-9bfa-0fcf3613942a-10bit-V",
         "b2e62c4a-6122-548c-9bfa-0fcf3613942a-yuv422p-V",
         "b2e62c4a-6122-548c-9bfa-0fcf3613942a-yuv444p-V",
@@ -199,6 +200,10 @@
       "canonical": "vp9",
       "category": "video_codec"
     },
+    "d91b7c22-6d8b-52a9-b17a-6eda5c3aedac-V": {
+      "canonical": "vp8",
+      "category": "video_codec"
+    },
     "501331ba-42ea-561c-e5df-8a824df17e3f-A": {
       "canonical": "aac",
       "aliases": ["aac_lc", "aac_he", "aac_he_v2"],
@@ -305,6 +310,7 @@
       "hevc": "faf4b553-de47-5bc8-80ea-d026a2571456-V",
       "av1": "c69693cd-1fcd-5608-a8df-9476a00cfa9b-V",
       "vp9": "4c9b19a7-ec9f-57c2-98ca-3ac8432b27cc-V",
+      "vp8": "d91b7c22-6d8b-52a9-b17a-6eda5c3aedac-V",
       "aac": "501331ba-42ea-561c-e5df-8a824df17e3f-A",
       "aac_lc": "501331ba-42ea-561c-e5df-8a824df17e3f-A",
       "aac_he": "501331ba-42ea-561c-e5df-8a824df17e3f-A",
