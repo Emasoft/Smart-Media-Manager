@@ -5,6 +5,7 @@ Provides UUID-based format identification and compatibility checking
 using the unified format registry system.
 """
 
+import importlib.resources as resources
 import json
 import logging
 from pathlib import Path
@@ -17,6 +18,54 @@ _REGISTRY: Optional[Dict[str, Any]] = None
 _COMPATIBILITY: Optional[Dict[str, Any]] = None
 
 
+def _merge_unique_list(target: list, additions: list) -> None:
+    existing = set(target)
+    for item in additions:
+        if item not in existing:
+            target.append(item)
+            existing.add(item)
+
+
+def _merge_updates(base: Dict[str, Any], updates: Dict[str, Any]) -> None:
+    """Merge a compatibility/registry updates overlay into the base data.
+
+    The overlay format matches the auto-generated format_registry_updates_*.json
+    files produced during runs when unknown mappings are encountered.
+    """
+
+    # tool_mappings
+    for tool, mapping in updates.get("tool_mappings", {}).items():
+        base.setdefault("tool_mappings", {}).setdefault(tool, {}).update(mapping)
+
+    # format_names
+    for fmt_uuid, info in updates.get("format_names", {}).items():
+        base.setdefault("format_names", {}).setdefault(fmt_uuid, info)
+
+    # apple_photos_compatible
+    compat_updates = updates.get("apple_photos_compatible", {})
+    if compat_updates:
+        base_apc = base.setdefault("apple_photos_compatible", {})
+        for section, values in compat_updates.items():  # images/videos
+            base_section = base_apc.setdefault(section, {})
+            for key, val in values.items():
+                base_list = base_section.setdefault(key, [])
+                if isinstance(val, list):
+                    _merge_unique_list(base_list, val)
+
+
+def _load_update_files() -> list[Path]:
+    """Locate format_registry_updates_*.json overlays in likely locations."""
+    candidates: list[Path] = []
+    cwd = Path.cwd()
+    candidates.extend(sorted(cwd.glob("format_registry_updates_*.json")))
+
+    repo_root = Path(__file__).parent.parent
+    if repo_root != cwd:
+        candidates.extend(sorted(repo_root.glob("format_registry_updates_*.json")))
+
+    return [path for path in candidates if path.is_file()]
+
+
 def load_format_registry() -> Dict[str, Any]:
     """Load the complete format registry from format_registry.json.
 
@@ -27,20 +76,37 @@ def load_format_registry() -> Dict[str, Any]:
     if _REGISTRY is not None:
         return _REGISTRY
 
-    registry_path = Path(__file__).parent / "format_registry.json"
-    if not registry_path.exists():
-        # Fall back to parent directory
-        registry_path = Path(__file__).parent.parent / "format_registry.json"
+    # Try packaged resource first (installed distributions)
+    try:
+        resource_path = resources.files("smart_media_manager").joinpath("format_registry.json")
+        with resource_path.open("r", encoding="utf-8") as handle:
+            _REGISTRY = json.load(handle)
+            LOG.info(
+                "Loaded format registry with %d format definitions (packaged resource)",
+                len(_REGISTRY.get("format_names", {})),
+            )
+            return _REGISTRY
+    except FileNotFoundError:
+        LOG.debug("Packaged format registry not found; falling back to repository copy.")
+    except Exception as exc:  # pragma: no cover - corrupted install
+        LOG.error(f"Failed to load packaged format registry: {exc}")
+        _REGISTRY = {}
+        return _REGISTRY
 
+    # Developer fallback: look for sibling file in repository root
+    registry_path = Path(__file__).parent.parent / "format_registry.json"
     if not registry_path.exists():
         LOG.warning(f"Format registry not found at {registry_path}, using empty registry")
         _REGISTRY = {}
         return _REGISTRY
 
     try:
-        with open(registry_path) as f:
-            _REGISTRY = json.load(f)
-            LOG.info(f"Loaded format registry with {len(_REGISTRY.get('format_names', {}))} format definitions")
+        with registry_path.open(encoding="utf-8") as handle:
+            _REGISTRY = json.load(handle)
+            LOG.info(
+                "Loaded format registry with %d format definitions (repository copy)",
+                len(_REGISTRY.get("format_names", {})),
+            )
             return _REGISTRY
     except Exception as exc:
         LOG.error(f"Failed to load format registry: {exc}")
@@ -69,7 +135,18 @@ def load_compatibility_data() -> Dict[str, Any]:
         with open(compat_path) as f:
             _COMPATIBILITY = json.load(f)
             LOG.info("Loaded Apple Photos compatibility rules")
-            return _COMPATIBILITY
+
+        # Merge any local update overlays (format_registry_updates_*.json)
+        for update_file in _load_update_files():
+            try:
+                with update_file.open("r", encoding="utf-8") as handle:
+                    updates = json.load(handle)
+                _merge_updates(_COMPATIBILITY, updates)
+                LOG.info("Applied compatibility updates from %s", update_file)
+            except Exception as exc:  # noqa: BLE001
+                LOG.warning("Failed to apply updates from %s: %s", update_file, exc)
+
+        return _COMPATIBILITY
     except Exception as exc:
         LOG.error(f"FATAL: Failed to load compatibility data: {exc}")
         raise RuntimeError(f"Failed to load critical compatibility data from {compat_path}") from exc

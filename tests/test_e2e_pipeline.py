@@ -24,8 +24,8 @@ from smart_media_manager.cli import (  # noqa: E402
     SkipLogger,
     ensure_compatibility,
     gather_media_files,
-    move_to_staging,
 )
+from tests.helpers import stage_media  # noqa: E402
 
 SAMPLES_DIR = Path(__file__).parent / "samples" / "media"
 FIXTURES_DIR = Path(__file__).parent / "fixtures"
@@ -298,7 +298,7 @@ def test_staging_moves_files(tmp_path: Path) -> None:
     media_files = gather_media_files(source_dir, recursive=False, follow_symlinks=False, skip_logger=skip_logger, stats=stats)
 
     assert len(media_files) >= 1
-    move_to_staging(media_files, staging_dir)
+    stage_media(media_files, staging_dir)
 
     # Original should be moved (no longer in source)
     assert not test_file.exists(), "Original file should be moved from source directory"

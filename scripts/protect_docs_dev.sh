@@ -3,50 +3,99 @@ set -euo pipefail
 
 HOOK_NAME=${2:-manual}
 REPO_ROOT="$(git rev-parse --show-toplevel)"
-DOCS_DIR="$REPO_ROOT/docs_dev"
 BACKUP_DIR="$REPO_ROOT/.git/local_backups"
-BACKUP_ARCHIVE="$BACKUP_DIR/docs_dev.tar.gz"
+PROTECTED_DIRS=("docs_dev" "scripts_dev")
 
 mkdir -p "$BACKUP_DIR"
 
-has_docs() {
-    [ -d "$DOCS_DIR" ] && [ -n "$(ls -A "$DOCS_DIR" 2>/dev/null || true)" ]
+archive_path() {
+    local dir="$1"
+    printf '%s/%s.tar.gz' "$BACKUP_DIR" "$dir"
 }
 
-backup_docs() {
-    if has_docs; then
-        local tmp_archive="${BACKUP_ARCHIVE}.tmp"
-        tar -czf "$tmp_archive" -C "$DOCS_DIR" .
-        mv "$tmp_archive" "$BACKUP_ARCHIVE"
+has_contents() {
+    local dir="$1"
+    local target="$REPO_ROOT/$dir"
+    [ -d "$target" ] && [ -n "$(ls -A "$target" 2>/dev/null || true)" ]
+}
+
+backup_dir() {
+    local dir="$1"
+    local target="$REPO_ROOT/$dir"
+    local archive
+    archive="$(archive_path "$dir")"
+
+    if has_contents "$dir"; then
+        local tmp_archive="${archive}.tmp"
+        tar -czf "$tmp_archive" -C "$target" .
+        mv "$tmp_archive" "$archive"
     fi
 }
 
-restore_docs() {
-    if ! has_docs; then
-        if [ -f "$BACKUP_ARCHIVE" ]; then
-            mkdir -p "$DOCS_DIR"
-            tar -xzf "$BACKUP_ARCHIVE" -C "$DOCS_DIR"
-            printf '[protect-docs] Restored docs_dev from backup (%s)\n' "$HOOK_NAME" >&2
-        else
-            printf '[protect-docs] WARNING: docs_dev missing and no backup archive found (%s).\n' "$HOOK_NAME" >&2
-            return 1
-        fi
+restore_dir() {
+    local dir="$1"
+    local target="$REPO_ROOT/$dir"
+    local archive
+    archive="$(archive_path "$dir")"
+
+    if has_contents "$dir"; then
+        return 0
     fi
+
+    if [ -f "$archive" ]; then
+        mkdir -p "$target"
+        tar -xzf "$archive" -C "$target"
+        printf '[protect-dev] Restored %s from backup (%s)\n' "$dir" "$HOOK_NAME" >&2
+        return 0
+    fi
+
+    printf '[protect-dev] WARNING: %s missing and no backup archive found (%s).\n' "$dir" "$HOOK_NAME" >&2
+    return 1
+}
+
+backup_all() {
+    for dir in "${PROTECTED_DIRS[@]}"; do
+        backup_dir "$dir"
+    done
+}
+
+restore_all() {
+    local rc=0
+    for dir in "${PROTECTED_DIRS[@]}"; do
+        restore_dir "$dir" || rc=1
+    done
+    return $rc
 }
 
 safeguard() {
-    backup_docs || return 1
-    restore_docs || true
+    backup_all
+    restore_all || true
 }
 
 ensure_before_operation() {
-    if has_docs; then
-        backup_docs
-    elif [ -f "$BACKUP_ARCHIVE" ]; then
-        restore_docs
-    else
-        printf '[protect-docs] Aborting %s: docs_dev not found and no backup exists.\n' "$HOOK_NAME" >&2
-        printf 'Create docs_dev or run scripts/protect_docs_dev.sh backup before retrying.\n' >&2
+    local missing=()
+
+    for dir in "${PROTECTED_DIRS[@]}"; do
+        if has_contents "$dir"; then
+            backup_dir "$dir"
+            continue
+        fi
+
+        local archive
+        archive="$(archive_path "$dir")"
+        if [ -f "$archive" ]; then
+            restore_dir "$dir" || missing+=("$dir")
+        else
+            missing+=("$dir")
+        fi
+    done
+
+    if [ ${#missing[@]} -gt 0 ]; then
+        local list
+        list=$(printf '%s, ' "${missing[@]}")
+        list=${list%%, }
+        printf '[protect-dev] Aborting %s: %s not found and no backup exists.\n' "$HOOK_NAME" "$list" >&2
+        printf 'Create the missing directories or run scripts/protect_docs_dev.sh backup before retrying.\n' >&2
         exit 1
     fi
 }
@@ -54,10 +103,10 @@ ensure_before_operation() {
 command=${1:-safeguard}
 case "$command" in
     backup)
-        backup_docs
+        backup_all
         ;;
     restore)
-        restore_docs
+        restore_all
         ;;
     safeguard)
         safeguard

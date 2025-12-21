@@ -15,8 +15,8 @@ from smart_media_manager.cli import (  # noqa: E402
     SkipLogger,
     ensure_compatibility,
     gather_media_files,
-    move_to_staging,
 )
+from tests.helpers import stage_media  # noqa: E402
 
 
 def test_png_import_pipeline(monkeypatch, tmp_path: Path) -> None:
@@ -52,7 +52,7 @@ def test_png_import_pipeline(monkeypatch, tmp_path: Path) -> None:
 
     staging_root = tmp_path / "staging"
     staging_root.mkdir()
-    move_to_staging(media_files, staging_root)
+    stage_media(media_files, staging_root)
     ensure_compatibility(media_files, SkipLogger(skip_log), stats)
 
     assert media_files[0].stage_path is not None
@@ -134,7 +134,7 @@ def test_media_with_wrong_extension_is_normalised(tmp_path: Path) -> None:
 
     staging_dir = tmp_path / "stage"
     staging_dir.mkdir()
-    move_to_staging(media_files, staging_dir)
+    stage_media(media_files, staging_dir)
 
     assert media.stage_path is not None
     assert media.stage_path.suffix == ".png"

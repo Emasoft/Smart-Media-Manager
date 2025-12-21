@@ -9,10 +9,16 @@ Tests are organized by:
 4. Container vs codec compatibility
 """
 
+import os
 import shutil
 from pathlib import Path
+import sys
 
 import pytest
+
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
 
 from smart_media_manager.cli import (
     RunStatistics,
@@ -20,7 +26,13 @@ from smart_media_manager.cli import (
     ensure_compatibility,
     gather_media_files,
     import_folder_to_photos,
-    move_to_staging,
+)
+from tests.helpers import stage_media
+
+
+pytestmark = pytest.mark.skipif(
+    not os.environ.get("SMM_RUN_PHOTOS_TESTS"),
+    reason="Set SMM_RUN_PHOTOS_TESTS=1 to run real Apple Photos import tests (slow)",
 )
 
 
@@ -104,7 +116,7 @@ def test_jpeg_direct_import(tmp_path: Path) -> None:
 
     staging_dir = tmp_path / "staging"
     staging_dir.mkdir()
-    move_to_staging(media_files, staging_dir)
+    stage_media(media_files, staging_dir)
     ensure_compatibility(media_files, skip_logger, stats)
 
     imported_count, failed_list = import_into_photos(media_files, stats)
@@ -135,7 +147,7 @@ def test_png_direct_import(tmp_path: Path) -> None:
 
     staging_dir = tmp_path / "staging"
     staging_dir.mkdir()
-    move_to_staging(media_files, staging_dir)
+    stage_media(media_files, staging_dir)
     ensure_compatibility(media_files, skip_logger, stats)
 
     imported_count, failed_list = import_into_photos(media_files, stats)
@@ -166,7 +178,7 @@ def test_heic_direct_import(tmp_path: Path) -> None:
 
     staging_dir = tmp_path / "staging"
     staging_dir.mkdir()
-    move_to_staging(media_files, staging_dir)
+    stage_media(media_files, staging_dir)
     ensure_compatibility(media_files, skip_logger, stats)
 
     imported_count, failed_list = import_into_photos(media_files, stats)
@@ -218,7 +230,7 @@ def test_mp4_h264_direct_import(tmp_path: Path) -> None:
 
     staging_dir = tmp_path / "staging"
     staging_dir.mkdir()
-    move_to_staging(media_files, staging_dir)
+    stage_media(media_files, staging_dir)
     ensure_compatibility(media_files, skip_logger, stats)
 
     imported_count, failed_list = import_into_photos(media_files, stats)
@@ -255,7 +267,7 @@ def test_mov_direct_import(tmp_path: Path) -> None:
 
     staging_dir = tmp_path / "staging"
     staging_dir.mkdir()
-    move_to_staging(media_files, staging_dir)
+    stage_media(media_files, staging_dir)
     ensure_compatibility(media_files, skip_logger, stats)
 
     imported_count, failed_list = import_into_photos(media_files, stats)
@@ -298,7 +310,7 @@ def test_webp_requires_conversion_to_png(tmp_path: Path) -> None:
 
     staging_dir = tmp_path / "staging"
     staging_dir.mkdir()
-    move_to_staging(media_files, staging_dir)
+    stage_media(media_files, staging_dir)
 
     # WebP should remain as .webp (no conversion needed)
     ensure_compatibility(media_files, skip_logger, stats)
@@ -424,7 +436,7 @@ def test_gif_static_direct_import(tmp_path: Path) -> None:
 
     staging_dir = tmp_path / "staging"
     staging_dir.mkdir()
-    move_to_staging(media_files, staging_dir)
+    stage_media(media_files, staging_dir)
     ensure_compatibility(media_files, skip_logger, stats)
 
     imported_count, failed_list = import_into_photos(media_files, stats)
@@ -466,7 +478,7 @@ def test_jpeg_with_wrong_extension(tmp_path: Path) -> None:
 
     staging_dir = tmp_path / "staging"
     staging_dir.mkdir()
-    move_to_staging(media_files, staging_dir)
+    stage_media(media_files, staging_dir)
     ensure_compatibility(media_files, skip_logger, stats)
 
     imported_count, failed_list = import_into_photos(media_files, stats)
@@ -503,7 +515,7 @@ def test_png_with_no_extension(tmp_path: Path) -> None:
 
     staging_dir = tmp_path / "staging"
     staging_dir.mkdir()
-    move_to_staging(media_files, staging_dir)
+    stage_media(media_files, staging_dir)
     ensure_compatibility(media_files, skip_logger, stats)
 
     imported_count, failed_list = import_into_photos(media_files, stats)
@@ -541,7 +553,7 @@ def test_mp4_with_wrong_extension(tmp_path: Path) -> None:
 
     staging_dir = tmp_path / "staging"
     staging_dir.mkdir()
-    move_to_staging(media_files, staging_dir)
+    stage_media(media_files, staging_dir)
     ensure_compatibility(media_files, skip_logger, stats)
 
     imported_count, failed_list = import_into_photos(media_files, stats)
@@ -581,7 +593,7 @@ def test_pdf_is_skipped(tmp_path: Path) -> None:
 
     staging_dir = tmp_path / "staging"
     staging_dir.mkdir()
-    move_to_staging(media_files, staging_dir)
+    stage_media(media_files, staging_dir)
     ensure_compatibility(media_files, skip_logger, stats)
 
     imported_count, failed_list = import_into_photos(media_files, stats)
@@ -616,7 +628,7 @@ def test_svg_is_skipped(tmp_path: Path) -> None:
 
     staging_dir = tmp_path / "staging"
     staging_dir.mkdir()
-    move_to_staging(media_files, staging_dir)
+    stage_media(media_files, staging_dir)
     ensure_compatibility(media_files, skip_logger, stats)
 
     imported_count, failed_list = import_into_photos(media_files, stats)

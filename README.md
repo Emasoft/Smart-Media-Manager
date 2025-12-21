@@ -126,6 +126,7 @@ smart-media-manager --path ~/Downloads/Photos --recursive --delete
 | `--follow-symlinks` | Follow symlinks instead of skipping them |
 | `--delete` | Remove staging folder after successful import |
 | `--skip-bootstrap` | Skip automatic dependency installation |
+| `--max-image-pixels VALUE` | Set Pillow image pixel limit; use `none` to disable (default). |
 | `--version` | Show version and exit |
 
 ### What happens during a run

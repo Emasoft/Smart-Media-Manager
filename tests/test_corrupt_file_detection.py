@@ -23,8 +23,8 @@ from smart_media_manager.cli import (
     ensure_compatibility,
     gather_media_files,
     import_folder_to_photos,
-    move_to_staging,
 )
+from tests.helpers import stage_media
 
 
 # Compatibility wrapper for old batch import tests
@@ -394,7 +394,7 @@ def test_only_valid_files_reach_photos_import(tmp_path: Path) -> None:
     if len(media_files) > 0:
         staging_dir = tmp_path / "staging"
         staging_dir.mkdir()
-        move_to_staging(media_files, staging_dir)
+        stage_media(media_files, staging_dir)
         ensure_compatibility(media_files, skip_logger, stats)
 
         # CRITICAL: The validation already passed! Only valid.jpg reached here.

@@ -9,11 +9,17 @@ They require:
 Run these tests with: pytest tests/test_e2e_photos_import.py -v
 """
 
+import os
 import shutil
 import subprocess
 from pathlib import Path
+import sys
 
 import pytest
+
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
 
 from smart_media_manager.cli import (
     RunStatistics,
@@ -21,7 +27,13 @@ from smart_media_manager.cli import (
     ensure_compatibility,
     gather_media_files,
     import_folder_to_photos,
-    move_to_staging,
+)
+from tests.helpers import stage_media
+
+
+pytestmark = pytest.mark.skipif(
+    not os.environ.get("SMM_RUN_PHOTOS_TESTS"),
+    reason="Set SMM_RUN_PHOTOS_TESTS=1 to run real Apple Photos import tests (very slow)",
 )
 
 
@@ -104,7 +116,7 @@ def test_import_single_jpeg_to_photos(tmp_path: Path) -> None:
     # Stage files
     staging_dir = tmp_path / "FOUND_MEDIA_FILES_test"
     staging_dir.mkdir()
-    move_to_staging(media_files, staging_dir)
+    stage_media(media_files, staging_dir)
 
     # Ensure compatibility (should be no-op for JPEG)
     ensure_compatibility(media_files, skip_logger, stats)
@@ -148,7 +160,7 @@ def test_import_multiple_images_to_photos(tmp_path: Path) -> None:
     # Stage files
     staging_dir = tmp_path / "FOUND_MEDIA_FILES_test"
     staging_dir.mkdir()
-    move_to_staging(media_files, staging_dir)
+    stage_media(media_files, staging_dir)
 
     # Ensure compatibility
     ensure_compatibility(media_files, skip_logger, stats)
@@ -191,7 +203,7 @@ def test_import_mp4_video_to_photos(tmp_path: Path) -> None:
     # Stage files
     staging_dir = tmp_path / "FOUND_MEDIA_FILES_test"
     staging_dir.mkdir()
-    move_to_staging(media_files, staging_dir)
+    stage_media(media_files, staging_dir)
 
     # Ensure compatibility
     ensure_compatibility(media_files, skip_logger, stats)
@@ -236,7 +248,7 @@ def test_import_webp_converts_and_imports(tmp_path: Path) -> None:
     # Stage files
     staging_dir = tmp_path / "FOUND_MEDIA_FILES_test"
     staging_dir.mkdir()
-    move_to_staging(media_files, staging_dir)
+    stage_media(media_files, staging_dir)
 
     # Ensure compatibility - WebP should not need conversion
     ensure_compatibility(media_files, skip_logger, stats)
@@ -286,7 +298,7 @@ def test_import_mixed_media_batch(tmp_path: Path) -> None:
     # Stage files
     staging_dir = tmp_path / "FOUND_MEDIA_FILES_test"
     staging_dir.mkdir()
-    move_to_staging(media_files, staging_dir)
+    stage_media(media_files, staging_dir)
 
     # Ensure compatibility
     ensure_compatibility(media_files, skip_logger, stats)
@@ -336,7 +348,7 @@ def test_import_handles_unsupported_format(tmp_path: Path) -> None:
     # Stage and import only valid files
     staging_dir = tmp_path / "FOUND_MEDIA_FILES_test"
     staging_dir.mkdir()
-    move_to_staging(valid_media, staging_dir)
+    stage_media(valid_media, staging_dir)
 
     ensure_compatibility(valid_media, skip_logger, stats)
 

@@ -1,6 +1,6 @@
 [project]
 name = "smart-media-manager"
-version = "0.5.21a1"
+version = "0.5.39a1"
 description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12"
@@ -25,6 +25,7 @@ dev = [
     "pytest>=8.4.2",
     "pytest-cov>=7.0.0",
     "pytest-mypy-plugins>=3.2.0",
+    "ruff>=0.6.0",
 ]
 
 [project.scripts]

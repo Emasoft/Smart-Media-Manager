@@ -18,9 +18,9 @@ smm_skipped_files_*.log
 AGENTS.md
 CLAUDE.md
 docs_dev/
-scripts_dev/
 *.log
 *.tmp
+.smm__runtime_logs_*/
 
 # Virtual environments
 .venv
@@ -39,3 +39,5 @@ tests/sample.*
 .serena/
 format_tests_results/
 tests/samples/use-database.ts
+scripts_dev/test_results_raw.txt
+format_registry_updates_*.json

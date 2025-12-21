@@ -130,6 +130,10 @@ pytest --cov=smart_media_manager
 - `tests/fixtures/` - Large test files (1GB+)
 - Total: ~15,000 files, multiple GB
 
+### Compatibility Tester (Local Only)
+
+The experimental compatibility tester lives under `scripts_dev/` and is tracked in git, but its generated samples and results are not. See `scripts_dev/README_TESTING.md` for the full pipeline and sample generation instructions.
+
 ## Why This Approach?
 
 ### ✅ Benefits
