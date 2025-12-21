@@ -95,9 +95,13 @@ def test_import_photos_batch():
 ### In CI (Automatic)
 
 ```bash
-# Runs automatically on push - only minimal tests
+# Runs automatically on push - minimal tests only
 pytest -m minimal
 ```
+
+### Minimal CI Workflow
+
+The `CI Minimal` GitHub Actions workflow runs `pytest -m minimal` on macOS and avoids any Photos.app integration.
 
 **Result:** 14 minimal tests, 103 deselected (e2e + unmarked tests)
 
