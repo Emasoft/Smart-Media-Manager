@@ -30,7 +30,18 @@ jobs:
       - name: Build dist artifacts
         run: uv build
 
-      - name: Publish GitHub release
-        uses: softprops/action-gh-release@v2
-        with:
-          files: dist/*
+      - name: Upload release assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="${GITHUB_REF_NAME}"
+          prerelease_flag=""
+          if [[ "$tag" == *a* || "$tag" == *b* || "$tag" == *rc* ]]; then
+            prerelease_flag="--prerelease"
+          fi
+
+          if gh release view "$tag" >/dev/null 2>&1; then
+            gh release upload "$tag" dist/* --clobber
+          else
+            gh release create "$tag" dist/* --generate-notes $prerelease_flag
+          fi
