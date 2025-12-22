@@ -80,7 +80,7 @@ All notable changes to this project will be documented here, following [Keep a C
   - Log entries include format name and codecs (for video) to provide context on what's being converted
   - Result: Log files now provide complete audit trail of all conversion operations
 
-## [0.5.40a1] - 2025-12-21
+## [0.5.40a2] - 2025-12-22
 ### Changed
 - Canonicalized the format registry to `smart_media_manager/format_registry.json` and updated the generator to write there.
 - Tracked compatibility tester sources under `scripts_dev/` and narrowed git hooks to protect only `docs_dev/`.
