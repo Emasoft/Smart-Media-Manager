@@ -1,9 +1,11 @@
-# Smart Media Manager
+# Smart Media Manager (ALPHA)
 
 > [!WARNING]
 > **⚠ Alpha Software - Do Not Use in Production**
 >
 > This project is currently in **alpha stage** and under active development. It may contain bugs, incomplete features, or unexpected behavior. **Do not use this tool on your only copy of important media files.** Always maintain backups before running this software.
+
+Status: **Alpha (pre-release)** — breaking changes and data loss risks are possible.
 
 <p align="center">
   <strong>A macOS-first CLI that audits folders of photos and videos, fixes mismatched extensions, stages compatible media, and imports everything into Apple Photos without manual clicking.</strong>
@@ -229,7 +231,9 @@ Tests use lightweight sample media and monkeypatched detectors, so most scenario
 4. Scan for secrets: `uv tool run gitleaks detect --no-banner`
 5. Build: `uv build`
 6. Inspect `dist/` contents
-7. Publish: `uv publish`
+7. Tag and push: `git tag vX.Y.ZaN` then `git push origin vX.Y.ZaN`
+8. Publish: `uv publish` (PyPI)
+9. GitHub release: created automatically on tag push via workflow
 
 ---
 

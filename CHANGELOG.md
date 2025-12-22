@@ -80,6 +80,17 @@ All notable changes to this project will be documented here, following [Keep a C
   - Log entries include format name and codecs (for video) to provide context on what's being converted
   - Result: Log files now provide complete audit trail of all conversion operations
 
+## [0.5.40a1] - 2025-12-21
+### Changed
+- Canonicalized the format registry to `smart_media_manager/format_registry.json` and updated the generator to write there.
+- Tracked compatibility tester sources under `scripts_dev/` and narrowed git hooks to protect only `docs_dev/`.
+- Added macOS minimal CI workflow and made CI fail on lint/tests/type-check/security issues.
+- Added a tag-triggered GitHub release workflow to attach `dist/*` artifacts.
+
+### Fixed
+- Marked sample-dependent end-to-end tests as `@pytest.mark.e2e` to keep default runs green without large fixtures.
+- Disabled Pillow decompression-bomb limit by default and added `--max-image-pixels`/`SMART_MEDIA_MANAGER_MAX_IMAGE_PIXELS` overrides.
+
 ## [0.5.8a1] - 2025-10-31
 ### Fixed
 - **CRITICAL**: Import count reconciliation now uses simple count-based matching instead of complex per-file filename matching

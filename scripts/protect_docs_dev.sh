@@ -4,7 +4,7 @@ set -euo pipefail
 HOOK_NAME=${2:-manual}
 REPO_ROOT="$(git rev-parse --show-toplevel)"
 BACKUP_DIR="$REPO_ROOT/.git/local_backups"
-PROTECTED_DIRS=("docs_dev" "scripts_dev")
+PROTECTED_DIRS=("docs_dev")
 
 mkdir -p "$BACKUP_DIR"
 

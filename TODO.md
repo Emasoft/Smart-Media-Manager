@@ -10,7 +10,7 @@
   - Replaced the count-based fallback with multiset reconciliation, logging unmatched entries and returning precise skipped media lists.
 
 - [x] **Package format registry data with the module**
-  - Added `smart_media_manager/format_registry.json`, taught the loader to prefer packaged resources, and retained a repo fallback for contributors.
+  - Added `smart_media_manager/format_registry.json` as the canonical registry and removed the repo-root duplicate.
 
 - [x] **Update tests for new staging API**
   - Introduced `tests.helpers.stage_media` and switched all staging-related tests to the new helper so the additional originals directory requirement is exercised everywhere.

@@ -710,7 +710,8 @@ def main():
     for category_key, entries_dict in registry.items():
         json_output[category_key] = {name: entry for name, entry in entries_dict.items()}
 
-    json_path = Path(__file__).parent.parent / "format_registry.json"
+    repo_root = Path(__file__).resolve().parents[1]
+    json_path = repo_root / "smart_media_manager" / "format_registry.json"
     with open(json_path, "w") as f:
         json.dump(json_output, f, indent=2)
 

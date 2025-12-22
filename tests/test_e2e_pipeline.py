@@ -18,6 +18,8 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+pytestmark = pytest.mark.e2e
+
 from smart_media_manager.cli import (  # noqa: E402
     MediaFile,
     RunStatistics,

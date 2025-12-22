@@ -67,16 +67,11 @@ def _load_update_files() -> list[Path]:
 
 
 def load_format_registry() -> Dict[str, Any]:
-    """Load the complete format registry from format_registry.json.
-
-    Returns:
-        Dictionary containing all format mappings with UUIDs
-    """
+    """Load the complete format registry from the packaged format_registry.json."""
     global _REGISTRY
     if _REGISTRY is not None:
         return _REGISTRY
 
-    # Try packaged resource first (installed distributions)
     try:
         resource_path = resources.files("smart_media_manager").joinpath("format_registry.json")
         with resource_path.open("r", encoding="utf-8") as handle:
@@ -87,31 +82,11 @@ def load_format_registry() -> Dict[str, Any]:
             )
             return _REGISTRY
     except FileNotFoundError:
-        LOG.debug("Packaged format registry not found; falling back to repository copy.")
+        LOG.error("Packaged format registry not found.")
     except Exception as exc:  # pragma: no cover - corrupted install
         LOG.error(f"Failed to load packaged format registry: {exc}")
-        _REGISTRY = {}
-        return _REGISTRY
-
-    # Developer fallback: look for sibling file in repository root
-    registry_path = Path(__file__).parent.parent / "format_registry.json"
-    if not registry_path.exists():
-        LOG.warning(f"Format registry not found at {registry_path}, using empty registry")
-        _REGISTRY = {}
-        return _REGISTRY
-
-    try:
-        with registry_path.open(encoding="utf-8") as handle:
-            _REGISTRY = json.load(handle)
-            LOG.info(
-                "Loaded format registry with %d format definitions (repository copy)",
-                len(_REGISTRY.get("format_names", {})),
-            )
-            return _REGISTRY
-    except Exception as exc:
-        LOG.error(f"Failed to load format registry: {exc}")
-        _REGISTRY = {}
-        return _REGISTRY
+    _REGISTRY = {}
+    return _REGISTRY
 
 
 def load_compatibility_data() -> Dict[str, Any]:

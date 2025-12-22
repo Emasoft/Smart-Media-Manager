@@ -115,7 +115,6 @@ jobs:
     - name: Run minimal CI tests
       run: |
         uv run pytest -m minimal -v --tb=short --color=yes 2>&1 | tee pytest-output.txt
-      continue-on-error: true
 
     - name: Generate test report
       if: always()
@@ -160,7 +159,6 @@ jobs:
         echo '```' >> $GITHUB_STEP_SUMMARY
         cat ruff-check.txt >> $GITHUB_STEP_SUMMARY
         echo '```' >> $GITHUB_STEP_SUMMARY
-      continue-on-error: true
 
     - name: Check formatting
       run: |
@@ -169,7 +167,6 @@ jobs:
         echo '```' >> $GITHUB_STEP_SUMMARY
         cat ruff-format.txt >> $GITHUB_STEP_SUMMARY
         echo '```' >> $GITHUB_STEP_SUMMARY
-      continue-on-error: true
 
     - name: Upload lint results
       if: always()
@@ -204,11 +201,10 @@ jobs:
     - name: Run mypy
       run: |
         echo "## MyPy Type Check Results" >> $GITHUB_STEP_SUMMARY
-        uv run mypy smart_media_manager/ --pretty --show-error-codes 2>&1 | tee mypy-output.txt || true
+        uv run mypy smart_media_manager/ --pretty --show-error-codes 2>&1 | tee mypy-output.txt
         echo '```' >> $GITHUB_STEP_SUMMARY
         cat mypy-output.txt >> $GITHUB_STEP_SUMMARY
         echo '```' >> $GITHUB_STEP_SUMMARY
-      continue-on-error: true
 
     - name: Upload mypy results
       if: always()
@@ -231,7 +227,6 @@ jobs:
       uses: gitleaks/gitleaks-action@v2
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      continue-on-error: true
 
     - name: Security scan summary
       if: always()
