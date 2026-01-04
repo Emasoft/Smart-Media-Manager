@@ -14,7 +14,7 @@ import tempfile
 import time
 import unicodedata
 import uuid
-from collections import Counter, defaultdict
+from collections import Counter
 from contextlib import suppress
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -52,6 +52,7 @@ def _log_directory() -> Optional[Path]:
     if not base:
         return None
     return Path(base).resolve().parent
+
 
 SAFE_NAME_PATTERN = re.compile(r"[^A-Za-z0-9_.-]")
 MAX_APPLESCRIPT_CHARS = 20000  # Max characters for AppleScript arguments
@@ -230,6 +231,7 @@ COMPATIBLE_AUDIO_CODECS = {
 }
 
 ARCHIVE_EXTENSIONS = {
+    # Standard archives
     "zip",
     "rar",
     "7z",
@@ -239,24 +241,93 @@ ARCHIVE_EXTENSIONS = {
     "xz",
     "lz",
     "lzma",
+    "zst",  # Zstandard (used by Homebrew, etc.)
+    "zstd",
     "cab",
     "iso",
-    "dmg",
     "tgz",
     "tbz2",
     "txz",
+    "cpio",
+    "sit",  # StuffIt
+    "sitx",
+    # macOS packages/disk images
+    "dmg",
+    "pkg",  # macOS installer package (XAR archive)
+    "xar",  # eXtensible ARchive format
+    "mpkg",  # macOS meta-package
+    "sparseimage",
+    "sparsebundle",
+    # Linux packages
+    "deb",
+    "rpm",
+    # Windows packages
+    "msi",
+    "msix",
+    "appx",
+    # Java/Android
     "apk",
     "jar",
     "war",
     "ear",
+    "aar",  # Android library
+    # Browser extensions
+    "xpi",  # Firefox/Mozilla extension
+    "crx",  # Chrome extension
+    # Application packages (zip-based)
+    "apkg",  # Anki flashcard package
+    "sketch",  # Sketch design files
+    "figma",
+    # Office documents (zip-based XML)
+    "docx",
+    "xlsx",
+    "pptx",
+    "odt",
+    "ods",
+    "odp",
+    "odg",
+    # Ebooks
+    "epub",
+    "mobi",
+    "azw",
+    "azw3",
+    # ML/AI model files
+    "safetensors",
+    "gguf",  # llama.cpp models
+    "onnx",
+    # Virtual disk images
+    "vhd",
+    "vhdx",
+    "vmdk",
+    "qcow2",
+    # Fonts
+    "ttf",
+    "otf",
+    "woff",
+    "woff2",
+    "eot",
+    "ttc",  # TrueType Collection
+    # Executables (not archives but should skip)
+    "exe",
+    "dll",
+    "so",
+    "dylib",
+    # Documents
+    "pdf",
+    "rtf",
+    "doc",  # Legacy Word
+    "xls",  # Legacy Excel
+    "ppt",  # Legacy PowerPoint
 }
 
 ARCHIVE_MIME_TYPES = {
+    # Standard archives
     "application/zip",
     "application/x-zip-compressed",
     "application/x-7z-compressed",
     "application/x-tar",
     "application/x-rar",
+    "application/x-rar-compressed",
     "application/vnd.rar",
     "application/gzip",
     "application/x-gzip",
@@ -264,9 +335,49 @@ ARCHIVE_MIME_TYPES = {
     "application/x-xz",
     "application/x-lzip",
     "application/x-lzma",
+    "application/zstd",
+    "application/x-cpio",
+    "application/x-stuffit",
+    "application/x-stuffitx",
+    # Disk images
     "application/x-iso9660-image",
+    "application/x-apple-diskimage",
+    # Packages
+    "application/x-xar",  # macOS XAR archive (.pkg, .xar)
     "application/vnd.android.package-archive",
     "application/java-archive",
+    "application/x-debian-package",
+    "application/x-rpm",
+    "application/x-msi",
+    # Office documents
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+    "application/vnd.oasis.opendocument.text",
+    "application/vnd.oasis.opendocument.spreadsheet",
+    "application/vnd.oasis.opendocument.presentation",
+    # Ebooks
+    "application/epub+zip",
+    "application/x-mobipocket-ebook",
+    # Fonts
+    "font/otf",
+    "font/ttf",
+    "font/woff",
+    "font/woff2",
+    "application/font-sfnt",
+    "application/x-font-ttf",
+    "application/x-font-otf",
+    # Documents
+    "application/pdf",
+    "application/rtf",
+    "application/msword",
+    "application/vnd.ms-excel",
+    "application/vnd.ms-powerpoint",
+    # Executables
+    "application/x-msdownload",
+    "application/x-executable",
+    "application/x-mach-binary",
+    "application/x-sharedlib",
 }
 
 NON_MEDIA_REASON_KEYWORDS = (
@@ -596,13 +707,7 @@ class RunStatistics:
             print()
 
         # Skipped section
-        total_skipped = (
-            self.skipped_errors
-            + self.skipped_unknown_format
-            + self.skipped_corrupt_or_empty
-            + self.skipped_non_media
-            + self.skipped_other
-        )
+        total_skipped = self.skipped_errors + self.skipped_unknown_format + self.skipped_corrupt_or_empty + self.skipped_non_media + self.skipped_other
         if total_skipped > 0:
             print(f"{BOLD}{BLUE}Skipped Files:{RESET}")
             print(f"  Due to errors:              {self.skipped_errors:>6}")
@@ -970,13 +1075,11 @@ def refine_image_media(media: MediaFile, skip_compatibility_check: bool = False)
         if max_pixels:
             return (
                 None,
-                f"image exceeds Pillow pixel limit ({max_pixels} pixels): {e}. "
-                "Set --max-image-pixels none or SMART_MEDIA_MANAGER_MAX_IMAGE_PIXELS=none to disable.",
+                f"image exceeds Pillow pixel limit ({max_pixels} pixels): {e}. Set --max-image-pixels none or SMART_MEDIA_MANAGER_MAX_IMAGE_PIXELS=none to disable.",
             )
         return (
             None,
-            f"image exceeds Pillow pixel limit: {e}. "
-            "Set --max-image-pixels none or SMART_MEDIA_MANAGER_MAX_IMAGE_PIXELS=none to disable.",
+            f"image exceeds Pillow pixel limit: {e}. Set --max-image-pixels none or SMART_MEDIA_MANAGER_MAX_IMAGE_PIXELS=none to disable.",
         )
     except (OSError, SyntaxError, ValueError) as e:
         error_msg = str(e).lower()
@@ -1835,13 +1938,9 @@ def parse_max_image_pixels(value: str) -> Optional[int]:
     try:
         pixels = int(normalized)
     except ValueError as exc:
-        raise argparse.ArgumentTypeError(
-            "max image pixels must be a positive integer or 'none' to disable"
-        ) from exc
+        raise argparse.ArgumentTypeError("max image pixels must be a positive integer or 'none' to disable") from exc
     if pixels <= 0:
-        raise argparse.ArgumentTypeError(
-            "max image pixels must be a positive integer or 'none' to disable"
-        )
+        raise argparse.ArgumentTypeError("max image pixels must be a positive integer or 'none' to disable")
     return pixels
 
 
@@ -2772,6 +2871,8 @@ def should_ignore(entry: Path) -> bool:
     - .smm__runtime_logs_* log directories (timestamped, in CWD)
     - smm_run_* and smm_skipped_files_* log files
     - .DS_Store system files
+    - Files with __SMM token (already processed by SMM)
+    - Files managed by Apple Photos (have assetsd xattrs)
     """
     name = entry.name
     # Exclude staging directories
@@ -2790,7 +2891,47 @@ def should_ignore(entry: Path) -> bool:
     # Exclude macOS metadata
     if name == ".DS_Store":
         return True
+    # Exclude files already processed by SMM (have __SMM token in filename)
+    if STAGING_TOKEN_PREFIX in name:
+        LOG.debug("Skipping already-processed file: %s", name)
+        return True
     return False
+
+
+def is_photos_managed_file(path: Path) -> bool:
+    """Check if a file is managed by Apple Photos (has assetsd xattrs).
+
+    Files imported into Apple Photos get extended attributes from the assetsd
+    daemon. These files are locked by the Photos database and cannot be moved
+    or modified without causing sync issues or permission errors.
+
+    Args:
+        path: Path to check
+
+    Returns:
+        True if file has com.apple.assetsd.UUID xattr (managed by Photos)
+    """
+    try:
+        import xattr
+
+        attrs = xattr.listxattr(str(path))
+        # Check for the UUID attribute which definitively marks Photos-managed files
+        return "com.apple.assetsd.UUID" in attrs
+    except ImportError:
+        # xattr module not available, fall back to subprocess
+        # Use xattr without -l to list only attribute names (avoids binary value decoding issues)
+        try:
+            result = subprocess.run(
+                ["xattr", str(path)],
+                capture_output=True,
+                text=True,
+                timeout=5,
+            )
+            return "com.apple.assetsd.UUID" in result.stdout
+        except Exception:
+            return False
+    except Exception:
+        return False
 
 
 def extract_live_photo_content_id(path: Path) -> Optional[str]:
@@ -2964,6 +3105,12 @@ def gather_media_files(
             stats.skipped_other += 1
             return
         if not file_path.is_file():
+            return
+
+        # Skip files managed by Apple Photos - they're already imported and locked
+        if is_photos_managed_file(file_path):
+            LOG.debug("Skipping Photos-managed file: %s", file_path.name)
+            stats.skipped_other += 1
             return
 
         skippable_reason = is_skippable_file(file_path)
@@ -3192,10 +3339,34 @@ def move_to_staging(
 
         media.metadata.setdefault("original_source", str(media.source))
         LOG.debug("%s %s -> %s", "Copying" if copy_files else "Moving", media.source, destination)
-        if copy_files:
-            shutil.copy2(str(media.source), str(destination))
-        else:
-            shutil.move(str(media.source), str(destination))
+        try:
+            if copy_files:
+                shutil.copy2(str(media.source), str(destination))
+            else:
+                shutil.move(str(media.source), str(destination))
+        except PermissionError as exc:
+            # File might be locked by Apple Photos or another process
+            LOG.warning(
+                "Permission denied for %s (may be locked by Photos): %s",
+                media.source.name,
+                exc,
+            )
+            media.stage_path = None
+            media.metadata["staging_error"] = f"Permission denied: {exc}"
+            progress.update()
+            continue
+        except OSError as exc:
+            if exc.errno == 1:  # EPERM - Operation not permitted
+                LOG.warning(
+                    "Operation not permitted for %s (may be locked by Photos): %s",
+                    media.source.name,
+                    exc,
+                )
+                media.stage_path = None
+                media.metadata["staging_error"] = f"Operation not permitted: {exc}"
+                progress.update()
+                continue
+            raise
         media.stage_path = destination
         media.metadata["staging_stem"] = stem
         media.metadata["staging_suffix"] = suffix
@@ -3845,11 +4016,7 @@ def ensure_compatibility(
             container = (media.metadata.get("container") or media.format_name or "").lower()
             video_codec = (media.video_codec or "").lower()
             audio_codec = (media.audio_codec or "").lower()
-            return (
-                container in COMPATIBLE_VIDEO_CONTAINERS
-                and video_codec in COMPATIBLE_VIDEO_CODECS
-                and (not audio_codec or audio_codec in COMPATIBLE_AUDIO_CODECS)
-            )
+            return container in COMPATIBLE_VIDEO_CONTAINERS and video_codec in COMPATIBLE_VIDEO_CODECS and (not audio_codec or audio_codec in COMPATIBLE_AUDIO_CODECS)
         return False
 
     for media in media_files:
@@ -3881,9 +4048,7 @@ def ensure_compatibility(
         try:
             # Do not process files the detector already marked as compatible
             if media.detected_compatible and media.action != "import":
-                LOG.debug(
-                    "Bypassing processing for compatible media %s (action %s)", media.stage_path, media.action
-                )
+                LOG.debug("Bypassing processing for compatible media %s (action %s)", media.stage_path, media.action)
                 media.requires_processing = False
                 media.compatible = True
                 media.action = "import"
@@ -3990,9 +4155,7 @@ def update_stats_after_compatibility(stats: RunStatistics, media_files: list[Med
     detected_compatible = sum(1 for media in media_files if media.detected_compatible)
     stats.media_compatible = detected_compatible
     stats.media_incompatible = stats.total_media_detected - detected_compatible
-    stats.incompatible_with_conversion_rule = sum(
-        1 for media in media_files if not media.detected_compatible and media.was_converted
-    )
+    stats.incompatible_with_conversion_rule = sum(1 for media in media_files if not media.detected_compatible and media.was_converted)
     stats.staging_total = sum(1 for media in media_files if media.stage_path and media.stage_path.exists())
     stats.staging_expected = detected_compatible + stats.incompatible_with_conversion_rule
 
