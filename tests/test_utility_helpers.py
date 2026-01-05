@@ -13,9 +13,7 @@ class TestSafeFiletypeGuess:
     """Tests for safe_filetype_guess function."""
 
     @patch("smart_media_manager.cli.filetype")
-    def test_safe_filetype_guess_returns_signature_on_success(
-        self, mock_filetype, tmp_path
-    ):
+    def test_safe_filetype_guess_returns_signature_on_success(self, mock_filetype, tmp_path):
         """Test safe_filetype_guess returns Signature on successful guess."""
         from smart_media_manager.cli import safe_filetype_guess
 
@@ -33,9 +31,7 @@ class TestSafeFiletypeGuess:
         assert result.mime == "image/jpeg"
 
     @patch("smart_media_manager.cli.filetype")
-    def test_safe_filetype_guess_returns_empty_signature_on_no_match(
-        self, mock_filetype, tmp_path
-    ):
+    def test_safe_filetype_guess_returns_empty_signature_on_no_match(self, mock_filetype, tmp_path):
         """Test safe_filetype_guess returns empty Signature when no match."""
         from smart_media_manager.cli import safe_filetype_guess
 
@@ -49,9 +45,7 @@ class TestSafeFiletypeGuess:
         assert result.is_empty()
 
     @patch("smart_media_manager.cli.filetype")
-    def test_safe_filetype_guess_returns_empty_signature_on_exception(
-        self, mock_filetype, tmp_path
-    ):
+    def test_safe_filetype_guess_returns_empty_signature_on_exception(self, mock_filetype, tmp_path):
         """Test safe_filetype_guess returns empty Signature on exception."""
         from smart_media_manager.cli import safe_filetype_guess
 
@@ -87,9 +81,7 @@ class TestSafePuremagicGuess:
     """Tests for safe_puremagic_guess function."""
 
     @patch("smart_media_manager.cli.puremagic")
-    def test_safe_puremagic_guess_returns_signature_on_success(
-        self, mock_puremagic, tmp_path
-    ):
+    def test_safe_puremagic_guess_returns_signature_on_success(self, mock_puremagic, tmp_path):
         """Test safe_puremagic_guess returns Signature on successful guess."""
         from smart_media_manager.cli import safe_puremagic_guess
 
@@ -108,9 +100,7 @@ class TestSafePuremagicGuess:
         assert result.mime == "image/jpeg"
 
     @patch("smart_media_manager.cli.puremagic")
-    def test_safe_puremagic_guess_handles_extension_error(
-        self, mock_puremagic, tmp_path
-    ):
+    def test_safe_puremagic_guess_handles_extension_error(self, mock_puremagic, tmp_path):
         """Test safe_puremagic_guess handles exception when guessing extension."""
         from smart_media_manager.cli import safe_puremagic_guess
         import puremagic
@@ -203,9 +193,7 @@ class TestRunChecked:
         # Should not raise
         run_checked(["echo", "hello"])
 
-        mock_run.assert_called_once_with(
-            ["echo", "hello"], capture_output=True, text=True, check=False
-        )
+        mock_run.assert_called_once_with(["echo", "hello"], capture_output=True, text=True, check=False)
 
     @patch("smart_media_manager.cli.subprocess.run")
     def test_run_checked_raises_for_failed_command(self, mock_run):
@@ -237,9 +225,7 @@ class TestRunCommandWithProgress:
     @patch("smart_media_manager.cli.time.sleep")
     @patch("smart_media_manager.cli.time.time")
     @patch("smart_media_manager.cli.subprocess.Popen")
-    def test_run_command_with_progress_succeeds_for_successful_command(
-        self, mock_popen, mock_time, mock_sleep, mock_stdout
-    ):
+    def test_run_command_with_progress_succeeds_for_successful_command(self, mock_popen, mock_time, mock_sleep, mock_stdout):
         """Test run_command_with_progress succeeds when command returns 0."""
         from smart_media_manager.cli import run_command_with_progress
 
@@ -259,9 +245,7 @@ class TestRunCommandWithProgress:
     @patch("smart_media_manager.cli.time.sleep")
     @patch("smart_media_manager.cli.time.time")
     @patch("smart_media_manager.cli.subprocess.Popen")
-    def test_run_command_with_progress_raises_for_failed_command(
-        self, mock_popen, mock_time, mock_sleep, mock_stdout
-    ):
+    def test_run_command_with_progress_raises_for_failed_command(self, mock_popen, mock_time, mock_sleep, mock_stdout):
         """Test run_command_with_progress raises RuntimeError when command fails."""
         from smart_media_manager.cli import run_command_with_progress
         import pytest
@@ -280,9 +264,7 @@ class TestRunCommandWithProgress:
     @patch("smart_media_manager.cli.time.sleep")
     @patch("smart_media_manager.cli.time.time")
     @patch("smart_media_manager.cli.subprocess.Popen")
-    def test_run_command_with_progress_uses_custom_environment(
-        self, mock_popen, mock_time, mock_sleep, mock_stdout
-    ):
+    def test_run_command_with_progress_uses_custom_environment(self, mock_popen, mock_time, mock_sleep, mock_stdout):
         """Test run_command_with_progress uses custom environment."""
         from smart_media_manager.cli import run_command_with_progress
 
@@ -304,9 +286,7 @@ class TestRunCommandWithProgress:
     @patch("smart_media_manager.cli.time.sleep")
     @patch("smart_media_manager.cli.time.time")
     @patch("smart_media_manager.cli.subprocess.Popen")
-    def test_run_command_with_progress_clears_progress_bar_on_completion(
-        self, mock_popen, mock_time, mock_sleep, mock_stdout
-    ):
+    def test_run_command_with_progress_clears_progress_bar_on_completion(self, mock_popen, mock_time, mock_sleep, mock_stdout):
         """Test run_command_with_progress clears progress bar after completion."""
         from smart_media_manager.cli import run_command_with_progress
 

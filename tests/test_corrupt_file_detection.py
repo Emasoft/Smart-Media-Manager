@@ -49,6 +49,7 @@ def import_into_photos(media_files, stats):
     failed_list = [(m, "Skipped by Photos") for m in skipped_media]
     return imported_count, failed_list
 
+
 SAMPLES_DIR = Path(__file__).parent / "samples" / "media"
 
 
@@ -415,7 +416,7 @@ def test_only_valid_files_reach_photos_import(tmp_path: Path) -> None:
             if path_issues or imported_count == 0:
                 # AppleScript can't resolve pytest tmp_path (known limitation)
                 # The important thing is NO CORRUPT FILES reached this point
-                LOG.info("Import had path resolution issues (expected in test env), but corruption detection worked!")
+                print("Import had path resolution issues (expected in test env), but corruption detection worked!")
             else:
                 # Real import failure that should be investigated
                 assert False, f"Valid file failed import for non-path reason: {failed_list}"

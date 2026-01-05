@@ -21,10 +21,8 @@ if str(ROOT) not in sys.path:
 pytestmark = pytest.mark.e2e
 
 from smart_media_manager.cli import (  # noqa: E402
-    MediaFile,
     RunStatistics,
     SkipLogger,
-    ensure_compatibility,
     gather_media_files,
 )
 from tests.helpers import stage_media  # noqa: E402

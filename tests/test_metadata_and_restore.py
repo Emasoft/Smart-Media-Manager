@@ -10,8 +10,7 @@ Tests cover:
 """
 
 import pytest
-from pathlib import Path
-from unittest.mock import Mock, patch, call
+from unittest.mock import Mock, patch
 from smart_media_manager.cli import (
     copy_metadata_from_source,
     restore_media_file,
@@ -27,15 +26,15 @@ from smart_media_manager.cli import (
 class TestMetadataFunctions:
     """Tests for metadata copying functions."""
 
-    @patch('smart_media_manager.cli.subprocess.run')
-    @patch('smart_media_manager.cli.shutil.which')
+    @patch("smart_media_manager.cli.subprocess.run")
+    @patch("smart_media_manager.cli.shutil.which")
     def test_copy_metadata_from_source_success(self, mock_which, mock_run, tmp_path):
         """Test copy_metadata_from_source calls exiftool correctly."""
         # Setup
         source = tmp_path / "source.jpg"
         target = tmp_path / "target.jpg"
-        source.write_bytes(b'\xFF\xD8\xFF' + b'\x00' * 100 + b'\xFF\xD9')
-        target.write_bytes(b'\xFF\xD8\xFF' + b'\x00' * 100 + b'\xFF\xD9')
+        source.write_bytes(b"\xff\xd8\xff" + b"\x00" * 100 + b"\xff\xd9")
+        target.write_bytes(b"\xff\xd8\xff" + b"\x00" * 100 + b"\xff\xd9")
 
         mock_which.return_value = "/usr/bin/exiftool"
         mock_run.return_value = Mock(returncode=0)
@@ -52,8 +51,8 @@ class TestMetadataFunctions:
         assert str(source) in call_args
         assert str(target) in call_args
 
-    @patch('smart_media_manager.cli.subprocess.run')
-    @patch('smart_media_manager.cli.shutil.which')
+    @patch("smart_media_manager.cli.subprocess.run")
+    @patch("smart_media_manager.cli.shutil.which")
     def test_copy_metadata_from_source_no_exiftool(self, mock_which, mock_run, tmp_path):
         """Test copy_metadata_from_source handles missing exiftool."""
         source = tmp_path / "source.jpg"
@@ -69,8 +68,8 @@ class TestMetadataFunctions:
         # exiftool should not be called
         mock_run.assert_not_called()
 
-    @patch('smart_media_manager.cli.subprocess.run')
-    @patch('smart_media_manager.cli.shutil.which')
+    @patch("smart_media_manager.cli.subprocess.run")
+    @patch("smart_media_manager.cli.shutil.which")
     def test_copy_metadata_from_source_nonexistent_source(self, mock_which, mock_run, tmp_path):
         """Test copy_metadata_from_source handles nonexistent source."""
         source = tmp_path / "nonexistent.jpg"
@@ -110,7 +109,7 @@ class TestRestoreFunctions:
         stage_path = tmp_path / "staging" / "file.jpg"
         stage_path.parent.mkdir(parents=True)
 
-        content = b'\xFF\xD8\xFF' + b'\x00' * 100 + b'\xFF\xD9'
+        content = b"\xff\xd8\xff" + b"\x00" * 100 + b"\xff\xd9"
         stage_path.write_bytes(content)
 
         media = MediaFile(
@@ -133,12 +132,12 @@ class TestRestoreFunctions:
     def test_restore_media_file_with_existing_source(self, tmp_path):
         """Test restore_media_file uses next available name when source exists."""
         source = tmp_path / "original.jpg"
-        source.write_bytes(b'\xFF\xD8\xFF' + b'EXISTING' + b'\xFF\xD9')
+        source.write_bytes(b"\xff\xd8\xff" + b"EXISTING" + b"\xff\xd9")
 
         stage_path = tmp_path / "staging" / "file.jpg"
         stage_path.parent.mkdir(parents=True)
 
-        content = b'\xFF\xD8\xFF' + b'STAGED' + b'\xFF\xD9'
+        content = b"\xff\xd8\xff" + b"STAGED" + b"\xff\xd9"
         stage_path.write_bytes(content)
 
         media = MediaFile(
@@ -216,7 +215,7 @@ class TestCleanupFunctions:
 class TestExecutableFinders:
     """Tests for executable finding functions."""
 
-    @patch('smart_media_manager.cli.shutil.which')
+    @patch("smart_media_manager.cli.shutil.which")
     def test_find_executable_finds_first(self, mock_which):
         """Test find_executable returns first found executable."""
         mock_which.side_effect = lambda x: "/usr/bin/" + x if x == "python3" else None
@@ -226,7 +225,7 @@ class TestExecutableFinders:
         assert result == "/usr/bin/python3"
         assert mock_which.call_count == 2  # Tried nonexistent, found python3
 
-    @patch('smart_media_manager.cli.shutil.which')
+    @patch("smart_media_manager.cli.shutil.which")
     def test_find_executable_tries_all(self, mock_which):
         """Test find_executable tries all candidates."""
         mock_which.return_value = None
@@ -236,7 +235,7 @@ class TestExecutableFinders:
         assert result is None
         assert mock_which.call_count == 3
 
-    @patch('smart_media_manager.cli.shutil.which')
+    @patch("smart_media_manager.cli.shutil.which")
     def test_resolve_imagemagick_command_magick(self, mock_which):
         """Test resolve_imagemagick_command prefers 'magick'."""
         mock_which.side_effect = lambda x: "/usr/bin/" + x if x in ["magick", "convert"] else None
@@ -245,7 +244,7 @@ class TestExecutableFinders:
 
         assert "magick" in result
 
-    @patch('smart_media_manager.cli.shutil.which')
+    @patch("smart_media_manager.cli.shutil.which")
     def test_resolve_imagemagick_command_convert(self, mock_which):
         """Test resolve_imagemagick_command falls back to 'convert'."""
         mock_which.side_effect = lambda x: "/usr/bin/convert" if x == "convert" else None
@@ -254,7 +253,7 @@ class TestExecutableFinders:
 
         assert "convert" in result
 
-    @patch('smart_media_manager.cli.shutil.which')
+    @patch("smart_media_manager.cli.shutil.which")
     def test_resolve_imagemagick_command_not_found(self, mock_which):
         """Test resolve_imagemagick_command raises when not found."""
         mock_which.return_value = None
@@ -262,7 +261,7 @@ class TestExecutableFinders:
         with pytest.raises(RuntimeError, match=r"ImageMagick \(magick/convert\) not found"):
             resolve_imagemagick_command()
 
-    @patch('smart_media_manager.cli.shutil.which')
+    @patch("smart_media_manager.cli.shutil.which")
     def test_ensure_ffmpeg_path_found(self, mock_which):
         """Test ensure_ffmpeg_path returns path when found."""
         mock_which.return_value = "/usr/bin/ffmpeg"
@@ -271,7 +270,7 @@ class TestExecutableFinders:
 
         assert result == "/usr/bin/ffmpeg"
 
-    @patch('smart_media_manager.cli.shutil.which')
+    @patch("smart_media_manager.cli.shutil.which")
     def test_ensure_ffmpeg_path_not_found(self, mock_which):
         """Test ensure_ffmpeg_path raises when not found."""
         mock_which.return_value = None
@@ -283,47 +282,41 @@ class TestExecutableFinders:
 class TestPanoramicPhotoDetection:
     """Tests for is_panoramic_photo function."""
 
-    @patch('smart_media_manager.cli.subprocess.run')
-    @patch('smart_media_manager.cli.shutil.which')
+    @patch("smart_media_manager.cli.subprocess.run")
+    @patch("smart_media_manager.cli.shutil.which")
     def test_is_panoramic_photo_with_metadata(self, mock_which, mock_run, tmp_path):
         """Test is_panoramic_photo detects panoramic EXIF metadata."""
         from smart_media_manager.cli import is_panoramic_photo
 
         photo = tmp_path / "panorama.jpg"
-        photo.write_bytes(b'\xFF\xD8\xFF' + b'\x00' * 100 + b'\xFF\xD9')
+        photo.write_bytes(b"\xff\xd8\xff" + b"\x00" * 100 + b"\xff\xd9")
 
         mock_which.return_value = "/usr/bin/exiftool"
-        mock_run.return_value = Mock(
-            returncode=0,
-            stdout="ProjectionType: equirectangular\nUsePanoramaViewer: true\n"
-        )
+        mock_run.return_value = Mock(returncode=0, stdout="ProjectionType: equirectangular\nUsePanoramaViewer: true\n")
 
         result = is_panoramic_photo(photo)
 
         # Should detect panoramic metadata
         assert result is True
 
-    @patch('smart_media_manager.cli.subprocess.run')
-    @patch('smart_media_manager.cli.shutil.which')
+    @patch("smart_media_manager.cli.subprocess.run")
+    @patch("smart_media_manager.cli.shutil.which")
     def test_is_panoramic_photo_no_metadata(self, mock_which, mock_run, tmp_path):
         """Test is_panoramic_photo returns False without panoramic metadata."""
         from smart_media_manager.cli import is_panoramic_photo
 
         photo = tmp_path / "normal.jpg"
-        photo.write_bytes(b'\xFF\xD8\xFF' + b'\x00' * 100 + b'\xFF\xD9')
+        photo.write_bytes(b"\xff\xd8\xff" + b"\x00" * 100 + b"\xff\xd9")
 
         mock_which.return_value = "/usr/bin/exiftool"
-        mock_run.return_value = Mock(
-            returncode=0,
-            stdout="Make: Canon\nModel: EOS 5D\n"
-        )
+        mock_run.return_value = Mock(returncode=0, stdout="Make: Canon\nModel: EOS 5D\n")
 
         result = is_panoramic_photo(photo)
 
         # Should NOT detect as panoramic without special metadata
         assert result is False
 
-    @patch('smart_media_manager.cli.shutil.which')
+    @patch("smart_media_manager.cli.shutil.which")
     def test_is_panoramic_photo_no_exiftool(self, mock_which, tmp_path):
         """Test is_panoramic_photo handles missing exiftool."""
         from smart_media_manager.cli import is_panoramic_photo

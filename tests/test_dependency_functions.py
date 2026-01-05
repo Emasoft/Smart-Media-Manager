@@ -102,9 +102,7 @@ class TestEnsureBrewCask:
 
     @patch("smart_media_manager.cli.run_command_with_progress")
     @patch("smart_media_manager.cli.brew_cask_installed")
-    def test_ensure_brew_cask_installs_when_not_present(
-        self, mock_installed, mock_run_cmd
-    ):
+    def test_ensure_brew_cask_installs_when_not_present(self, mock_installed, mock_run_cmd):
         """Test ensure_brew_cask installs cask when not installed."""
         from smart_media_manager.cli import ensure_brew_cask
 
@@ -137,9 +135,7 @@ class TestEnsurePipPackage:
     @patch("smart_media_manager.cli.run_command_with_progress")
     @patch("smart_media_manager.cli.pip_package_installed")
     @patch("smart_media_manager.cli._PIP_PACKAGE_CACHE", set())
-    def test_ensure_pip_package_installs_when_not_present(
-        self, mock_installed, mock_run_cmd
-    ):
+    def test_ensure_pip_package_installs_when_not_present(self, mock_installed, mock_run_cmd):
         """Test ensure_pip_package installs package when not installed."""
         from smart_media_manager.cli import ensure_pip_package
         import sys
@@ -155,9 +151,7 @@ class TestEnsurePipPackage:
 
     @patch("smart_media_manager.cli.run_command_with_progress")
     @patch("smart_media_manager.cli.pip_package_installed")
-    def test_ensure_pip_package_upgrades_when_present(
-        self, mock_installed, mock_run_cmd
-    ):
+    def test_ensure_pip_package_upgrades_when_present(self, mock_installed, mock_run_cmd):
         """Test ensure_pip_package upgrades package when already installed."""
         from smart_media_manager.cli import ensure_pip_package
         import sys
@@ -177,9 +171,7 @@ class TestEnsureRawDependenciesForFiles:
 
     @patch("smart_media_manager.cli.install_raw_dependency_groups")
     @patch("smart_media_manager.cli.collect_raw_groups_from_extensions")
-    def test_ensure_raw_dependencies_for_files_installs_required_groups(
-        self, mock_collect, mock_install
-    ):
+    def test_ensure_raw_dependencies_for_files_installs_required_groups(self, mock_collect, mock_install):
         """Test ensure_raw_dependencies_for_files installs groups from media files."""
         from smart_media_manager.cli import ensure_raw_dependencies_for_files, MediaFile
         from pathlib import Path
@@ -227,9 +219,7 @@ class TestEnsureRawDependenciesForFiles:
 
     @patch("smart_media_manager.cli.install_raw_dependency_groups")
     @patch("smart_media_manager.cli.collect_raw_groups_from_extensions")
-    def test_ensure_raw_dependencies_for_files_does_nothing_for_non_raw_files(
-        self, mock_collect, mock_install
-    ):
+    def test_ensure_raw_dependencies_for_files_does_nothing_for_non_raw_files(self, mock_collect, mock_install):
         """Test ensure_raw_dependencies_for_files does nothing when no RAW files."""
         from smart_media_manager.cli import ensure_raw_dependencies_for_files, MediaFile
         from pathlib import Path
@@ -258,9 +248,7 @@ class TestEnsureRawDependenciesForFiles:
 
     @patch("smart_media_manager.cli.install_raw_dependency_groups")
     @patch("smart_media_manager.cli.collect_raw_groups_from_extensions")
-    def test_ensure_raw_dependencies_for_files_deduplicates_groups(
-        self, mock_collect, mock_install
-    ):
+    def test_ensure_raw_dependencies_for_files_deduplicates_groups(self, mock_collect, mock_install):
         """Test ensure_raw_dependencies_for_files deduplicates groups from multiple files."""
         from smart_media_manager.cli import ensure_raw_dependencies_for_files, MediaFile
         from pathlib import Path
@@ -291,9 +279,7 @@ class TestEnsureRawDependenciesForFiles:
 
     @patch("smart_media_manager.cli.install_raw_dependency_groups")
     @patch("smart_media_manager.cli.collect_raw_groups_from_extensions")
-    def test_ensure_raw_dependencies_for_files_handles_empty_list(
-        self, mock_collect, mock_install
-    ):
+    def test_ensure_raw_dependencies_for_files_handles_empty_list(self, mock_collect, mock_install):
         """Test ensure_raw_dependencies_for_files handles empty media list."""
         from smart_media_manager.cli import ensure_raw_dependencies_for_files
 

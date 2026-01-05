@@ -21,14 +21,14 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from smart_media_manager.cli import (
+from smart_media_manager.cli import (  # noqa: E402
     RunStatistics,
     SkipLogger,
     ensure_compatibility,
     gather_media_files,
     import_folder_to_photos,
 )
-from tests.helpers import stage_media
+from tests.helpers import stage_media  # noqa: E402
 
 
 pytestmark = pytest.mark.skipif(
@@ -58,6 +58,7 @@ def import_into_photos(media_files, stats):
     # Convert to old signature: (imported_count, failed_list)
     failed_list = [(m, "Skipped by Photos") for m in skipped_media]
     return imported_count, failed_list
+
 
 SAMPLES_DIR = Path(__file__).parent / "samples" / "media"
 FIXTURES_DIR = Path(__file__).parent / "fixtures"
