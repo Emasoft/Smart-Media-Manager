@@ -1,0 +1,49 @@
+#!/usr/bin/env bash
+# Pre-commit hook: Validate samples folder and check for large files
+#
+# This hook runs before each commit to ensure:
+# 1. samples/ folder stays under 3MB limit
+# 2. No large files are accidentally added
+# 3. Required sample files exist
+
+set -euo pipefail
+
+# Get project root
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
+
+# Check if samples/ was modified
+if git diff --cached --name-only | grep -q "^samples/"; then
+    echo "Validating samples/ folder..."
+
+    # Run validation script
+    if [ -x "$PROJECT_ROOT/scripts/validate_samples.sh" ]; then
+        "$PROJECT_ROOT/scripts/validate_samples.sh" || {
+            echo ""
+            echo "ERROR: samples/ validation failed"
+            echo "Fix the issues above or use 'git commit --no-verify' to bypass"
+            exit 1
+        }
+    fi
+fi
+
+# Check for accidentally staged large files (>1MB)
+LARGE_FILES=$(git diff --cached --name-only --diff-filter=ACM | while read -r file; do
+    if [ -f "$file" ]; then
+        SIZE=$(stat -f%z "$file" 2>/dev/null || stat -c%s "$file" 2>/dev/null || echo 0)
+        if [ "$SIZE" -gt 1048576 ]; then
+            echo "$file ($(numfmt --to=iec-i --suffix=B $SIZE 2>/dev/null || echo "${SIZE}B"))"
+        fi
+    fi
+done)
+
+if [ -n "$LARGE_FILES" ]; then
+    echo ""
+    echo "WARNING: Large files staged for commit (>1MB):"
+    echo "$LARGE_FILES"
+    echo ""
+    echo "If intentional, use 'git commit --no-verify' to bypass"
+    # Don't fail, just warn
+fi
+
+exit 0

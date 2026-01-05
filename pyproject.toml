@@ -1,7 +1,7 @@
 [project]
 name = "smart-media-manager"
-version = "0.5.40a2"
-description = "Add your description here"
+version = "0.5.43a1"
+description = "A macOS CLI that audits media folders, fixes extensions, and imports into Apple Photos"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
@@ -49,6 +49,10 @@ markers = [
     "minimal: Minimal CI tests that run with small samples (under 300KB)",
     "e2e: End-to-end tests that require large sample files",
     "slow: Tests that take significant time to run",
+    "requires_raw: Tests requiring RAW sample files",
+    "requires_large: Tests requiring large sample files",
 ]
 # Default: run all tests except e2e (which need large samples)
 addopts = "-v --tb=short -m 'not e2e'"
+# Restrict test collection to tests/ directory only
+testpaths = ["tests"]

@@ -4204,6 +4204,7 @@ def import_folder_to_photos(
         return 0, 0, []
 
     # Build AppleScript for folder import (based on import2photos.sh)
+    # Uses 24-hour timeout to prevent AppleEvent timeout (-1712) when Photos shows dialogs
     applescript = """
 on run argv
     if (count of argv) < 3 then return "ERR\\t0\\tMissing arguments"
@@ -4232,30 +4233,33 @@ on run argv
     set outLines to {}
     tell application id "com.apple.Photos"
         activate
-        try
-            if (count of (albums whose name is albumName)) = 0 then
-                make new album named albumName
-            end if
-            set tgtAlbum to first album whose name is albumName
+        -- Use very long timeout (24 hours) to allow user interaction with Photos dialogs
+        with timeout of 86400 seconds
+            try
+                if (count of (albums whose name is albumName)) = 0 then
+                    make new album named albumName
+                end if
+                set tgtAlbum to first album whose name is albumName
 
-            -- SINGLE folder import call - Photos manages the queue natively
-            set importedItems to import folderAlias skip check duplicates skipDup
+                -- SINGLE folder import call - Photos manages the queue natively
+                set importedItems to import folderAlias skip check duplicates skipDup
 
-            if (count of importedItems) > 0 then
-                add importedItems to tgtAlbum
-            end if
+                if (count of importedItems) > 0 then
+                    add importedItems to tgtAlbum
+                end if
 
-            -- Return filenames of imported items for reconciliation
-            repeat with mi in importedItems
-                try
-                    set fn to filename of mi
-                    set fn2 to util's sanitizeText(fn)
-                    set end of outLines to "FN\\t" & fn2
-                end try
-            end repeat
-        on error errMsg number errNum
-            return "ERR\\t" & (errNum as text) & "\\t" & errMsg
-        end try
+                -- Return filenames of imported items for reconciliation
+                repeat with mi in importedItems
+                    try
+                        set fn to filename of mi
+                        set fn2 to util's sanitizeText(fn)
+                        set end of outLines to "FN\\t" & fn2
+                    end try
+                end repeat
+            on error errMsg number errNum
+                return "ERR\\t" & (errNum as text) & "\\t" & errMsg
+            end try
+        end timeout
     end tell
 
     set oldTIDs to AppleScript's text item delimiters
@@ -4266,46 +4270,71 @@ on run argv
 end run
 """
 
-    # Execute AppleScript with folder import
+    # Execute AppleScript with folder import - with retry logic for Photos dialogs
     LOG.info("Importing staging folder into Photos album '%s'...", album_name)
 
-    # DEBUG: Timestamp when AppleScript execution begins
-    applescript_start_timestamp = dt.datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
-    LOG.debug("📸 TIMESTAMP %s - About to execute AppleScript (osascript) to import folder to Photos.app", applescript_start_timestamp)
-
-    try:
-        result = subprocess.run(
+    def run_import_applescript() -> subprocess.CompletedProcess:
+        """Execute the import AppleScript. No timeout - AppleScript has its own 24h timeout."""
+        return subprocess.run(
             ["osascript", "-", album_name, str(skip_duplicates).lower(), str(staging_dir)],
             input=applescript,
             capture_output=True,
             text=True,
-            timeout=APPLE_PHOTOS_FOLDER_IMPORT_TIMEOUT,
             check=False,
         )
-    except subprocess.TimeoutExpired as exc:
-        raise RuntimeError(f"Photos folder import timed out after {APPLE_PHOTOS_FOLDER_IMPORT_TIMEOUT} seconds. This usually indicates Photos.app is stuck or the folder is too large. Try splitting the import into smaller batches.") from exc
 
-    # DEBUG: Timestamp when AppleScript execution completes
-    applescript_end_timestamp = dt.datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
-    LOG.debug("📸 TIMESTAMP %s - AppleScript execution COMPLETED", applescript_end_timestamp)
+    # Retry loop for AppleEvent timeout (-1712) when Photos shows dialogs
+    max_retries = 10
+    for attempt in range(max_retries):
+        # DEBUG: Timestamp when AppleScript execution begins
+        applescript_start_timestamp = dt.datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
+        LOG.debug("📸 TIMESTAMP %s - About to execute AppleScript (osascript) to import folder to Photos.app (attempt %d/%d)", applescript_start_timestamp, attempt + 1, max_retries)
 
-    output = result.stdout.strip()
+        result = run_import_applescript()
 
-    if LOG.isEnabledFor(logging.DEBUG):
-        debug_parent = _log_directory() or staging_dir.parent
-        timestamp_segment = dt.datetime.now().strftime("%Y%m%d%H%M%S")
-        debug_parent.mkdir(parents=True, exist_ok=True)
-        raw_output_file = debug_parent / f"DEBUG_raw_applescript_output_{timestamp_segment}.txt"
-        with raw_output_file.open("wb") as handle:
-            handle.write(result.stdout.encode("utf-8"))
-        LOG.debug("DEBUG: Raw AppleScript output saved to %s (%d bytes)", raw_output_file, len(result.stdout))
+        # DEBUG: Timestamp when AppleScript execution completes
+        applescript_end_timestamp = dt.datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
+        LOG.debug("📸 TIMESTAMP %s - AppleScript execution COMPLETED", applescript_end_timestamp)
 
-    # Check for fatal AppleScript error
-    if output.startswith("ERR\t"):
-        parts = output.split("\t")
-        err_code = parts[1] if len(parts) > 1 else "0"
-        err_msg = parts[2] if len(parts) > 2 else "Unknown error"
-        raise RuntimeError(f"Photos import failed [{err_code}]: {err_msg}")
+        output = result.stdout.strip()
+
+        if LOG.isEnabledFor(logging.DEBUG):
+            debug_parent = _log_directory() or staging_dir.parent
+            timestamp_segment = dt.datetime.now().strftime("%Y%m%d%H%M%S")
+            debug_parent.mkdir(parents=True, exist_ok=True)
+            raw_output_file = debug_parent / f"DEBUG_raw_applescript_output_{timestamp_segment}.txt"
+            with raw_output_file.open("wb") as handle:
+                handle.write(result.stdout.encode("utf-8"))
+            LOG.debug("DEBUG: Raw AppleScript output saved to %s (%d bytes)", raw_output_file, len(result.stdout))
+
+        # Check for AppleEvent timeout error (-1712) - Photos was showing a dialog
+        if output.startswith("ERR\t"):
+            parts = output.split("\t")
+            err_code = parts[1] if len(parts) > 1 else "0"
+            err_msg = parts[2] if len(parts) > 2 else "Unknown error"
+
+            # Error -1712 is "AppleEvent timed out" - Photos was waiting for user interaction
+            if err_code == "-1712":
+                print("\n⚠️  Apple Photos is waiting for user interaction (dialog open)")
+                print("   Please close any Photos dialogs and press Enter to retry...")
+                print("   Or type 'abort' to cancel the import.")
+                try:
+                    user_input = input(f"   [Attempt {attempt + 1}/{max_retries}] Press Enter to retry or 'abort' to cancel: ").strip().lower()
+                    if user_input == "abort":
+                        raise RuntimeError(f"Photos import aborted by user after AppleEvent timeout [{err_code}]: {err_msg}")
+                    LOG.info("Retrying Photos import after user closed dialog...")
+                    continue  # Retry the import
+                except (KeyboardInterrupt, EOFError):
+                    raise RuntimeError(f"Photos import cancelled by user [{err_code}]: {err_msg}")
+
+            # Other errors are fatal
+            raise RuntimeError(f"Photos import failed [{err_code}]: {err_msg}")
+
+        # Success - no error, break out of retry loop
+        break
+    else:
+        # Exhausted all retries
+        raise RuntimeError(f"Photos import failed after {max_retries} attempts due to repeated AppleEvent timeouts")
 
     # Parse imported filenames from AppleScript output
     # Format: "FN\t<filename>" per line
@@ -4764,6 +4793,29 @@ def main() -> int:
                 skip_log.unlink()
         print(f"\nDetailed log: {log_path}")
         return 0
+    except KeyboardInterrupt:
+        # Graceful handling of Ctrl+C - save logs and exit cleanly
+        LOG.warning("Operation interrupted by user (Ctrl+C)")
+        print("\n\n" + "=" * 60)
+        print("INTERRUPTED: Operation cancelled by user (Ctrl+C)")
+        print("=" * 60)
+        # Save skip log if it has entries
+        if skip_log and skip_log.exists():
+            if skip_logger and skip_logger.has_entries():
+                LOG.info("Skipped file log saved at %s", skip_log)
+                print(f"Skip log saved: {skip_log}")
+            else:
+                skip_log.unlink()
+        # Point to detailed log
+        if "log_path" in locals():
+            LOG.info("Detailed log saved at %s", log_path)
+            print(f"Detailed log: {log_path}")
+        # Preserve staging folder for potential resume - don't revert
+        if staging_root and staging_root.exists():
+            print(f"Staging folder preserved: {staging_root}")
+            print("(Files can be manually imported or removed)")
+        print("=" * 60)
+        return 130  # Standard exit code for Ctrl+C (128 + SIGINT=2)
     except Exception as exc:  # noqa: BLE001
         LOG.error("Error: %s", exc)
         revert_media_files(media_files, staging_root)

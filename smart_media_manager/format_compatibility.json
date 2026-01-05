@@ -79,117 +79,170 @@
   "format_names": {
     "d33d5c73-5f1a-5c4b-878e-58c3f9c193c0-I": {
       "canonical": "jpeg",
-      "extensions": [".jpg", ".jpeg"],
+      "extensions": [
+        ".jpg",
+        ".jpeg"
+      ],
       "category": "image"
     },
     "8a88adf4-d744-55d7-8cb3-7aa1288edf7c-I": {
       "canonical": "png",
-      "extensions": [".png"],
+      "extensions": [
+        ".png"
+      ],
       "category": "image"
     },
     "808b7568-daf7-5b4a-959d-79e3f3765189-I": {
       "canonical": "gif",
-      "extensions": [".gif"],
+      "extensions": [
+        ".gif"
+      ],
       "category": "image"
     },
     "8980893a-f63c-5f02-a3ef-20e75f6aecd9-I": {
       "canonical": "tiff",
-      "extensions": [".tiff", ".tif"],
+      "extensions": [
+        ".tiff",
+        ".tif"
+      ],
       "category": "image"
     },
     "002b5a9f-6bbb-5c17-ab0e-f3abb791ab72-I": {
       "canonical": "webp",
-      "extensions": [".webp"],
+      "extensions": [
+        ".webp"
+      ],
       "category": "image"
     },
     "768db60f-4e74-52f5-a2dc-56060da83b8c-I": {
       "canonical": "heif",
-      "extensions": [".heif", ".heic"],
+      "extensions": [
+        ".heif",
+        ".heic"
+      ],
       "category": "image"
     },
     "169ebedc-69b8-5a8e-ac64-df1a8eee5b92-I": {
       "canonical": "avif",
-      "extensions": [".avif"],
+      "extensions": [
+        ".avif"
+      ],
       "category": "image"
     },
     "c416405f-af41-56cb-8c6c-46533f290969-I": {
       "canonical": "jxl",
-      "extensions": [".jxl"],
+      "extensions": [
+        ".jxl"
+      ],
       "category": "image"
     },
     "ac126046-11bb-5544-a3a7-27d6153bc432-R": {
       "canonical": "cr2",
-      "extensions": [".cr2"],
+      "extensions": [
+        ".cr2"
+      ],
       "category": "raw"
     },
     "a829ec18-757e-5217-84de-48784fc699bb-R": {
       "canonical": "cr3",
-      "extensions": [".cr3"],
+      "extensions": [
+        ".cr3"
+      ],
       "category": "raw"
     },
     "16e292ec-83ed-55b2-b4ba-39f714afa804-R": {
       "canonical": "nef",
-      "extensions": [".nef"],
+      "extensions": [
+        ".nef"
+      ],
       "category": "raw"
     },
     "facc476b-bc24-5e80-87a9-d54289a059c3-R": {
       "canonical": "arw",
-      "extensions": [".arw"],
+      "extensions": [
+        ".arw"
+      ],
       "category": "raw"
     },
     "a9997994-18d5-5fb2-b76b-6d12d242129d-R": {
       "canonical": "raf",
-      "extensions": [".raf"],
+      "extensions": [
+        ".raf"
+      ],
       "category": "raw"
     },
     "b2f15c88-20f2-548c-b21e-2f0c520bd7da-R": {
       "canonical": "orf",
-      "extensions": [".orf"],
+      "extensions": [
+        ".orf"
+      ],
       "category": "raw"
     },
     "c3fbb54e-1107-54a7-8123-2f1fad9b843d-R": {
       "canonical": "rw2",
-      "extensions": [".rw2"],
+      "extensions": [
+        ".rw2"
+      ],
       "category": "raw"
     },
     "8e2ac93c-d3f8-5d19-9bf8-3e5beeb3e404-R": {
       "canonical": "pef",
-      "extensions": [".pef"],
+      "extensions": [
+        ".pef"
+      ],
       "category": "raw"
     },
     "0283bda1-fa3f-5eea-b4bf-8530217aad6d-R": {
       "canonical": "srw",
-      "extensions": [".srw"],
+      "extensions": [
+        ".srw"
+      ],
       "category": "raw"
     },
     "ae6404c9-613b-5ca4-9c5a-e30370fada54-R": {
       "canonical": "dng",
-      "extensions": [".dng"],
+      "extensions": [
+        ".dng"
+      ],
       "category": "raw"
     },
     "a9457602-d9c2-5787-a3f4-a6c1f72ac82a-C": {
       "canonical": "mp4",
-      "extensions": [".mp4", ".m4v"],
+      "extensions": [
+        ".mp4",
+        ".m4v"
+      ],
       "category": "container"
     },
     "3f8a2874-1b17-5dd6-b51f-fb0e7d34022c-C": {
       "canonical": "mov",
-      "extensions": [".mov", ".qt"],
+      "extensions": [
+        ".mov",
+        ".qt"
+      ],
       "category": "container"
     },
     "f8f9aed9-bdeb-5fe7-b77b-b3c94c9c0ae0-C": {
       "canonical": "mkv",
-      "extensions": [".mkv"],
+      "extensions": [
+        ".mkv"
+      ],
       "category": "container"
     },
     "b2e62c4a-6122-548c-9bfa-0fcf3613942a-V": {
       "canonical": "h264",
-      "aliases": ["avc", "avc1"],
+      "aliases": [
+        "avc",
+        "avc1"
+      ],
       "category": "video_codec"
     },
     "faf4b553-de47-5bc8-80ea-d026a2571456-V": {
       "canonical": "hevc",
-      "aliases": ["h265", "hvc1"],
+      "aliases": [
+        "h265",
+        "hvc1"
+      ],
       "category": "video_codec"
     },
     "c69693cd-1fcd-5608-a8df-9476a00cfa9b-V": {
@@ -206,22 +259,35 @@
     },
     "501331ba-42ea-561c-e5df-8a824df17e3f-A": {
       "canonical": "aac",
-      "aliases": ["aac_lc", "aac_he", "aac_he_v2"],
+      "aliases": [
+        "aac_lc",
+        "aac_he",
+        "aac_he_v2"
+      ],
       "category": "audio_codec"
     },
     "924f0afb-5820-b044-ef80-c4c1cbaf2fe9-A": {
       "canonical": "ac3",
-      "aliases": ["ac-3", "dolby_digital"],
+      "aliases": [
+        "ac-3",
+        "dolby_digital"
+      ],
       "category": "audio_codec"
     },
     "56fcc40c-9499-baac-9f12-e4f2975c79bb-A": {
       "canonical": "eac3",
-      "aliases": ["e-ac-3", "eac-3", "dolby_digital_plus"],
+      "aliases": [
+        "e-ac-3",
+        "eac-3",
+        "dolby_digital_plus"
+      ],
       "category": "audio_codec"
     },
     "0504814b-150b-1a9e-b3e1-ca9cce0335ae-A": {
       "canonical": "alac",
-      "aliases": ["apple_lossless"],
+      "aliases": [
+        "apple_lossless"
+      ],
       "category": "audio_codec"
     },
     "c6c39c20-724f-674a-33ee-43c45c0e843b-A": {
@@ -250,17 +316,114 @@
     },
     "4dbf9b52-09f8-cc9e-1c5c-9d31a74da309-A": {
       "canonical": "dts",
-      "aliases": ["dts-hd", "dtshd"],
+      "aliases": [
+        "dts-hd",
+        "dtshd"
+      ],
       "category": "audio_codec"
     },
     "27656ffd-5a01-dc64-0a8f-9d96a8684be7-A": {
       "canonical": "mp3",
-      "aliases": ["mp3float", "mpeg_audio"],
+      "aliases": [
+        "mp3float",
+        "mpeg_audio"
+      ],
       "category": "audio_codec"
     },
     "920ca0bd-e474-4c77-125c-3118a1107af4-A": {
       "canonical": "flac",
       "category": "audio_codec"
+    },
+    "093583c1-6f88-541c-96f7-8adb5f132a43-C": {
+      "canonical": "3g2",
+      "category": "container",
+      "extensions": [
+        ".3g2"
+      ]
+    },
+    "84d2205f-0db6-5d0d-a413-accb652867f2-C": {
+      "canonical": "3gp",
+      "category": "container",
+      "extensions": [
+        ".3gp"
+      ]
+    },
+    "7f630cd5-9dd6-520d-9a38-d98a6895d227-C": {
+      "canonical": "asf",
+      "category": "container",
+      "extensions": [
+        ".asf"
+      ]
+    },
+    "c7fd4386-20fb-5f59-8df2-c081da124546-C": {
+      "canonical": "avi",
+      "category": "container",
+      "extensions": [
+        ".avi"
+      ]
+    },
+    "b970ae24-366f-54e9-b855-36595639c397-I": {
+      "canonical": "bmp",
+      "category": "image",
+      "extensions": [
+        ".bmp"
+      ]
+    },
+    "9127bc49-6cd3-5bfc-8348-c10003e695e4-C": {
+      "canonical": "flv",
+      "category": "container",
+      "extensions": [
+        ".flv"
+      ]
+    },
+    "bebe21bb-6aea-5231-b8bd-5bc1271e8588-I": {
+      "canonical": "ico",
+      "category": "image",
+      "extensions": [
+        ".ico"
+      ]
+    },
+    "64232332-29e5-58b9-a467-7825e2c5ac7f-C": {
+      "canonical": "mpeg",
+      "category": "container",
+      "extensions": [
+        ".mpeg"
+      ]
+    },
+    "64d1e20d-f341-5ae8-9ee5-71a8a3d073f1-C": {
+      "canonical": "mpegts",
+      "category": "container",
+      "extensions": [
+        ".mpegts"
+      ]
+    },
+    "d3238328-4fa3-5601-9172-32e1017b3def-C": {
+      "canonical": "ogg",
+      "category": "container",
+      "extensions": [
+        ".ogg"
+      ]
+    },
+    "601680fb-22dd-5f0d-879c-3146c613d569-I": {
+      "canonical": "svg",
+      "category": "image",
+      "extensions": [
+        ".svg"
+      ]
+    },
+    "71ed6c49-8ad0-5226-865d-3e71fdd6c279-C": {
+      "canonical": "wav",
+      "category": "container",
+      "extensions": [
+        ".wav"
+      ]
+    },
+    "795dcbf5-8ba7-575f-be97-79c2d93e7b6d-C": {
+      "canonical": "webm",
+      "category": "container",
+      "extensions": [
+        ".webm"
+      ]
     }
   },
   "tool_mappings": {
@@ -270,14 +433,26 @@
       "GIF image data": "808b7568-daf7-5b4a-959d-79e3f3765189-I",
       "TIFF image data": "8980893a-f63c-5f02-a3ef-20e75f6aecd9-I",
       "Web/P image": "002b5a9f-6bbb-5c17-ab0e-f3abb791ab72-I",
-      "ISO Media": ["768db60f-4e74-52f5-a2dc-56060da83b8c-I", "169ebedc-69b8-5a8e-ac64-df1a8eee5b92-I", "a9457602-d9c2-5787-a3f4-a6c1f72ac82a-C", "3f8a2874-1b17-5dd6-b51f-fb0e7d34022c-C"],
+      "ISO Media": [
+        "768db60f-4e74-52f5-a2dc-56060da83b8c-I",
+        "169ebedc-69b8-5a8e-ac64-df1a8eee5b92-I",
+        "a9457602-d9c2-5787-a3f4-a6c1f72ac82a-C",
+        "3f8a2874-1b17-5dd6-b51f-fb0e7d34022c-C"
+      ],
       "JPEG XL codestream": "c416405f-af41-56cb-8c6c-46533f290969-I",
       "Canon CR2 RAW": "ac126046-11bb-5544-a3a7-27d6153bc432-R",
       "Canon CR3": "a829ec18-757e-5217-84de-48784fc699bb-R",
       "Nikon NEF RAW": "16e292ec-83ed-55b2-b4ba-39f714afa804-R",
       "Sony ARW RAW": "facc476b-bc24-5e80-87a9-d54289a059c3-R",
       "Matroska data": "f8f9aed9-bdeb-5fe7-b77b-b3c94c9c0ae0-C",
-      "RIFF (little-endian) data, AVI": "c7fd4386-20fb-5f59-8df2-c081da124546-C"
+      "RIFF (little-endian) data, AVI": "c7fd4386-20fb-5f59-8df2-c081da124546-C",
+      "RIFF (little-endian) data, Web/P image": "002b5a9f-6bbb-5c17-ab0e-f3abb791ab72-I",
+      "JPEG XL image": "c416405f-af41-56cb-8c6c-46533f290969-I",
+      "ISO Media, Apple QuickTime movie": "3f8a2874-1b17-5dd6-b51f-fb0e7d34022c-C",
+      "ISO Media, MP4": "a9457602-d9c2-5787-a3f4-a6c1f72ac82a-C",
+      "ISO Media, MP4 v2": "a9457602-d9c2-5787-a3f4-a6c1f72ac82a-C",
+      "WebM": "f8f9aed9-bdeb-5fe7-b77b-b3c94c9c0ae0-C",
+      "TIFF image data, little-endian, direntries=13": "ac126046-11bb-5544-a3a7-27d6153bc432-R"
     },
     "puremagic": {
       "image/jpeg": "d33d5c73-5f1a-5c4b-878e-58c3f9c193c0-I",
@@ -291,7 +466,31 @@
       "video/mp4": "a9457602-d9c2-5787-a3f4-a6c1f72ac82a-C",
       "video/quicktime": "3f8a2874-1b17-5dd6-b51f-fb0e7d34022c-C",
       "video/x-matroska": "f8f9aed9-bdeb-5fe7-b77b-b3c94c9c0ae0-C",
-      "video/x-msvideo": "c7fd4386-20fb-5f59-8df2-c081da124546-C"
+      "video/x-msvideo": "c7fd4386-20fb-5f59-8df2-c081da124546-C",
+      "image/heic": "768db60f-4e74-52f5-a2dc-56060da83b8c-I",
+      "image/bmp": "b970ae24-366f-54e9-b855-36595639c397-I",
+      "image/x-icon": "bebe21bb-6aea-5231-b8bd-5bc1271e8588-I",
+      "image/svg+xml": "601680fb-22dd-5f0d-879c-3146c613d569-I",
+      "video/webm": "f8f9aed9-bdeb-5fe7-b77b-b3c94c9c0ae0-C",
+      "video/x-flv": "9127bc49-6cd3-5bfc-8348-c10003e695e4-C",
+      "video/x-ms-wmv": "7f630cd5-9dd6-520d-9a38-d98a6895d227-C",
+      "video/3gpp": "84d2205f-0db6-5d0d-a413-accb652867f2-C",
+      "video/3gpp2": "093583c1-6f88-541c-96f7-8adb5f132a43-C",
+      "audio/mpeg": "27656ffd-5a01-dc64-0a8f-9d96a8684be7-A",
+      "audio/mp4": "a9457602-d9c2-5787-a3f4-a6c1f72ac82a-C",
+      "audio/x-wav": "71ed6c49-8ad0-5226-865d-3e71fdd6c279-C",
+      "audio/ogg": "d3238328-4fa3-5601-9172-32e1017b3def-C",
+      "audio/flac": "920ca0bd-e474-4c77-125c-3118a1107af4-A",
+      "image/x-canon-cr2": "ac126046-11bb-5544-a3a7-27d6153bc432-R",
+      "image/x-canon-cr3": "a829ec18-757e-5217-84de-48784fc699bb-R",
+      "image/x-nikon-nef": "16e292ec-83ed-55b2-b4ba-39f714afa804-R",
+      "image/x-sony-arw": "facc476b-bc24-5e80-87a9-d54289a059c3-R",
+      "image/x-fuji-raf": "a9997994-18d5-5fb2-b76b-6d12d242129d-R",
+      "image/x-olympus-orf": "b2f15c88-20f2-548c-b21e-2f0c520bd7da-R",
+      "image/x-panasonic-rw2": "c3fbb54e-1107-54a7-8123-2f1fad9b843d-R",
+      "image/x-pentax-pef": "8e2ac93c-d3f8-5d19-9bf8-3e5beeb3e404-R",
+      "image/x-samsung-srw": "0283bda1-fa3f-5eea-b4bf-8530217aad6d-R",
+      "image/x-adobe-dng": "ae6404c9-613b-5ca4-9c5a-e30370fada54-R"
     },
     "ffprobe": {
       "mjpeg": "d33d5c73-5f1a-5c4b-878e-58c3f9c193c0-I",
@@ -327,7 +526,103 @@
       "dts": "4dbf9b52-09f8-cc9e-1c5c-9d31a74da309-A",
       "mp3": "27656ffd-5a01-dc64-0a8f-9d96a8684be7-A",
       "mp3float": "27656ffd-5a01-dc64-0a8f-9d96a8684be7-A",
-      "flac": "920ca0bd-e474-4c77-125c-3118a1107af4-A"
+      "flac": "920ca0bd-e474-4c77-125c-3118a1107af4-A",
+      "asf": "7f630cd5-9dd6-520d-9a38-d98a6895d227-C",
+      "bmp_pipe": "b970ae24-366f-54e9-b855-36595639c397-I",
+      "flv": "9127bc49-6cd3-5bfc-8348-c10003e695e4-C",
+      "ico": "bebe21bb-6aea-5231-b8bd-5bc1271e8588-I",
+      "image2": "d33d5c73-5f1a-5c4b-878e-58c3f9c193c0-I",
+      "jpeg_pipe": "d33d5c73-5f1a-5c4b-878e-58c3f9c193c0-I",
+      "m4v": "a9457602-d9c2-5787-a3f4-a6c1f72ac82a-C",
+      "matroska,webm": "f8f9aed9-bdeb-5fe7-b77b-b3c94c9c0ae0-C",
+      "mov,mp4,m4a,3gp,3g2,mj2": "a9457602-d9c2-5787-a3f4-a6c1f72ac82a-C",
+      "mpeg": "64232332-29e5-58b9-a467-7825e2c5ac7f-C",
+      "mpegts": "64d1e20d-f341-5ae8-9ee5-71a8a3d073f1-C",
+      "ogg": "d3238328-4fa3-5601-9172-32e1017b3def-C",
+      "png_pipe": "8a88adf4-d744-55d7-8cb3-7aa1288edf7c-I",
+      "svg_pipe": "601680fb-22dd-5f0d-879c-3146c613d569-I",
+      "tiff_pipe": "8980893a-f63c-5f02-a3ef-20e75f6aecd9-I",
+      "wav": "71ed6c49-8ad0-5226-865d-3e71fdd6c279-C",
+      "webp_pipe": "002b5a9f-6bbb-5c17-ab0e-f3abb791ab72-I",
+      "jpegxl_anim": "c416405f-af41-56cb-8c6c-46533f290969-I",
+      "jxl_pipe": "c416405f-af41-56cb-8c6c-46533f290969-I",
+      "webm": "f8f9aed9-bdeb-5fe7-b77b-b3c94c9c0ae0-C",
+      "3gp": "84d2205f-0db6-5d0d-a413-accb652867f2-C",
+      "3g2": "093583c1-6f88-541c-96f7-8adb5f132a43-C"
+    },
+    "pyfsig": {
+      "Advanced Systems Format": "7f630cd5-9dd6-520d-9a38-d98a6895d227-C",
+      "Audio Video Interleave video format": "c7fd4386-20fb-5f59-8df2-c081da124546-C",
+      "BMP file, abitmap format used mostly in the Windows world": "b970ae24-366f-54e9-b855-36595639c397-I",
+      "Image file encoded in theGraphics Interchange Format (GIF)": "808b7568-daf7-5b4a-959d-79e3f3765189-I",
+      "WindowsProgram Information File": "b2e62c4a-6122-548c-9bfa-0fcf3613942a-V",
+      "JPEG raw or in theJFIF orExif file format": "d33d5c73-5f1a-5c4b-878e-58c3f9c193c0-I",
+      "Matroska media container, includingWebM": "f8f9aed9-bdeb-5fe7-b77b-b3c94c9c0ae0-C",
+      "MP3 file with an ID3v2 container": "27656ffd-5a01-dc64-0a8f-9d96a8684be7-A",
+      "Ogg, anopen source media container format": "d3238328-4fa3-5601-9172-32e1017b3def-C",
+      "Image encoded in thePortable Network Graphics format": "8a88adf4-d744-55d7-8cb3-7aa1288edf7c-I",
+      "Tagged Image File Format (little endian format)": "8980893a-f63c-5f02-a3ef-20e75f6aecd9-I",
+      "Waveform Audio File Format": "71ed6c49-8ad0-5226-865d-3e71fdd6c279-C",
+      "Google WebP image file": "002b5a9f-6bbb-5c17-ab0e-f3abb791ab72-I",
+      "Tagged Image File Format (big endian format)": "8980893a-f63c-5f02-a3ef-20e75f6aecd9-I"
+    },
+    "binwalk": {},
+    "pillow": {
+      "BMP": "b970ae24-366f-54e9-b855-36595639c397-I",
+      "GIF": "808b7568-daf7-5b4a-959d-79e3f3765189-I",
+      "ICO": "bebe21bb-6aea-5231-b8bd-5bc1271e8588-I",
+      "JPEG": "d33d5c73-5f1a-5c4b-878e-58c3f9c193c0-I",
+      "PNG": "8a88adf4-d744-55d7-8cb3-7aa1288edf7c-I",
+      "TIFF": "8980893a-f63c-5f02-a3ef-20e75f6aecd9-I",
+      "WEBP": "002b5a9f-6bbb-5c17-ab0e-f3abb791ab72-I",
+      "HEIF": "768db60f-4e74-52f5-a2dc-56060da83b8c-I",
+      "AVIF": "169ebedc-69b8-5a8e-ac64-df1a8eee5b92-I"
+    },
+    "exiftool": {
+      "WMV": "7f630cd5-9dd6-520d-9a38-d98a6895d227-C",
+      "AVI": "c7fd4386-20fb-5f59-8df2-c081da124546-C",
+      "BMP": "b970ae24-366f-54e9-b855-36595639c397-I",
+      "FLV": "9127bc49-6cd3-5bfc-8348-c10003e695e4-C",
+      "GIF": "808b7568-daf7-5b4a-959d-79e3f3765189-I",
+      "ICO": "bebe21bb-6aea-5231-b8bd-5bc1271e8588-I",
+      "JPEG": "d33d5c73-5f1a-5c4b-878e-58c3f9c193c0-I",
+      "MKV": "f8f9aed9-bdeb-5fe7-b77b-b3c94c9c0ae0-C",
+      "WEBM": "f8f9aed9-bdeb-5fe7-b77b-b3c94c9c0ae0-C",
+      "M4A": "a9457602-d9c2-5787-a3f4-a6c1f72ac82a-C",
+      "M4V": "a9457602-d9c2-5787-a3f4-a6c1f72ac82a-C",
+      "MOV": "a9457602-d9c2-5787-a3f4-a6c1f72ac82a-C",
+      "MP4": "a9457602-d9c2-5787-a3f4-a6c1f72ac82a-C",
+      "MP3": "27656ffd-5a01-dc64-0a8f-9d96a8684be7-A",
+      "MPEG": "64232332-29e5-58b9-a467-7825e2c5ac7f-C",
+      "M2T": "64d1e20d-f341-5ae8-9ee5-71a8a3d073f1-C",
+      "M2TS": "64d1e20d-f341-5ae8-9ee5-71a8a3d073f1-C",
+      "OGV": "d3238328-4fa3-5601-9172-32e1017b3def-C",
+      "PNG": "8a88adf4-d744-55d7-8cb3-7aa1288edf7c-I",
+      "SVG": "601680fb-22dd-5f0d-879c-3146c613d569-I",
+      "TIFF": "8980893a-f63c-5f02-a3ef-20e75f6aecd9-I",
+      "WAV": "71ed6c49-8ad0-5226-865d-3e71fdd6c279-C",
+      "WEBP": "002b5a9f-6bbb-5c17-ab0e-f3abb791ab72-I",
+      "HEIF": "768db60f-4e74-52f5-a2dc-56060da83b8c-I",
+      "HEIC": "768db60f-4e74-52f5-a2dc-56060da83b8c-I",
+      "AVIF": "169ebedc-69b8-5a8e-ac64-df1a8eee5b92-I",
+      "JXL": "c416405f-af41-56cb-8c6c-46533f290969-I",
+      "QuickTime": "3f8a2874-1b17-5dd6-b51f-fb0e7d34022c-C",
+      "ASF": "7f630cd5-9dd6-520d-9a38-d98a6895d227-C",
+      "3GP": "84d2205f-0db6-5d0d-a413-accb652867f2-C",
+      "3G2": "093583c1-6f88-541c-96f7-8adb5f132a43-C",
+      "MTS": "64d1e20d-f341-5ae8-9ee5-71a8a3d073f1-C",
+      "OGG": "d3238328-4fa3-5601-9172-32e1017b3def-C",
+      "FLAC": "920ca0bd-e474-4c77-125c-3118a1107af4-A",
+      "CR2": "ac126046-11bb-5544-a3a7-27d6153bc432-R",
+      "CR3": "a829ec18-757e-5217-84de-48784fc699bb-R",
+      "NEF": "16e292ec-83ed-55b2-b4ba-39f714afa804-R",
+      "ARW": "facc476b-bc24-5e80-87a9-d54289a059c3-R",
+      "RAF": "a9997994-18d5-5fb2-b76b-6d12d242129d-R",
+      "ORF": "b2f15c88-20f2-548c-b21e-2f0c520bd7da-R",
+      "RW2": "c3fbb54e-1107-54a7-8123-2f1fad9b843d-R",
+      "PEF": "8e2ac93c-d3f8-5d19-9bf8-3e5beeb3e404-R",
+      "SRW": "0283bda1-fa3f-5eea-b4bf-8530217aad6d-R",
+      "DNG": "ae6404c9-613b-5ca4-9c5a-e30370fada54-R"
     }
   }
 }

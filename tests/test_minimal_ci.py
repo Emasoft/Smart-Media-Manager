@@ -3,59 +3,80 @@ Minimal CI tests using small sample files.
 
 These tests run in CI with samples under 300KB to verify basic functionality
 without requiring large test fixtures.
+
+Uses test_set.yaml configuration to locate samples:
+- samples/test_set.yaml (public, for CI)
+- samples_dev/test_set.yaml (local, for comprehensive testing)
 """
 
-import pytest
-from pathlib import Path
-from unittest.mock import Mock, patch
+from __future__ import annotations
+
 import subprocess
+from pathlib import Path
+from typing import TYPE_CHECKING
+from unittest.mock import Mock, patch
+
+import pytest
+
+if TYPE_CHECKING:
+    from conftest import TestSetConfig
 
 
 @pytest.mark.minimal
-def test_ci_samples_exist():
-    """Verify CI sample files exist and are accessible."""
-    ci_samples = Path(__file__).parent / "samples" / "ci"
+def test_ci_samples_exist(test_set_config: TestSetConfig):
+    """Verify test set sample files exist and are accessible."""
+    image_file = test_set_config.get_sample("image", "jpeg")
+    video_file = test_set_config.get_sample("video", "mp4_h264")
 
-    image_file = ci_samples / "images" / "test_image.jpg"
-    video_file = ci_samples / "videos" / "test_video.mp4"
+    assert image_file is not None, "Test image should exist in test set"
+    assert video_file is not None, "Test video should exist in test set"
+    assert image_file.exists(), f"Test image should exist at {image_file}"
+    assert video_file.exists(), f"Test video should exist at {video_file}"
 
-    assert ci_samples.exists(), "CI samples directory should exist"
-    assert image_file.exists(), "Test image should exist"
-    assert video_file.exists(), "Test video should exist"
-
-    # Verify they're small enough for CI
-    assert image_file.stat().st_size < 300 * 1024, "Test image should be under 300KB"
-    assert video_file.stat().st_size < 300 * 1024, "Test video should be under 300KB"
+    # Verify they're small enough for CI (only applies to public test set)
+    if test_set_config.max_total_size_bytes is not None:
+        assert image_file.stat().st_size < 300 * 1024, (
+            "Test image should be under 300KB"
+        )
+        assert video_file.stat().st_size < 300 * 1024, (
+            "Test video should be under 300KB"
+        )
 
 
 @pytest.mark.minimal
-def test_image_file_readable():
-    """Test that CI image sample is readable as a valid image."""
-    from pathlib import Path
+def test_image_file_readable(sample_image: Path | None):
+    """Test that sample image is readable as a valid image."""
     from PIL import Image
 
-    ci_samples = Path(__file__).parent / "samples" / "ci"
-    image_file = ci_samples / "images" / "test_image.jpg"
+    if sample_image is None:
+        pytest.skip("No image sample available in current test set")
 
     # Verify we can open and read the image
-    with Image.open(image_file) as img:
-        assert img.format == "JPEG", "Should be a valid JPEG file"
+    with Image.open(sample_image) as img:
+        assert img.format in ("JPEG", "PNG", "WEBP", "BMP", "TIFF"), (
+            f"Should be a valid image format, got {img.format}"
+        )
         assert img.size[0] > 0 and img.size[1] > 0, "Should have valid dimensions"
 
 
 @pytest.mark.minimal
-def test_video_file_exists_and_small():
-    """Test that CI video sample exists and is appropriately sized."""
-    from pathlib import Path
-
-    ci_samples = Path(__file__).parent / "samples" / "ci"
-    video_file = ci_samples / "videos" / "test_video.mp4"
+def test_video_file_exists_and_small(
+    sample_video: Path | None, test_set_config: TestSetConfig
+):
+    """Test that sample video exists and is appropriately sized."""
+    if sample_video is None:
+        pytest.skip("No video sample available in current test set")
 
     # Basic file validation without requiring ffprobe
-    assert video_file.exists(), "Video file should exist"
-    assert video_file.suffix == ".mp4", "Should have .mp4 extension"
-    assert video_file.stat().st_size > 1000, "Should be larger than 1KB (not empty)"
-    assert video_file.stat().st_size < 300 * 1024, "Should be under 300KB for CI"
+    assert sample_video.exists(), "Video file should exist"
+    assert sample_video.suffix in (".mp4", ".mov", ".mkv"), (
+        f"Should have video extension, got {sample_video.suffix}"
+    )
+    assert sample_video.stat().st_size > 1000, "Should be larger than 1KB (not empty)"
+
+    # Size limit only applies to public test set
+    if test_set_config.max_total_size_bytes is not None:
+        assert sample_video.stat().st_size < 300 * 1024, "Should be under 300KB for CI"
 
 
 # =============================================================================
@@ -92,7 +113,11 @@ def test_brew_package_installed_check():
         assert brew_package_installed("/opt/homebrew/bin/brew", "ffmpeg") is False
 
         # Verify correct command was called
-        mock_run.assert_called_with(["/opt/homebrew/bin/brew", "list", "ffmpeg"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        mock_run.assert_called_with(
+            ["/opt/homebrew/bin/brew", "list", "ffmpeg"],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
 
 
 @pytest.mark.minimal
@@ -100,29 +125,38 @@ def test_ensure_brew_package_installs_missing_package():
     """Test that ensure_brew_package installs a missing package."""
     from smart_media_manager.cli import ensure_brew_package
 
-    with patch("smart_media_manager.cli.brew_package_installed") as mock_installed, patch("smart_media_manager.cli.run_command_with_progress") as mock_run:
+    with (
+        patch("smart_media_manager.cli.brew_package_installed") as mock_installed,
+        patch("smart_media_manager.cli.run_command_with_progress") as mock_run,
+    ):
         # Package not installed
         mock_installed.return_value = False
 
         ensure_brew_package("/opt/homebrew/bin/brew", "ffmpeg")
 
         # Should attempt to install
-        mock_run.assert_called_once_with(["/opt/homebrew/bin/brew", "install", "--quiet", "ffmpeg"], "Installing ffmpeg")
+        mock_run.assert_called_once_with(
+            ["/opt/homebrew/bin/brew", "install", "--quiet", "ffmpeg"],
+            "Installing ffmpeg",
+        )
 
 
 @pytest.mark.minimal
-def test_ensure_brew_package_upgrades_existing_package():
-    """Test that ensure_brew_package upgrades an already installed package."""
+def test_ensure_brew_package_skips_existing_package():
+    """Test that ensure_brew_package skips already installed packages (no upgrade)."""
     from smart_media_manager.cli import ensure_brew_package
 
-    with patch("smart_media_manager.cli.brew_package_installed") as mock_installed, patch("smart_media_manager.cli.run_command_with_progress") as mock_run:
+    with (
+        patch("smart_media_manager.cli.brew_package_installed") as mock_installed,
+        patch("smart_media_manager.cli.run_command_with_progress") as mock_run,
+    ):
         # Package already installed
         mock_installed.return_value = True
 
         ensure_brew_package("/opt/homebrew/bin/brew", "ffmpeg")
 
-        # Should attempt to upgrade
-        mock_run.assert_called_once_with(["/opt/homebrew/bin/brew", "upgrade", "--quiet", "ffmpeg"], "Updating ffmpeg")
+        # Should NOT run anything - package is already installed and we skip upgrades
+        mock_run.assert_not_called()
 
 
 @pytest.mark.minimal
@@ -130,13 +164,23 @@ def test_ensure_system_dependencies_installs_all_required_packages():
     """Test that ensure_system_dependencies installs all 6 required packages."""
     from smart_media_manager.cli import ensure_system_dependencies
 
-    with patch("smart_media_manager.cli.ensure_homebrew") as mock_ensure_brew, patch("smart_media_manager.cli.ensure_brew_package") as mock_ensure_pkg:
+    with (
+        patch("smart_media_manager.cli.ensure_homebrew") as mock_ensure_brew,
+        patch("smart_media_manager.cli.ensure_brew_package") as mock_ensure_pkg,
+    ):
         mock_ensure_brew.return_value = "/opt/homebrew/bin/brew"
 
         ensure_system_dependencies()
 
         # Verify all 6 required packages are installed
-        expected_packages = ["ffmpeg", "jpeg-xl", "libheif", "imagemagick", "webp", "exiftool"]
+        expected_packages = [
+            "ffmpeg",
+            "jpeg-xl",
+            "libheif",
+            "imagemagick",
+            "webp",
+            "exiftool",
+        ]
         assert mock_ensure_pkg.call_count == 6
 
         # Verify each package was called
@@ -147,95 +191,136 @@ def test_ensure_system_dependencies_installs_all_required_packages():
 @pytest.mark.minimal
 def test_raw_dependency_group_canon():
     """Test Canon RAW dependency group installation."""
-    from smart_media_manager.cli import install_raw_dependency_groups
+    from smart_media_manager.cli import (
+        install_raw_dependency_groups,
+        _INSTALLED_RAW_GROUPS,
+    )
 
-    with patch("smart_media_manager.cli.ensure_homebrew") as mock_ensure_brew, patch("smart_media_manager.cli.ensure_brew_package") as mock_ensure_pkg, patch("smart_media_manager.cli.ensure_brew_cask") as mock_ensure_cask, patch("smart_media_manager.cli.ensure_pip_package") as mock_ensure_pip:
+    # Clear any previously installed groups
+    _INSTALLED_RAW_GROUPS.clear()
+
+    with (
+        patch("smart_media_manager.cli.ensure_homebrew") as mock_ensure_brew,
+        patch("smart_media_manager.cli.ensure_brew_package") as mock_ensure_pkg,
+        patch("smart_media_manager.cli.ensure_brew_cask") as mock_ensure_cask,
+    ):
         mock_ensure_brew.return_value = "/opt/homebrew/bin/brew"
 
         install_raw_dependency_groups(["canon"])
 
-        # Canon requires: libraw (brew), rawpy (pip), adobe-dng-converter (cask)
+        # Canon requires: libraw (brew), adobe-dng-converter (cask)
+        # NOTE: pip packages (rawpy) are NOT installed at runtime
         mock_ensure_pkg.assert_called_once_with("/opt/homebrew/bin/brew", "libraw")
-        mock_ensure_pip.assert_called_once_with("rawpy")
-        mock_ensure_cask.assert_called_once_with("/opt/homebrew/bin/brew", "adobe-dng-converter")
+        mock_ensure_cask.assert_called_once_with(
+            "/opt/homebrew/bin/brew", "adobe-dng-converter"
+        )
 
 
 @pytest.mark.minimal
 def test_raw_dependency_group_nikon():
     """Test Nikon RAW dependency group installation."""
-    from smart_media_manager.cli import install_raw_dependency_groups, _INSTALLED_RAW_GROUPS
+    from smart_media_manager.cli import (
+        install_raw_dependency_groups,
+        _INSTALLED_RAW_GROUPS,
+    )
 
     # Clear any previously installed groups
     _INSTALLED_RAW_GROUPS.clear()
 
-    with patch("smart_media_manager.cli.ensure_homebrew") as mock_ensure_brew, patch("smart_media_manager.cli.ensure_brew_package") as mock_ensure_pkg, patch("smart_media_manager.cli.ensure_brew_cask") as mock_ensure_cask, patch("smart_media_manager.cli.ensure_pip_package") as mock_ensure_pip:
+    with (
+        patch("smart_media_manager.cli.ensure_homebrew") as mock_ensure_brew,
+        patch("smart_media_manager.cli.ensure_brew_package") as mock_ensure_pkg,
+        patch("smart_media_manager.cli.ensure_brew_cask") as mock_ensure_cask,
+    ):
         mock_ensure_brew.return_value = "/opt/homebrew/bin/brew"
 
         install_raw_dependency_groups(["nikon"])
 
-        # Nikon requires: libraw (brew), rawpy (pip), no cask
+        # Nikon requires: libraw (brew), no cask
+        # NOTE: pip packages (rawpy) are NOT installed at runtime
         mock_ensure_pkg.assert_called_once_with("/opt/homebrew/bin/brew", "libraw")
-        mock_ensure_pip.assert_called_once_with("rawpy")
         mock_ensure_cask.assert_not_called()
 
 
 @pytest.mark.minimal
 def test_raw_dependency_group_sony():
     """Test Sony RAW dependency group installation."""
-    from smart_media_manager.cli import install_raw_dependency_groups, _INSTALLED_RAW_GROUPS
+    from smart_media_manager.cli import (
+        install_raw_dependency_groups,
+        _INSTALLED_RAW_GROUPS,
+    )
 
     # Clear any previously installed groups
     _INSTALLED_RAW_GROUPS.clear()
 
-    with patch("smart_media_manager.cli.ensure_homebrew") as mock_ensure_brew, patch("smart_media_manager.cli.ensure_brew_package") as mock_ensure_pkg, patch("smart_media_manager.cli.ensure_pip_package") as mock_ensure_pip:
+    with (
+        patch("smart_media_manager.cli.ensure_homebrew") as mock_ensure_brew,
+        patch("smart_media_manager.cli.ensure_brew_package") as mock_ensure_pkg,
+        patch("smart_media_manager.cli.ensure_brew_cask") as mock_ensure_cask,
+    ):
         mock_ensure_brew.return_value = "/opt/homebrew/bin/brew"
 
         install_raw_dependency_groups(["sony"])
 
-        # Sony requires: libraw (brew), rawpy (pip)
+        # Sony requires: libraw (brew), no cask
+        # NOTE: pip packages (rawpy) are NOT installed at runtime
         mock_ensure_pkg.assert_called_once_with("/opt/homebrew/bin/brew", "libraw")
-        mock_ensure_pip.assert_called_once_with("rawpy")
+        mock_ensure_cask.assert_not_called()
 
 
 @pytest.mark.minimal
 def test_raw_dependency_group_sigma_with_multiple_brew_packages():
     """Test Sigma RAW dependency group with multiple brew packages."""
-    from smart_media_manager.cli import install_raw_dependency_groups, _INSTALLED_RAW_GROUPS
+    from smart_media_manager.cli import (
+        install_raw_dependency_groups,
+        _INSTALLED_RAW_GROUPS,
+    )
 
     # Clear any previously installed groups
     _INSTALLED_RAW_GROUPS.clear()
 
-    with patch("smart_media_manager.cli.ensure_homebrew") as mock_ensure_brew, patch("smart_media_manager.cli.ensure_brew_package") as mock_ensure_pkg, patch("smart_media_manager.cli.ensure_pip_package") as mock_ensure_pip:
+    with (
+        patch("smart_media_manager.cli.ensure_homebrew") as mock_ensure_brew,
+        patch("smart_media_manager.cli.ensure_brew_package") as mock_ensure_pkg,
+        patch("smart_media_manager.cli.ensure_brew_cask") as mock_ensure_cask,
+    ):
         mock_ensure_brew.return_value = "/opt/homebrew/bin/brew"
 
         install_raw_dependency_groups(["sigma"])
 
-        # Sigma requires: libraw + libopenraw (brew), rawpy (pip)
+        # Sigma requires: libraw + libopenraw (brew), no cask
+        # NOTE: pip packages (rawpy) are NOT installed at runtime
         assert mock_ensure_pkg.call_count == 2
         mock_ensure_pkg.assert_any_call("/opt/homebrew/bin/brew", "libraw")
         mock_ensure_pkg.assert_any_call("/opt/homebrew/bin/brew", "libopenraw")
-        mock_ensure_pip.assert_called_once_with("rawpy")
+        mock_ensure_cask.assert_not_called()
 
 
 @pytest.mark.minimal
 def test_raw_dependency_group_multiple_cameras():
     """Test installing multiple camera RAW dependency groups at once."""
-    from smart_media_manager.cli import install_raw_dependency_groups, _INSTALLED_RAW_GROUPS
+    from smart_media_manager.cli import (
+        install_raw_dependency_groups,
+        _INSTALLED_RAW_GROUPS,
+    )
 
     # Clear any previously installed groups
     _INSTALLED_RAW_GROUPS.clear()
 
-    with patch("smart_media_manager.cli.ensure_homebrew") as mock_ensure_brew, patch("smart_media_manager.cli.ensure_brew_package") as mock_ensure_pkg, patch("smart_media_manager.cli.ensure_brew_cask") as mock_ensure_cask, patch("smart_media_manager.cli.ensure_pip_package") as mock_ensure_pip:
+    with (
+        patch("smart_media_manager.cli.ensure_homebrew") as mock_ensure_brew,
+        patch("smart_media_manager.cli.ensure_brew_package") as mock_ensure_pkg,
+        patch("smart_media_manager.cli.ensure_brew_cask") as mock_ensure_cask,
+    ):
         mock_ensure_brew.return_value = "/opt/homebrew/bin/brew"
 
         # Install Canon, Nikon, Sony
         install_raw_dependency_groups(["canon", "nikon", "sony"])
 
-        # All three use libraw and rawpy, Canon also uses adobe-dng-converter cask
+        # All three use libraw (brew), Canon also uses adobe-dng-converter cask
+        # NOTE: pip packages (rawpy) are NOT installed at runtime
         # Verify at least 3 brew packages (libraw for each camera)
         assert mock_ensure_pkg.call_count >= 3
-        # Verify at least 3 pip packages (rawpy for each camera)
-        assert mock_ensure_pip.call_count >= 3
         # Canon requires adobe-dng-converter cask
         assert mock_ensure_cask.call_count >= 1
 
@@ -243,13 +328,19 @@ def test_raw_dependency_group_multiple_cameras():
 @pytest.mark.minimal
 def test_raw_dependency_group_skips_already_installed():
     """Test that already installed RAW dependency groups are skipped."""
-    from smart_media_manager.cli import install_raw_dependency_groups, _INSTALLED_RAW_GROUPS
+    from smart_media_manager.cli import (
+        install_raw_dependency_groups,
+        _INSTALLED_RAW_GROUPS,
+    )
 
     # Clear and mark canon as already installed
     _INSTALLED_RAW_GROUPS.clear()
     _INSTALLED_RAW_GROUPS.add("canon")
 
-    with patch("smart_media_manager.cli.ensure_homebrew") as mock_ensure_brew, patch("smart_media_manager.cli.ensure_brew_package") as mock_ensure_pkg:
+    with (
+        patch("smart_media_manager.cli.ensure_homebrew") as mock_ensure_brew,
+        patch("smart_media_manager.cli.ensure_brew_package") as mock_ensure_pkg,
+    ):
         mock_ensure_brew.return_value = "/opt/homebrew/bin/brew"
 
         # Try to install canon again

@@ -2,6 +2,28 @@
 All notable changes to this project will be documented here, following [Keep a Changelog](https://keepachangelog.com/) and Semantic Versioning (pre-release identifiers included).
 
 ## [Unreleased]
+### Fixed
+- **IMPORTANT**: Fixed AppleScript timeout error (-1712) when Photos shows dialogs during import
+  - Root cause: AppleScript used default timeout which was too short when Photos displayed user dialogs
+  - Symptom: "AppleEvent timed out" error causing import to crash instead of waiting
+  - Fix:
+    - Added `with timeout of 86400 seconds` (24 hours) in AppleScript tell block
+    - Added retry loop (10 retries) for error -1712 with user interaction prompt
+    - User can press Enter to retry after closing dialog, or type 'abort' to cancel
+    - Removed subprocess timeout (letting AppleScript handle it internally)
+  - Result: Photos import waits for user to close dialogs instead of crashing
+
+- **IMPORTANT**: Added graceful Ctrl+C handling
+  - Root cause: Pressing Ctrl+C caused ugly Python traceback and potential data loss
+  - Fix:
+    - Added `except KeyboardInterrupt` handler in main() function
+    - Clean exit with visual separator and status message
+    - Saves skip log if it has entries
+    - Points to detailed log file
+    - Preserves staging folder for manual recovery
+    - Returns exit code 130 (standard for SIGINT: 128 + 2)
+  - Result: Ctrl+C now exits gracefully with logs preserved
+
 ### Changed
 - **IMPORTANT**: Removed lazy/deferred loading for Python package dependencies (pyfsig, rawpy)
   - Root cause: Lazy imports with try/except blocks made pyfsig and rawpy appear optional when they're required dependencies
@@ -204,7 +226,7 @@ All notable changes to this project will be documented here, following [Keep a C
 ### Added
 - Comprehensive README, CONTRIBUTING, LICENSE, and CHANGELOG plus expanded `.gitignore` coverage.
 - CLI `--version` flag and startup banner so each run identifies the exact build.
-- Guidance for cloning the repo with `uv sync --extra dev`, secret-scanning requirements, and release checklist documentation.
+- Guidance for cloning the repo with `uv sync`, secret-scanning requirements, and release checklist documentation.
 - Local docs safeguard (`docs_dev/` ignore rules, `scripts/protect_docs_dev.sh`, and Git hooks) that back up private files before risky operations and restore them automatically.
 - README updates clarifying macOS-only support, installation flows (PyPI, local wheels, editable), and a dependency license table noting the GPLv2 implications of using `hachoir` plus MIT/BSD/HPND acknowledgments.
 - Progress bars with ETA for staging/processing/import, while detailed logs are written to `smm_run_<timestamp>.log`.
@@ -226,4 +248,4 @@ All notable changes to this project will be documented here, following [Keep a C
 ### Added
 - Initial public code drop with detection pipeline, staging/import workflow, and format rules.
 
-[0.3.0a1]: https://github.com/<org>/SMART_MEDIA_MANAGER/releases/tag/v0.3.0a1
+[0.3.0a1]: https://github.com/Emasoft/Smart-Media-Manager/releases/tag/v0.3.0a1

@@ -131,7 +131,9 @@ class TestRefineRawMedia:
         assert "rawpy unsupported raw" in error
 
     @patch("smart_media_manager.cli.rawpy")
-    def test_refine_raw_media_uses_first_valid_extension_candidate(self, mock_rawpy, tmp_path):
+    def test_refine_raw_media_uses_first_valid_extension_candidate(
+        self, mock_rawpy, tmp_path
+    ):
         """Test refine_raw_media uses first valid extension from candidates."""
         from smart_media_manager.cli import refine_raw_media
 
@@ -149,7 +151,9 @@ class TestRefineRawMedia:
         assert media.extension == ".nef"
 
     @patch("smart_media_manager.cli.rawpy")
-    def test_refine_raw_media_falls_back_to_file_suffix_when_no_candidates(self, mock_rawpy, tmp_path):
+    def test_refine_raw_media_falls_back_to_file_suffix_when_no_candidates(
+        self, mock_rawpy, tmp_path
+    ):
         """Test refine_raw_media falls back to file suffix when no valid candidates."""
         from smart_media_manager.cli import refine_raw_media
 
@@ -292,7 +296,9 @@ class TestRefineVideoMedia:
 
     @patch("smart_media_manager.cli.subprocess.run")
     @patch("smart_media_manager.cli.shutil.which")
-    def test_refine_video_media_rejects_avc3_codec_tag(self, mock_which, mock_run, tmp_path):
+    def test_refine_video_media_rejects_avc3_codec_tag(
+        self, mock_which, mock_run, tmp_path
+    ):
         """Test refine_video_media rejects avc3 codec tag."""
         from smart_media_manager.cli import refine_video_media, MediaFile
 
@@ -320,7 +326,9 @@ class TestRefineVideoMedia:
 
     @patch("smart_media_manager.cli.subprocess.run")
     @patch("smart_media_manager.cli.shutil.which")
-    def test_refine_video_media_rejects_dolby_vision(self, mock_which, mock_run, tmp_path):
+    def test_refine_video_media_rejects_dolby_vision(
+        self, mock_which, mock_run, tmp_path
+    ):
         """Test refine_video_media rejects Dolby Vision."""
         from smart_media_manager.cli import refine_video_media, MediaFile
 
@@ -347,7 +355,9 @@ class TestRefineVideoMedia:
 
     @patch("smart_media_manager.cli.subprocess.run")
     @patch("smart_media_manager.cli.shutil.which")
-    def test_refine_video_media_rejects_10bit_color(self, mock_which, mock_run, tmp_path):
+    def test_refine_video_media_rejects_10bit_color(
+        self, mock_which, mock_run, tmp_path
+    ):
         """Test refine_video_media rejects 10-bit color depth."""
         from smart_media_manager.cli import refine_video_media, MediaFile
 
@@ -374,18 +384,23 @@ class TestRefineVideoMedia:
 
     @patch("smart_media_manager.cli.subprocess.run")
     @patch("smart_media_manager.cli.shutil.which")
-    def test_refine_video_media_rejects_opus_audio(self, mock_which, mock_run, tmp_path):
+    def test_refine_video_media_rejects_opus_audio(
+        self, mock_which, mock_run, tmp_path
+    ):
         """Test refine_video_media rejects Opus audio."""
         from smart_media_manager.cli import refine_video_media, MediaFile
 
         vid_file = tmp_path / "test.mp4"
         vid_file.touch()
 
+        # audio_codec must be set for refine_video_media to check it
+        # (it's populated during detect_media, not parsed from ffprobe in refinement)
         media = MediaFile(
             source=vid_file,
             kind="video",
             extension=".mp4",
             format_name="mp4",
+            audio_codec="opus",
         )
 
         mock_which.return_value = "/usr/bin/ffprobe"

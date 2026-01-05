@@ -76,7 +76,7 @@ This is the recommended method. The executable will be available system-wide as 
 To install a specific version:
 
 ```bash
-uv tool install smart-media-manager==0.5.1a1
+uv tool install smart-media-manager==0.5.43a1
 ```
 
 ### Alternative: Install as a package
@@ -110,25 +110,43 @@ smart-media-manager
 Scan a specific folder recursively:
 
 ```bash
-smart-media-manager --path ~/Pictures/Inbox --recursive
+smart-media-manager ~/Pictures/Inbox --recursive
 ```
 
 Scan and delete staging folder after successful import:
 
 ```bash
-smart-media-manager --path ~/Downloads/Photos --recursive --delete
+smart-media-manager ~/Downloads/Photos --recursive --delete
+```
+
+Import a single file:
+
+```bash
+smart-media-manager ~/Downloads/photo.jpg
+```
+
+Import into a specific album (non-interactive):
+
+```bash
+smart-media-manager ~/Pictures/Vacation --recursive --album "Summer 2024" -y
 ```
 
 ### Command-line options
 
 | Option | Description |
 |--------|-------------|
-| `--path PATH` | Folder to scan (defaults to current directory) |
-| `--recursive` | Descend into subdirectories |
-| `--follow-symlinks` | Follow symlinks instead of skipping them |
-| `--delete` | Remove staging folder after successful import |
+| `PATH` | Directory to scan (default: current directory) or path to a single file |
+| `--recursive` | Recursively scan subdirectories |
+| `--follow-symlinks` | Follow symbolic links when scanning |
+| `--delete` | Delete staging folder after successful import |
+| `--album NAME` | Photos album name to import into (default: 'Smart Media Manager') |
+| `--copy` | Copy files to staging instead of moving (originals untouched) |
+| `--skip-duplicate-check` | Skip duplicate checking during import (faster but may import duplicates) |
 | `--skip-bootstrap` | Skip automatic dependency installation |
-| `--max-image-pixels VALUE` | Set Pillow image pixel limit; use `none` to disable (default). |
+| `--skip-convert` | Skip format conversion/transcoding (files must already be compatible) |
+| `--skip-compatibility-check` | Skip all compatibility validation (may cause import errors) |
+| `--max-image-pixels VALUE` | Set Pillow image pixel limit; use `none` to disable (default) |
+| `-y, --yes, --assume-yes` | Skip confirmation prompt (useful for automation) |
 | `--version` | Show version and exit |
 
 ### What happens during a run
@@ -157,6 +175,18 @@ After import completes, if any files failed:
 - ✦ **Retry prompt** — Option to retry just the failed imports
 - ✦ **Updated results** — Final statistics after retry
 
+During Photos import, if a dialog blocks:
+- ✦ **Dialog detection** — Detects when Photos is waiting for user interaction
+- ✦ **Retry prompt** — Close the dialog and press Enter to continue, or type 'abort' to cancel
+
+### Graceful interruption
+
+Press **Ctrl+C** at any time to cleanly interrupt the process:
+- Logs are saved to the run log file
+- Skip log is preserved if it has entries
+- Staging folder is preserved for manual recovery
+- Exit code 130 (standard SIGINT) is returned
+
 ---
 
 ## ⚙ Development
@@ -168,8 +198,8 @@ After import completes, if any files failed:
 git clone https://github.com/Emasoft/Smart-Media-Manager.git
 cd Smart-Media-Manager
 
-# Install dependencies and enable hooks
-uv sync --extra dev
+# Install dependencies (runtime + dev tools) and enable hooks
+uv sync
 git config core.hooksPath githooks
 
 # Install editable version (optional)
@@ -282,9 +312,9 @@ Smart Media Manager is MIT licensed. Runtime dependencies:
 | `python-magic` 0.4.27 | MIT | Wraps system `libmagic` |
 | `pyfsig` 1.1.1 | MIT | Signature detection |
 | `pillow` 12.0.0 | HPND/MIT-CMU | Retain license when redistributing |
-| `binwalk` 2.1.0 | MIT | Copy upstream LICENSE for attribution |
+| `rawpy` 0.25.1 | MIT | RAW image processing via LibRaw |
 
-External executables via Homebrew (`ffmpeg`, `imagemagick`, `exiftool`, etc.) ship under their own licenses.
+External tools via Homebrew (binwalk, ffmpeg, imagemagick, exiftool, etc.) ship under their own licenses.
 
 ---
 

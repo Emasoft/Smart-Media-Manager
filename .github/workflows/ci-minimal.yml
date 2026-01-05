@@ -1,5 +1,8 @@
 name: CI Minimal
 
+# Runs minimal tests using samples/test_set.yaml (public test set)
+# For local heavy testing, use: pytest --test-set=samples_dev/test_set.yaml
+
 on:
   push:
     branches: [ main ]
@@ -8,6 +11,7 @@ on:
       - 'docs/**'
       - 'docs_dev/**'
       - 'scripts_dev/**'
+      - 'samples_dev/**'
       - 'tests/samples/**'
       - 'tests/fixtures/**'
       - 'LICENSE'
@@ -18,6 +22,7 @@ on:
       - 'docs/**'
       - 'docs_dev/**'
       - 'scripts_dev/**'
+      - 'samples_dev/**'
       - 'tests/samples/**'
       - 'tests/fixtures/**'
       - 'LICENSE'
@@ -41,6 +46,15 @@ jobs:
 
       - name: Install dependencies
         run: uv sync
+
+      - name: Verify test samples exist
+        run: |
+          echo "Checking samples/test_set.yaml..."
+          test -f samples/test_set.yaml || (echo "ERROR: samples/test_set.yaml not found" && exit 1)
+          echo "Checking sample files..."
+          test -f samples/images/test_pattern.jpg || (echo "ERROR: test image not found" && exit 1)
+          test -f samples/videos/test_video.mp4 || (echo "ERROR: test video not found" && exit 1)
+          echo "All test samples verified!"
 
       - name: Run minimal tests
         run: uv run pytest -m minimal -v --tb=short

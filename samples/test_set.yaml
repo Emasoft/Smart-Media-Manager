@@ -1,0 +1,82 @@
+# Test Set Configuration
+# Maps sample categories to paths for pytest fixtures
+#
+# This file defines the PUBLIC test set (tracked in git, used in CI/CD).
+# For local heavy testing, use samples_dev/test_set.yaml instead.
+#
+# Usage in tests:
+#   @pytest.fixture
+#   def sample_jpeg(test_set):
+#       return test_set.get_sample("image.jpeg")
+
+version: "1.0"
+name: "public"
+description: "Minimal synthetic test samples for CI/CD (under 3MB total)"
+
+# Base path relative to this file's directory
+# All sample paths below are relative to this base
+base_path: "."
+
+# Maximum total size allowed for this test set (bytes)
+# CI will fail if samples exceed this limit
+max_total_size_bytes: 3145728  # 3MB
+
+# License information for all samples
+license:
+  type: "synthetic"
+  description: "All files synthetically generated using FFmpeg test patterns"
+  copyright_free: true
+
+# Sample categories and their paths
+# Each category can have multiple format variants
+samples:
+  # Still images
+  image:
+    jpeg: "images/test_pattern.jpg"
+    png: "images/test_pattern.png"
+    webp: "images/test_pattern.webp"
+    bmp: "images/test_pattern.bmp"
+    tiff: "images/test_pattern.tiff"
+    heic: "images/test_pattern.heic"
+    gif_static: "images/static.gif"
+    # Default format for generic image tests
+    default: "images/test_pattern.jpg"
+
+  # Animated images
+  animated:
+    gif: "images/animated.gif"
+    apng: "images/animated.apng"
+    # webp_animated not available in public set (use samples_dev)
+    default: "images/animated.gif"
+
+  # Videos
+  video:
+    mp4_h264: "videos/test_video.mp4"
+    mov_h264: "videos/test_video.mov"
+    mp4_hevc: "videos/test_hevc.mp4"
+    # Default format for generic video tests
+    default: "videos/test_video.mp4"
+
+  # RAW camera formats (not available in public set)
+  raw:
+    # RAW files are large; use samples_dev for RAW testing
+    default: null
+
+# Test file mappings (optional overrides for specific tests)
+# Format: test_file.test_function: { category: path }
+test_overrides:
+  # Example: test_minimal_ci.test_ci_samples_exist uses these specific files
+  test_minimal_ci:
+    image: "images/test_pattern.jpg"
+    video: "videos/test_video.mp4"
+
+# Markers for tests that should be skipped with this test set
+skip_markers:
+  - "requires_raw"        # RAW format tests (need samples_dev)
+  - "requires_large"      # Tests needing large files (need samples_dev)
+  - "e2e"                 # End-to-end tests (may need real media)
+
+# Markers for tests included in this test set
+include_markers:
+  - "minimal"             # Minimal CI tests
+  - "unit"                # Unit tests with synthetic data
