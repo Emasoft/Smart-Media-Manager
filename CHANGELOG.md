@@ -1,6 +1,28 @@
 # Changelog
 All notable changes to this project will be documented here, following [Keep a Changelog](https://keepachangelog.com/) and Semantic Versioning (pre-release identifiers included).
 
+## [0.5.43a2] - 2025-01-05
+### Fixed
+- Fixed 6 failing tests:
+  - `test_ensure_brew_cask_skips_when_present`: Fixed to expect no-op when cask already installed
+  - `test_refine_video_media_rejects_opus_audio`: Added audio_codec field to MediaFile
+  - `test_typescript_file_is_skipped`: Created missing tests/samples/use-database.ts
+  - `test_run_command_with_progress_raises_for_failed_command`: Fixed regex pattern
+  - `test_sequential_suffix_preserves_extensions`: Fixed suffix format `_(1)` not `(1)`
+  - `test_import_folder_to_photos_trimmed_suffix`: Updated staging name regex
+
+### Added
+- New test samples infrastructure with YAML-based configuration:
+  - `samples/` directory with real media files for CI testing
+  - `samples/test_set.yaml` defining test sets and file checksums
+  - `scripts/validate_samples.sh` for sample integrity checks
+  - `githooks/pre-commit` for pre-commit validation
+  - `tests/__init__.py` for proper package structure
+
+### Removed
+- Moved obsolete dev docs to docs_dev/ (TODO.md, COOLDOWN_FIX.md, etc.)
+- Removed format_analysis/ (moved to docs_dev/)
+
 ## [Unreleased]
 ### Fixed
 - **IMPORTANT**: Fixed AppleScript timeout error (-1712) when Photos shows dialogs during import
