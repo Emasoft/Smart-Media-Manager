@@ -22,23 +22,23 @@ from typing import Any, Callable, Iterable, Optional
 
 import json
 
-import filetype  # type: ignore[import-not-found]
-import puremagic  # type: ignore[import-not-found]
-from PIL import Image  # type: ignore[import-not-found]
-from isbinary import is_binary_file  # type: ignore[import-not-found]
+import filetype  # type: ignore[import-untyped]
+import puremagic
+from PIL import Image
+from isbinary import is_binary_file
 from smart_media_manager import __version__
 from smart_media_manager.format_rules import FormatRule, match_rule
 from smart_media_manager import format_registry
 from smart_media_manager import metadata_registry
-from pyfsig import interface as pyfsig_interface  # type: ignore[import-not-found]
-import rawpy  # type: ignore[import-not-found]
+from pyfsig import interface as pyfsig_interface  # type: ignore[import-untyped]
+import rawpy  # type: ignore[import-untyped]
 
 # python-magic requires libmagic system library (installed via Homebrew during bootstrap)
 # Must be lazy-loaded so script can start and run bootstrap code
 try:
-    import magic  # type: ignore[import-not-found]
+    import magic
 except ImportError:  # pragma: no cover - system dependency
-    magic = None
+    magic = None  # type: ignore[assignment]
 
 LOG = logging.getLogger("smart_media_manager")
 _FILE_LOG_HANDLER: Optional[logging.Handler] = None
@@ -524,7 +524,6 @@ class MediaFile:
     notes: str = ""
     metadata: dict[str, Any] = field(default_factory=dict)
     detected_compatible: bool = False  # Detection-time compatibility prior to conversions
-    detected_compatible: bool = False
 
 
 @dataclass
@@ -581,7 +580,7 @@ class UnknownMappingCollector:
         if not self._entries:
             return None
 
-        update = {
+        update: dict[str, Any] = {
             "format_names": {},
             "tool_mappings": {},
             "apple_photos_compatible": {
@@ -2632,6 +2631,7 @@ def detect_media(path: Path, skip_compatibility_check: bool = False) -> tuple[Op
         # No rule found - but UUID system already approved it, so create a minimal rule
         # This shouldn't happen often as most formats should have rules
         LOG.warning(f"UUID {detected_uuid} approved but no format rule found for {path.name}")
+        return None, f"no format rule found for detected UUID {detected_uuid}"
 
     # Use uuid_action as the effective action (JSON is authoritative)
     effective_action = uuid_action
@@ -2912,7 +2912,7 @@ def is_photos_managed_file(path: Path) -> bool:
         True if file has com.apple.assetsd.UUID xattr (managed by Photos)
     """
     try:
-        import xattr
+        import xattr  # type: ignore[import-not-found]
 
         attrs = xattr.listxattr(str(path))
         # Check for the UUID attribute which definitively marks Photos-managed files
@@ -4273,7 +4273,7 @@ end run
     # Execute AppleScript with folder import - with retry logic for Photos dialogs
     LOG.info("Importing staging folder into Photos album '%s'...", album_name)
 
-    def run_import_applescript() -> subprocess.CompletedProcess:
+    def run_import_applescript() -> subprocess.CompletedProcess[str]:
         """Execute the import AppleScript. No timeout - AppleScript has its own 24h timeout."""
         return subprocess.run(
             ["osascript", "-", album_name, str(skip_duplicates).lower(), str(staging_dir)],
@@ -4303,8 +4303,8 @@ end run
             timestamp_segment = dt.datetime.now().strftime("%Y%m%d%H%M%S")
             debug_parent.mkdir(parents=True, exist_ok=True)
             raw_output_file = debug_parent / f"DEBUG_raw_applescript_output_{timestamp_segment}.txt"
-            with raw_output_file.open("wb") as handle:
-                handle.write(result.stdout.encode("utf-8"))
+            with raw_output_file.open("wb") as binary_handle:
+                binary_handle.write(result.stdout.encode("utf-8"))
             LOG.debug("DEBUG: Raw AppleScript output saved to %s (%d bytes)", raw_output_file, len(result.stdout))
 
         # Check for AppleEvent timeout error (-1712) - Photos was showing a dialog
@@ -4356,11 +4356,11 @@ end run
         timestamp_segment = dt.datetime.now().strftime("%Y%m%d%H%M%S")
         debug_parent.mkdir(parents=True, exist_ok=True)
         photos_output_file = debug_parent / f"DEBUG_photos_output_{timestamp_segment}.txt"
-        with photos_output_file.open("w", encoding="utf-8") as handle:
-            handle.write("FILENAMES RETURNED BY PHOTOS.APP:\n")
-            handle.write("=" * 80 + "\n")
+        with photos_output_file.open("w", encoding="utf-8") as text_handle:
+            text_handle.write("FILENAMES RETURNED BY PHOTOS.APP:\n")
+            text_handle.write("=" * 80 + "\n")
             for name in sorted(imported_names):
-                handle.write(f"{name}\n")
+                text_handle.write(f"{name}\n")
         LOG.debug("DEBUG: Photos output saved to %s", photos_output_file)
 
     # DEBUG: Log first 5 filenames returned by Photos
@@ -4388,12 +4388,12 @@ end run
         tokens = [match.group(1) for match in STAGING_TOKEN_PATTERN.finditer(name)]
         assigned = False
         for token_value in tokens:
-            media = token_to_media.get(token_value)
-            if media and id(media) not in matched_media_ids:
+            matched_media = token_to_media.get(token_value)
+            if matched_media and id(matched_media) not in matched_media_ids:
                 token_to_media.pop(token_value, None)
-                matched_media_ids.add(id(media))
-                media.metadata["photos_returned_name"] = name
-                imported_media.append(media)
+                matched_media_ids.add(id(matched_media))
+                matched_media.metadata["photos_returned_name"] = name
+                imported_media.append(matched_media)
                 assigned = True
                 break
         if not assigned:
@@ -4487,18 +4487,18 @@ end run
         rejection_parent = _log_directory() or staging_dir.parent
         rejection_parent.mkdir(parents=True, exist_ok=True)
         rejection_path = rejection_parent / f"Photos_rejections_{dt.datetime.now().strftime('%Y%m%d%H%M%S')}.txt"
-        with rejection_path.open("w", encoding="utf-8") as handle:
-            handle.write("FILES REJECTED OR MISSING FROM PHOTOS IMPORT\n")
-            handle.write("=" * 80 + "\n")
+        with rejection_path.open("w", encoding="utf-8") as rejection_handle:
+            rejection_handle.write("FILES REJECTED OR MISSING FROM PHOTOS IMPORT\n")
+            rejection_handle.write("=" * 80 + "\n")
             for media in skipped_media:
                 stage_name = media.stage_path.name if media.stage_path else "<missing>"
                 original_source = media.metadata.get("original_source") or str(media.source)
-                handle.write(f"Staged: {stage_name}\tOriginal: {original_source}\n")
+                rejection_handle.write(f"Staged: {stage_name}\tOriginal: {original_source}\n")
             if leftover_imported:
-                handle.write("\nFILENAMES RETURNED BY PHOTOS WITH NO MATCH\n")
-                handle.write("=" * 80 + "\n")
+                rejection_handle.write("\nFILENAMES RETURNED BY PHOTOS WITH NO MATCH\n")
+                rejection_handle.write("=" * 80 + "\n")
                 for name in leftover_imported:
-                    handle.write(f"{name}\n")
+                    rejection_handle.write(f"{name}\n")
         LOG.info("Photos rejection details written to %s", rejection_path)
     else:
         LOG.info("All %d staged file(s) reported by Photos.", len(imported_media))
@@ -4758,12 +4758,16 @@ def main() -> int:
             skip_duplicates=args.skip_duplicate_check,
         )
 
-        # Log skipped files (duplicates or rejected by Photos)
+        # Log skipped files (duplicates or rejected by Photos) and populate stats
         if skipped_media:
             for media in skipped_media:
                 log_target = media.stage_path or media.metadata.get("original_source") or media.source
                 skip_logger.log(Path(log_target), "Skipped by Photos (duplicate or incompatible format)")
+                # Issue #3: Populate refused_filenames for enhanced error reporting
+                stats.refused_filenames.append((Path(log_target), "Skipped by Photos (duplicate or incompatible format)"))
             LOG.warning("%d file(s) skipped by Photos (see skip log)", skipped_count)
+            # Issue #3: Track refused count for statistics
+            stats.refused_by_apple_photos = skipped_count
 
         # Update statistics
         stats.total_imported = imported_count
@@ -4777,6 +4781,55 @@ def main() -> int:
         # Print statistics summary
         stats.print_summary()
         stats.log_summary()
+
+        # Issue #2: Prompt user to retry failed imports
+        if skipped_media and prompt_retry_failed_imports():
+            LOG.info("Retrying import for %d failed file(s)...", len(skipped_media))
+            print(f"\nRetrying import for {len(skipped_media)} file(s)...")
+
+            # Create temporary retry staging folder with only skipped files
+            retry_staging = staging_root.parent / f"RETRY_STAGING_{timestamp()}"
+            retry_staging.mkdir(parents=True, exist_ok=True)
+
+            # Move skipped files to retry staging
+            retry_media: list[MediaFile] = []
+            for media in skipped_media:
+                if media.stage_path and media.stage_path.exists():
+                    retry_dest = retry_staging / media.stage_path.name
+                    shutil.move(str(media.stage_path), str(retry_dest))
+                    media.stage_path = retry_dest
+                    retry_media.append(media)
+
+            if retry_media:
+                # Retry import with only the failed files
+                retry_imported, retry_skipped, retry_skipped_media = import_folder_to_photos(
+                    staging_dir=retry_staging,
+                    media_files=retry_media,
+                    album_name=args.album,
+                    skip_duplicates=args.skip_duplicate_check,
+                )
+
+                # Update statistics with retry results
+                stats.total_imported += retry_imported
+                stats.refused_by_apple_photos = len(retry_skipped_media)
+
+                # Update refused_filenames with final failures
+                stats.refused_filenames.clear()
+                for media in retry_skipped_media:
+                    log_target = media.stage_path or media.metadata.get("original_source") or media.source
+                    stats.refused_filenames.append((Path(log_target), "Failed after retry"))
+                    skip_logger.log(Path(log_target), "Failed after retry")
+
+                # Clean up retry staging folder
+                if retry_staging.exists():
+                    shutil.rmtree(retry_staging)
+
+                LOG.info("Retry complete: %d imported, %d still failed", retry_imported, len(retry_skipped_media))
+                print(f"Retry complete: {retry_imported} imported, {len(retry_skipped_media)} still failed")
+
+                # Reprint final statistics
+                stats.print_summary()
+                stats.log_summary()
 
         LOG.info(
             "Successfully imported %d media file(s) into Apple Photos.",
