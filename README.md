@@ -76,7 +76,7 @@ This is the recommended method. The executable will be available system-wide as 
 To install a specific version:
 
 ```bash
-uv tool install smart-media-manager==0.5.43a2
+uv tool install smart-media-manager==0.5.43a3
 ```
 
 ### Alternative: Install as a package
