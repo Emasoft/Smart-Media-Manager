@@ -797,7 +797,7 @@ wheels = [
 
 [[package]]
 name = "smart-media-manager"
-version = "0.5.43a4"
+version = "0.5.43a5"
 source = { editable = "." }
 dependencies = [
     { name = "filetype" },
