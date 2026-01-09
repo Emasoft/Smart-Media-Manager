@@ -318,11 +318,40 @@ ARCHIVE_EXTENSIONS = {
     "doc",  # Legacy Word
     "xls",  # Legacy Excel
     "ppt",  # Legacy PowerPoint
-    # Icon files (not importable into Photos)
+    # Icon and cursor files (not importable into Photos)
+    # macOS
     "icns",  # macOS icon
+    "car",  # Compiled Asset Catalog (Xcode)
+    "actool",  # Asset Catalog Tool output
+    # Windows
     "ico",  # Windows icon
     "cur",  # Windows cursor
     "ani",  # Windows animated cursor
+    "icl",  # Windows icon library
+    "nil",  # Windows icon library (Norton)
+    # Linux/X11
+    "xpm",  # X PixMap
+    "xbm",  # X BitMap
+    "xcur",  # X11 cursor
+    # Android
+    "9",  # Nine-patch indicator (file.9.png)
+    # Generic/Cross-platform
+    "icon",  # Generic icon
+    "icons",  # Icon set
+    "iconset",  # macOS icon set
+    # Themed icons
+    "theme",  # Desktop theme file
+    "themepack",  # Windows theme pack
+    # Resource files that may contain icons
+    "res",  # Windows resource file
+    "rsrc",  # macOS resource fork
+    "nib",  # macOS Interface Builder
+    "xib",  # macOS Interface Builder XML
+    "storyboard",  # iOS/macOS storyboard
+    "storyboardc",  # Compiled storyboard
+    # Favicons and web icons
+    "webmanifest",  # Web app manifest (references icons)
+    "browserconfig",  # Browser config (references icons)
 }
 
 ARCHIVE_MIME_TYPES = {
@@ -383,12 +412,21 @@ ARCHIVE_MIME_TYPES = {
     "application/x-executable",
     "application/x-mach-binary",
     "application/x-sharedlib",
-    # Icon files (not importable into Photos)
+    # Icon and cursor files (not importable into Photos)
     "image/x-icon",  # Windows .ico
     "image/vnd.microsoft.icon",  # Windows .ico (alternative)
+    "image/ico",  # Windows .ico (alternative)
     "image/x-icns",  # macOS .icns
     "application/x-icns",  # macOS .icns (alternative)
+    "image/icns",  # macOS .icns (alternative)
     "image/x-win-bitmap",  # Windows cursor
+    "application/x-navi-animation",  # Windows .ani
+    "image/x-xpixmap",  # X PixMap
+    "image/x-xbitmap",  # X BitMap
+    "image/xpm",  # X PixMap (alternative)
+    "image/xbm",  # X BitMap (alternative)
+    "image/x-cursor",  # X11 cursor
+    "application/x-xcursor",  # X11 cursor (alternative)
 }
 
 NON_MEDIA_REASON_KEYWORDS = (
