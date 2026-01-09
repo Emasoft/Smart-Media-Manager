@@ -318,6 +318,11 @@ ARCHIVE_EXTENSIONS = {
     "doc",  # Legacy Word
     "xls",  # Legacy Excel
     "ppt",  # Legacy PowerPoint
+    # Icon files (not importable into Photos)
+    "icns",  # macOS icon
+    "ico",  # Windows icon
+    "cur",  # Windows cursor
+    "ani",  # Windows animated cursor
 }
 
 ARCHIVE_MIME_TYPES = {
@@ -378,6 +383,12 @@ ARCHIVE_MIME_TYPES = {
     "application/x-executable",
     "application/x-mach-binary",
     "application/x-sharedlib",
+    # Icon files (not importable into Photos)
+    "image/x-icon",  # Windows .ico
+    "image/vnd.microsoft.icon",  # Windows .ico (alternative)
+    "image/x-icns",  # macOS .icns
+    "application/x-icns",  # macOS .icns (alternative)
+    "image/x-win-bitmap",  # Windows cursor
 }
 
 NON_MEDIA_REASON_KEYWORDS = (
@@ -391,6 +402,8 @@ NON_MEDIA_REASON_KEYWORDS = (
     "pdf",
     "installer",
     "binary check failed",
+    "icon",  # Icon files (.icns, .ico, .cur, .ani)
+    "cursor",  # Cursor files
 )
 
 TEXTUAL_MIME_HINTS = {
