@@ -28,6 +28,7 @@ class TestBrewCaskInstalled:
             ["/usr/local/bin/brew", "list", "--cask", "adobe-dng-converter"],
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
+            timeout=10,
         )
 
     @patch("smart_media_manager.cli.subprocess.run")
@@ -73,6 +74,7 @@ class TestPipPackageInstalled:
             [sys.executable, "-m", "pip", "show", "rawpy"],
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
+            timeout=10,
         )
 
     @patch("smart_media_manager.cli.subprocess.run")

@@ -204,7 +204,7 @@ class TestRunChecked:
         run_checked(["echo", "hello"])
 
         mock_run.assert_called_once_with(
-            ["echo", "hello"], capture_output=True, text=True, check=False
+            ["echo", "hello"], capture_output=True, text=True, check=False, timeout=300
         )
 
     @patch("smart_media_manager.cli.subprocess.run")

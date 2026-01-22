@@ -1231,7 +1231,10 @@ def refine_video_media(
         "default=noprint_wrappers=1",
         str(media.source),
     ]
-    result = subprocess.run(cmd, capture_output=True, text=True)
+    try:
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
+    except subprocess.TimeoutExpired:
+        return None, "ffprobe timed out (>30s)"
     if result.returncode != 0:
         return None, "video validation failed"
 
@@ -1459,10 +1462,14 @@ def ensure_homebrew() -> str:
 
 def brew_package_installed(brew_path: str, package: str) -> bool:
     check_cmd = [brew_path, "list", package]
-    result = subprocess.run(
-        check_cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
-    )
-    return result.returncode == 0
+    try:
+        result = subprocess.run(
+            check_cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=10
+        )
+        return result.returncode == 0
+    except subprocess.TimeoutExpired:
+        LOG.warning("brew list %s timed out (>10s)", package)
+        return False
 
 
 def ensure_brew_package(brew_path: str, package: str) -> None:
@@ -1484,10 +1491,14 @@ def ensure_brew_package(brew_path: str, package: str) -> None:
 
 def brew_cask_installed(brew_path: str, cask: str) -> bool:
     check_cmd = [brew_path, "list", "--cask", cask]
-    result = subprocess.run(
-        check_cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
-    )
-    return result.returncode == 0
+    try:
+        result = subprocess.run(
+            check_cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=10
+        )
+        return result.returncode == 0
+    except subprocess.TimeoutExpired:
+        LOG.warning("brew list --cask %s timed out (>10s)", cask)
+        return False
 
 
 def ensure_brew_cask(brew_path: str, cask: str) -> None:
@@ -1511,13 +1522,17 @@ def pip_package_installed(package: str) -> bool:
     if package in _PIP_PACKAGE_CACHE:
         return True
     check_cmd = [sys.executable, "-m", "pip", "show", package]
-    result = subprocess.run(
-        check_cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
-    )
-    if result.returncode == 0:
-        _PIP_PACKAGE_CACHE.add(package)
-        return True
-    return False
+    try:
+        result = subprocess.run(
+            check_cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=10
+        )
+        if result.returncode == 0:
+            _PIP_PACKAGE_CACHE.add(package)
+            return True
+        return False
+    except subprocess.TimeoutExpired:
+        LOG.warning("pip show %s timed out (>10s)", package)
+        return False
 
 
 def ensure_pip_package(package: str) -> None:
@@ -1575,10 +1590,18 @@ def copy_metadata_from_source(source: Path, target: Path) -> None:
     ]
     try:
         subprocess.run(
-            cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+            cmd,
+            check=True,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            timeout=30,
         )
         LOG.debug(
             "Metadata copied from %s to %s via exiftool", source.name, target.name
+        )
+    except subprocess.TimeoutExpired:
+        LOG.debug(
+            "Exiftool metadata copy timed out (>30s) for %s -> %s", source, target
         )
     except Exception as e:
         LOG.debug("Exiftool metadata copy failed for %s -> %s: %s", source, target, e)
@@ -1988,7 +2011,10 @@ def classify_with_binwalk(path: Path) -> FormatVote:
             capture_output=True,
             text=True,
             check=False,
+            timeout=60,
         )
+    except subprocess.TimeoutExpired:
+        return FormatVote(tool="binwalk", error="binwalk timed out (>60s)")
     except Exception as exc:  # pragma: no cover - runtime safety
         return FormatVote(tool="binwalk", error=str(exc))
     if result.returncode not in (0, 1):  # binwalk returns 1 when no signatures match
@@ -2344,12 +2370,17 @@ def ffprobe(path: Path) -> Optional[dict[str, Any]]:
         "-show_format",
         str(path),
     ]
-    result = subprocess.run(
-        cmd,
-        capture_output=True,
-        text=True,
-        check=False,
-    )
+    try:
+        result = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            check=False,
+            timeout=30,
+        )
+    except subprocess.TimeoutExpired:
+        LOG.warning("ffprobe timed out (>30s) for %s", path)
+        return None
     if result.returncode != 0:
         return None
     try:
@@ -4690,9 +4721,17 @@ def update_stats_after_compatibility(
     )
 
 
-def run_checked(cmd: list[str]) -> None:
+def run_checked(cmd: list[str], timeout: int = 300) -> None:
     LOG.debug("Executing command: %s", " ".join(cmd))
-    result = subprocess.run(cmd, capture_output=True, text=True, check=False)
+    try:
+        result = subprocess.run(
+            cmd, capture_output=True, text=True, check=False, timeout=timeout
+        )
+    except subprocess.TimeoutExpired as exc:
+        LOG.error("Command timed out (>%ds): %s", timeout, " ".join(cmd))
+        raise RuntimeError(
+            f"Command '{cmd[0]}' timed out after {timeout} seconds."
+        ) from exc
     if result.returncode != 0:
         LOG.error("Command failed: %s", result.stderr.strip())
         raise RuntimeError(

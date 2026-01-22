@@ -112,11 +112,12 @@ def test_brew_package_installed_check():
         mock_run.return_value = Mock(returncode=1)
         assert brew_package_installed("/opt/homebrew/bin/brew", "ffmpeg") is False
 
-        # Verify correct command was called
+        # Verify correct command was called (with timeout for subprocess safety)
         mock_run.assert_called_with(
             ["/opt/homebrew/bin/brew", "list", "ffmpeg"],
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
+            timeout=10,
         )
 
 
