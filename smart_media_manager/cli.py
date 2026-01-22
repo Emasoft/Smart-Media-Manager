@@ -2502,6 +2502,49 @@ def configure_pillow_max_image_pixels(max_image_pixels: Optional[int]) -> None:
         LOG.info("Pillow MAX_IMAGE_PIXELS set to %s", max_image_pixels)
 
 
+def parse_size(value: str) -> int:
+    """Parse a size string like '100MB', '1GB', '500KB' into bytes.
+
+    Accepts:
+    - Plain integers (bytes)
+    - Suffixes: B, KB, MB, GB, TB (case insensitive)
+    - Examples: '100', '100B', '100KB', '1.5MB', '2GB'
+
+    Returns:
+        Size in bytes as integer.
+
+    Raises:
+        argparse.ArgumentTypeError: If the value cannot be parsed.
+    """
+    value = value.strip().upper()
+    if not value:
+        raise argparse.ArgumentTypeError("size cannot be empty")
+
+    # Size multipliers
+    multipliers = {
+        "B": 1,
+        "KB": 1024,
+        "MB": 1024 * 1024,
+        "GB": 1024 * 1024 * 1024,
+        "TB": 1024 * 1024 * 1024 * 1024,
+    }
+
+    # Try to extract number and suffix
+    for suffix, multiplier in sorted(multipliers.items(), key=lambda x: -len(x[0])):
+        if value.endswith(suffix):
+            number_part = value[: -len(suffix)].strip()
+            try:
+                return int(float(number_part) * multiplier)
+            except ValueError:
+                raise argparse.ArgumentTypeError(f"invalid size number: {number_part}") from None
+
+    # No suffix - try as plain integer (bytes)
+    try:
+        return int(value)
+    except ValueError:
+        raise argparse.ArgumentTypeError(f"invalid size format: {value}. Use bytes or suffix like KB, MB, GB") from None
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         prog="smart-media-manager",
@@ -2637,6 +2680,181 @@ Examples:
         help="Resume a previous interrupted import. Three modes: (1) '--resume <json_path>' - resume from specific .smm_state.json file, (2) '--resume last' - auto-resume most recent state file, (3) '--resume' - interactive selector. Incompatible with PATH argument.",
     )
 
+    # ═══════════════════════════════════════════════════════════════════════════
+    # FILTER OPTIONS - Control which files are processed
+    # ═══════════════════════════════════════════════════════════════════════════
+    parser.add_argument(
+        "--include-types",
+        dest="include_types",
+        type=str,
+        default=None,
+        metavar="TYPES",
+        help="Only process specified media types. Comma-separated list: image,video,raw. Example: --include-types image,raw",
+    )
+    parser.add_argument(
+        "--exclude-types",
+        dest="exclude_types",
+        type=str,
+        default=None,
+        metavar="TYPES",
+        help="Exclude specified media types. Comma-separated list: image,video,raw. Example: --exclude-types video",
+    )
+    parser.add_argument(
+        "--images-only",
+        dest="images_only",
+        action="store_true",
+        help="Only process image files. Ignores videos and RAW files. Shortcut for --include-types image",
+    )
+    parser.add_argument(
+        "--videos-only",
+        dest="videos_only",
+        action="store_true",
+        help="Only process video files (including animated GIF/APNG). Ignores still images and RAW files. Shortcut for --include-types video",
+    )
+    parser.add_argument(
+        "--min-size",
+        dest="min_size",
+        type=parse_size,
+        default=None,
+        metavar="SIZE",
+        help="Minimum file size to process. Accepts bytes or suffixes: 1KB, 5MB, 1GB. Files smaller than this are skipped.",
+    )
+    parser.add_argument(
+        "--max-size",
+        dest="max_size",
+        type=parse_size,
+        default=None,
+        metavar="SIZE",
+        help="Maximum file size to process. Accepts bytes or suffixes: 100MB, 4GB. Files larger than this are skipped.",
+    )
+    parser.add_argument(
+        "--exclude-pattern",
+        dest="exclude_patterns",
+        action="append",
+        default=None,
+        metavar="PATTERN",
+        help="Glob pattern to exclude files. Can be specified multiple times. Example: --exclude-pattern '*.tmp' --exclude-pattern 'backup_*'",
+    )
+
+    # ═══════════════════════════════════════════════════════════════════════════
+    # CONVERSION OPTIONS - Control quality and codec preferences
+    # ═══════════════════════════════════════════════════════════════════════════
+    parser.add_argument(
+        "--video-quality",
+        dest="video_quality",
+        type=str,
+        choices=["low", "medium", "high", "lossless"],
+        default="high",
+        help="Video encoding quality preset. low=fast/smaller, medium=balanced, high=quality (default), lossless=maximum quality/largest.",
+    )
+    parser.add_argument(
+        "--image-quality",
+        dest="image_quality",
+        type=int,
+        default=95,
+        metavar="1-100",
+        help="JPEG/HEIC encoding quality (1-100). Default: 95. Higher values = better quality but larger files.",
+    )
+    parser.add_argument(
+        "--prefer-hevc",
+        dest="prefer_hevc",
+        action="store_true",
+        default=True,
+        help="Prefer HEVC (H.265) for video transcoding (default). Better compression, wider Apple support.",
+    )
+    parser.add_argument(
+        "--prefer-h264",
+        dest="prefer_hevc",
+        action="store_false",
+        help="Prefer H.264 for video transcoding. More compatible with older devices but larger files.",
+    )
+
+    # ═══════════════════════════════════════════════════════════════════════════
+    # RAW PROCESSING OPTIONS - Control RAW file handling
+    # ═══════════════════════════════════════════════════════════════════════════
+    parser.add_argument(
+        "--raw-output-format",
+        dest="raw_output_format",
+        type=str,
+        choices=["tiff", "jpeg", "heic", "dng"],
+        default="dng",
+        help="Output format when converting RAW files. dng=Adobe DNG (default, preserves editability), tiff=lossless, jpeg/heic=lossy but smaller.",
+    )
+    parser.add_argument(
+        "--skip-raw",
+        "--ignore-raw",
+        dest="skip_raw",
+        action="store_true",
+        help="Skip/ignore all RAW files during scan. Useful if you only want to import processed images/videos.",
+    )
+    parser.add_argument(
+        "--only-raw",
+        "--raw-only",
+        dest="only_raw",
+        action="store_true",
+        help="Only process RAW files from cameras. Ignores regular images and videos. Shortcut for --include-types raw",
+    )
+
+    # ═══════════════════════════════════════════════════════════════════════════
+    # LOGGING OPTIONS - Control output and log file behavior
+    # ═══════════════════════════════════════════════════════════════════════════
+    parser.add_argument(
+        "--log-file",
+        dest="log_file",
+        type=str,
+        default=None,
+        metavar="PATH",
+        help="Custom path for the run log file. Default: .smm_logs/smm_run_<timestamp>.log in scan directory.",
+    )
+    parser.add_argument(
+        "--log-format",
+        dest="log_format",
+        type=str,
+        choices=["text", "json"],
+        default="text",
+        help="Log output format. text=human readable (default), json=structured for parsing.",
+    )
+    parser.add_argument(
+        "--no-progress",
+        dest="no_progress",
+        action="store_true",
+        help="Disable progress bars. Useful for non-interactive environments or when piping output.",
+    )
+
+    # ═══════════════════════════════════════════════════════════════════════════
+    # SAFETY AND CLEANUP OPTIONS - Control confirmations and file handling
+    # ═══════════════════════════════════════════════════════════════════════════
+    parser.add_argument(
+        "--delete-originals",
+        dest="delete_originals",
+        action="store_true",
+        help="Delete original source files after successful staging. ⚠️ DESTRUCTIVE: Use with caution! Combine with -y to skip confirmation.",
+    )
+    parser.add_argument(
+        "--confirm-each",
+        dest="confirm_each",
+        action="store_true",
+        help="Prompt for confirmation before processing each file. Useful for reviewing large imports file-by-file.",
+    )
+    parser.add_argument(
+        "--keep-backups",
+        dest="keep_backups",
+        action="store_true",
+        help="Keep .bak backup files after successful conversion instead of deleting them. Useful for verification.",
+    )
+    parser.add_argument(
+        "--skip-import",
+        dest="skip_import",
+        action="store_true",
+        help="Stage and convert files but skip the Apple Photos import step. Useful for preparing files to import manually later.",
+    )
+    parser.add_argument(
+        "--no-conversions",
+        dest="no_conversions",
+        action="store_true",
+        help="Skip files that require conversion. Files needing conversion will be logged but not imported. Only already-compatible files will be processed.",
+    )
+
     args = parser.parse_args()
 
     # Environment override to avoid interactive prompt (CI/testing)
@@ -2705,6 +2923,60 @@ Examples:
     # In copy mode the user likely wants to keep originals; implicit yes to prompt if flag set
     if args.copy_mode:
         args.assume_yes = True
+
+    # ═══════════════════════════════════════════════════════════════════════════
+    # Validate new filter/conversion options
+    # ═══════════════════════════════════════════════════════════════════════════
+
+    # Validate mutually exclusive type filter flags
+    type_filters = [args.images_only, args.videos_only, args.only_raw]
+    if sum(type_filters) > 1:
+        parser.error("--images-only, --videos-only, and --only-raw are mutually exclusive")
+
+    # Validate --skip-raw and --only-raw conflict
+    if args.skip_raw and args.only_raw:
+        parser.error("--skip-raw/--ignore-raw and --only-raw are mutually exclusive")
+
+    # Convert shortcut flags to include_types
+    if args.images_only:
+        args.include_types = "image"
+    elif args.videos_only:
+        args.include_types = "video"
+    elif args.only_raw:
+        args.include_types = "raw"
+
+    # Validate include/exclude types
+    valid_types = {"image", "video", "raw"}
+    if args.include_types:
+        include_set = {t.strip().lower() for t in args.include_types.split(",")}
+        invalid = include_set - valid_types
+        if invalid:
+            parser.error(f"Invalid type(s) in --include-types: {', '.join(invalid)}. Valid: image, video, raw")
+        args.include_types = include_set
+    if args.exclude_types:
+        exclude_set = {t.strip().lower() for t in args.exclude_types.split(",")}
+        invalid = exclude_set - valid_types
+        if invalid:
+            parser.error(f"Invalid type(s) in --exclude-types: {', '.join(invalid)}. Valid: image, video, raw")
+        args.exclude_types = exclude_set
+
+    # Validate image quality range
+    if args.image_quality < 1 or args.image_quality > 100:
+        parser.error("--image-quality must be between 1 and 100")
+
+    # Validate min/max size logic
+    if args.min_size is not None and args.max_size is not None:
+        if args.min_size > args.max_size:
+            parser.error("--min-size cannot be larger than --max-size")
+
+    # Validate log file path if provided
+    if args.log_file:
+        log_path = Path(args.log_file)
+        if log_path.exists() and not log_path.is_file():
+            parser.error(f"--log-file path exists but is not a file: {log_path}")
+        # Ensure parent directory exists
+        if not log_path.parent.exists():
+            parser.error(f"--log-file parent directory does not exist: {log_path.parent}")
 
     return args
 
@@ -5550,7 +5822,7 @@ def main() -> int:
             # Restore user options from saved state (for consistent resume behavior)
             if state.options:
                 LOG.info("Restoring options from saved state")
-                # Restore options that affect remaining pipeline behavior
+                # Restore basic options that affect remaining pipeline behavior
                 args.skip_convert = state.options.get("skip_convert", args.skip_convert)
                 args.skip_compatibility_check = state.options.get("skip_compatibility_check", args.skip_compatibility_check)
                 args.skip_duplicate_check = state.options.get("skip_duplicate_check", args.skip_duplicate_check)
@@ -5562,6 +5834,39 @@ def main() -> int:
                 saved_max_pixels = state.options.get("max_image_pixels", args.max_image_pixels)
                 if saved_max_pixels is not None:
                     args.max_image_pixels = saved_max_pixels
+
+                # Restore filter options
+                saved_include = state.options.get("include_types")
+                if saved_include:
+                    args.include_types = set(saved_include)
+                saved_exclude = state.options.get("exclude_types")
+                if saved_exclude:
+                    args.exclude_types = set(saved_exclude)
+                args.min_size = state.options.get("min_size", args.min_size)
+                args.max_size = state.options.get("max_size", args.max_size)
+                args.exclude_patterns = state.options.get("exclude_patterns", args.exclude_patterns)
+
+                # Restore conversion options
+                args.video_quality = state.options.get("video_quality", args.video_quality)
+                args.image_quality = state.options.get("image_quality", args.image_quality)
+                args.prefer_hevc = state.options.get("prefer_hevc", args.prefer_hevc)
+
+                # Restore RAW options
+                args.raw_output_format = state.options.get("raw_output_format", args.raw_output_format)
+                args.skip_raw = state.options.get("skip_raw", args.skip_raw)
+                args.only_raw = state.options.get("only_raw", args.only_raw)
+
+                # Restore logging options
+                args.log_file = state.options.get("log_file", args.log_file)
+                args.log_format = state.options.get("log_format", args.log_format)
+                args.no_progress = state.options.get("no_progress", args.no_progress)
+
+                # Restore safety/cleanup options
+                args.delete_originals = state.options.get("delete_originals", args.delete_originals)
+                args.confirm_each = state.options.get("confirm_each", args.confirm_each)
+                args.keep_backups = state.options.get("keep_backups", args.keep_backups)
+                args.skip_import = state.options.get("skip_import", args.skip_import)
+                args.no_conversions = state.options.get("no_conversions", args.no_conversions)
 
             # Create skip logger for this session
             skip_log = output_dir / f"smm_skipped_files_{run_ts}_resume.log"
@@ -5724,6 +6029,7 @@ def main() -> int:
             # Save state after staging (for --resume support)
             # Capture user options for resume capability
             user_options = {
+                # Basic options
                 "recursive": args.recursive,
                 "follow_symlinks": args.follow_symlinks,
                 "skip_bootstrap": args.skip_bootstrap,
@@ -5737,6 +6043,32 @@ def main() -> int:
                 "verbose": args.verbose,
                 "quiet": args.quiet,
                 "max_image_pixels": args.max_image_pixels,
+                # Filter options
+                "include_types": list(args.include_types) if args.include_types else None,
+                "exclude_types": list(args.exclude_types) if args.exclude_types else None,
+                "images_only": args.images_only,
+                "videos_only": args.videos_only,
+                "min_size": args.min_size,
+                "max_size": args.max_size,
+                "exclude_patterns": args.exclude_patterns,
+                # Conversion options
+                "video_quality": args.video_quality,
+                "image_quality": args.image_quality,
+                "prefer_hevc": args.prefer_hevc,
+                # RAW options
+                "raw_output_format": args.raw_output_format,
+                "skip_raw": args.skip_raw,
+                "only_raw": args.only_raw,
+                # Logging options
+                "log_file": args.log_file,
+                "log_format": args.log_format,
+                "no_progress": args.no_progress,
+                # Safety/cleanup options
+                "delete_originals": args.delete_originals,
+                "confirm_each": args.confirm_each,
+                "keep_backups": args.keep_backups,
+                "skip_import": args.skip_import,
+                "no_conversions": args.no_conversions,
             }
             state = StagingState(
                 phase="staged",
