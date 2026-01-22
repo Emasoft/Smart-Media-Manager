@@ -2866,6 +2866,12 @@ Examples:
         action="store_true",
         help="Trust file extensions instead of analyzing file content to detect format. Only files with compatible extensions will be processed. Video/audio codec detection (ffprobe) still runs to determine if conversion is needed.",
     )
+    parser.add_argument(
+        "--skip-both-format-and-codec-verification",
+        dest="skip_all_verification",
+        action="store_true",
+        help="Skip both file format detection AND codec detection. Trust extensions only and assume all codecs are Apple Photos compatible. Fastest but riskiest - incompatible files will fail at import time.",
+    )
 
     args = parser.parse_args()
 
@@ -5881,6 +5887,7 @@ def main() -> int:
                 args.no_conversions = state.options.get("no_conversions", args.no_conversions)
                 args.skip_renaming = state.options.get("skip_renaming", args.skip_renaming)
                 args.skip_format_verification = state.options.get("skip_format_verification", args.skip_format_verification)
+                args.skip_all_verification = state.options.get("skip_all_verification", args.skip_all_verification)
 
             # Create skip logger for this session
             skip_log = output_dir / f"smm_skipped_files_{run_ts}_resume.log"
@@ -6085,6 +6092,7 @@ def main() -> int:
                 "no_conversions": args.no_conversions,
                 "skip_renaming": args.skip_renaming,
                 "skip_format_verification": args.skip_format_verification,
+                "skip_all_verification": args.skip_all_verification,
             }
             state = StagingState(
                 phase="staged",
