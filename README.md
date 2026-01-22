@@ -68,15 +68,17 @@ When Apple Photos refuses a file, the CLI logs it to `smm_skipped_files_<timesta
 Install globally with `uv tool` (creates `smart-media-manager` executable on your PATH):
 
 ```bash
-uv tool install smart-media-manager
+uv tool install smart-media-manager --python 3.12
 ```
+
+> **Note:** The `--python 3.12` flag is required because `rawpy` (used for RAW image processing) only has wheels for Python 3.9-3.13. Without this flag, systems with Python 3.14+ as default will fail to resolve dependencies.
 
 This is the recommended method. The executable will be available system-wide as `smart-media-manager`.
 
 To install a specific version:
 
 ```bash
-uv tool install smart-media-manager==0.5.43a3
+uv tool install smart-media-manager==0.5.44a1 --python 3.12
 ```
 
 ### Alternative: Install as a package
@@ -203,7 +205,7 @@ uv sync
 git config core.hooksPath githooks
 
 # Install editable version (optional)
-uv tool install --editable .
+uv tool install --editable . --python 3.12
 
 # Run tests
 uv run pytest
