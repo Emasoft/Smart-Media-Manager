@@ -652,6 +652,8 @@ class StagingState:
     completed: list[str] = field(default_factory=list)  # Paths of completed files
     failed: list[tuple[str, str]] = field(default_factory=list)  # (path, reason) of failed files
     saved_at: str = ""  # ISO timestamp of last save
+    # User options for resume - preserves CLI flags used in original run
+    options: dict[str, Any] = field(default_factory=dict)
 
     STATE_FILENAME = ".smm_state.json"
 
@@ -672,6 +674,7 @@ class StagingState:
             "completed": self.completed,
             "failed": self.failed,
             "saved_at": self.saved_at,
+            "options": self.options,
         }
         with state_file.open("w", encoding="utf-8") as f:
             json.dump(state_dict, f, indent=2)
@@ -698,6 +701,7 @@ class StagingState:
             completed=data.get("completed", []),
             failed=failed_tuples,
             saved_at=data.get("saved_at", ""),
+            options=data.get("options", {}),
         )
 
     @classmethod
@@ -717,6 +721,7 @@ class StagingState:
                 "completed_count": len(data.get("completed", [])),
                 "failed_count": len(data.get("failed", [])),
                 "files": data.get("files", []),  # For preview
+                "options": data.get("options", {}),  # User options from original run
             }
         except (json.JSONDecodeError, OSError):
             return None
@@ -901,6 +906,23 @@ def interactive_resume_selector(search_dir: Path) -> Optional[Path]:
             print(f"       Last saved: {saved_at}  |  Phase: {phase}")
             print(f"       Files: {file_count}  |  Completed: {completed}  |  Failed: {failed}")
             print(f"       Album: {album}")
+
+            # Show key options if present
+            options = state_info.get("options", {})
+            if options:
+                opt_flags = []
+                if options.get("skip_convert"):
+                    opt_flags.append("skip-convert")
+                if options.get("skip_duplicate_check"):
+                    opt_flags.append("skip-dupe-check")
+                if options.get("copy_mode"):
+                    opt_flags.append("copy")
+                if options.get("delete"):
+                    opt_flags.append("delete")
+                if options.get("dry_run"):
+                    opt_flags.append("dry-run")
+                if opt_flags:
+                    print(f"       Options: {', '.join(opt_flags)}")
 
             # Preview first 6 files
             files = state_info.get("files", [])
@@ -5525,6 +5547,22 @@ def main() -> int:
             output_dir = Path(state.output_dir)
             run_ts = state.run_ts
 
+            # Restore user options from saved state (for consistent resume behavior)
+            if state.options:
+                LOG.info("Restoring options from saved state")
+                # Restore options that affect remaining pipeline behavior
+                args.skip_convert = state.options.get("skip_convert", args.skip_convert)
+                args.skip_compatibility_check = state.options.get("skip_compatibility_check", args.skip_compatibility_check)
+                args.skip_duplicate_check = state.options.get("skip_duplicate_check", args.skip_duplicate_check)
+                args.delete = state.options.get("delete", args.delete)
+                args.dry_run = state.options.get("dry_run", args.dry_run)
+                args.verbose = state.options.get("verbose", args.verbose)
+                args.quiet = state.options.get("quiet", args.quiet)
+                # max_image_pixels is restored separately below for Pillow config
+                saved_max_pixels = state.options.get("max_image_pixels", args.max_image_pixels)
+                if saved_max_pixels is not None:
+                    args.max_image_pixels = saved_max_pixels
+
             # Create skip logger for this session
             skip_log = output_dir / f"smm_skipped_files_{run_ts}_resume.log"
             skip_logger = SkipLogger(skip_log)
@@ -5684,6 +5722,22 @@ def main() -> int:
             move_to_staging(media_files, staging_root, originals_root, copy_files=args.copy_mode)
 
             # Save state after staging (for --resume support)
+            # Capture user options for resume capability
+            user_options = {
+                "recursive": args.recursive,
+                "follow_symlinks": args.follow_symlinks,
+                "skip_bootstrap": args.skip_bootstrap,
+                "skip_convert": args.skip_convert,
+                "skip_compatibility_check": args.skip_compatibility_check,
+                "skip_duplicate_check": args.skip_duplicate_check,
+                "copy_mode": args.copy_mode,
+                "delete": args.delete,
+                "assume_yes": args.assume_yes,
+                "dry_run": args.dry_run,
+                "verbose": args.verbose,
+                "quiet": args.quiet,
+                "max_image_pixels": args.max_image_pixels,
+            }
             state = StagingState(
                 phase="staged",
                 staging_root=str(staging_root),
@@ -5692,6 +5746,7 @@ def main() -> int:
                 run_ts=run_ts,
                 album_name=args.album or "",
                 files=[],  # Will be populated below
+                options=user_options,
             )
             for mf in media_files:
                 state.files.append(state.media_file_to_dict(mf))
