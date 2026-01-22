@@ -214,7 +214,7 @@ class TestRefineImageMedia:
         from smart_media_manager.cli import refine_image_media, MediaFile
 
         img_file = tmp_path / "test.jpg"
-        img_file.write_bytes(b"\xff\xd8" + b"A" * 100)  # Valid SOI, missing EOI
+        img_file.write_bytes(b"\xff\xd8" + b"A" * 100)  # Valid SOI, garbage content
 
         media = MediaFile(
             source=img_file,
@@ -226,7 +226,9 @@ class TestRefineImageMedia:
         media_out, error = refine_image_media(media)
 
         assert media_out is None
-        assert "missing EOI marker" in error
+        # Pillow catches truncated/invalid JPEGs with "cannot identify" error
+        # (we removed the naive EOI marker check since valid files can have trailing data)
+        assert "cannot identify" in error or "invalid image" in error
 
     def test_refine_image_media_detects_invalid_png_signature(self, tmp_path):
         """Test refine_image_media detects invalid PNG signature."""
@@ -347,8 +349,13 @@ class TestRefineVideoMedia:
 
     @patch("smart_media_manager.cli.subprocess.run")
     @patch("smart_media_manager.cli.shutil.which")
-    def test_refine_video_media_rejects_10bit_color(self, mock_which, mock_run, tmp_path):
-        """Test refine_video_media rejects 10-bit color depth."""
+    def test_refine_video_media_accepts_10bit_color(self, mock_which, mock_run, tmp_path):
+        """Test refine_video_media accepts 10-bit color depth.
+
+        Note: 10-bit videos are accepted for detection; the format detection
+        system handles marking them for transcoding via the action field.
+        Apple Photos on modern macOS supports HEVC Main 10 profile.
+        """
         from smart_media_manager.cli import refine_video_media, MediaFile
 
         vid_file = tmp_path / "test.mp4"
@@ -369,8 +376,9 @@ class TestRefineVideoMedia:
 
         media_out, error = refine_video_media(media)
 
-        assert media_out is None
-        assert "10-bit" in error
+        # 10-bit videos are now accepted (not rejected) - format system handles transcoding
+        assert media_out is not None
+        assert error is None
 
     @patch("smart_media_manager.cli.subprocess.run")
     @patch("smart_media_manager.cli.shutil.which")
