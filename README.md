@@ -16,33 +16,126 @@
 </p>
 
 <p align="center">
-  <a href="#-highlights">Highlights</a> •
+  <a href="#-understanding-the-three-modes">How It Works</a> •
   <a href="#-requirements">Requirements</a> •
   <a href="#-installation">Installation</a> •
   <a href="#-usage">Usage</a> •
-  <a href="#-development">Development</a> •
-  <a href="#-testing">Testing</a>
+  <a href="#-development">Development</a>
 </p>
 
 ---
 
-Smart Media Manager normalizes filenames, validates files via multiple signature detectors, auto-installs transcode dependencies, and keeps a skip log so nothing silently disappears.
+## 📸 What Does This Tool Do? (Simple Explanation)
 
-## ✦ Workflow Modes
+Imagine you have a big box full of photos and videos scattered everywhere on your computer. Some are in the wrong format, some have weird names, and you want to get them ALL into Apple Photos neatly organized.
 
-**Fully Automated** — Run with `-y` flag to scan, convert, and import in one step:
+**Smart Media Manager is like a smart helper that:**
+
+1. **Finds** all your photos and videos (even in subfolders)
+2. **Checks** each file to make sure it's a real photo or video (not a broken file)
+3. **Fixes** files that have problems (like wrong file extensions or incompatible formats)
+4. **Imports** everything into Apple Photos automatically
+
+**Without this tool**, you would have to:
+- Drag and drop each file manually into Photos
+- Figure out which files Apple Photos can't open
+- Convert incompatible videos yourself using complicated software
+- Rename files with wrong extensions one by one
+
+**With this tool**, you just point it at a folder and it does everything for you!
+
+---
+
+### Technical Summary (For Advanced Users)
+
+Smart Media Manager normalizes filenames, validates files via multiple signature detectors (libmagic, PureMagic, PyFSig, binwalk, ffprobe), auto-installs transcode dependencies, converts incompatible formats, and keeps a skip log so nothing silently disappears.
+
+---
+
+## ✦ Understanding the Three Modes
+
+Think of Smart Media Manager like a helpful assistant that moves your photos and videos into Apple Photos. There are three different ways to use it, depending on how much control you want:
+
+### 🟢 Quick Mode (Fully Automated)
+
+**What it does:** Finds all your photos and videos, prepares them, and adds them to Apple Photos — all in one go!
+
+**Perfect for:** When you trust the tool and want everything done automatically.
+
+**How to use it:**
 ```bash
 smart-media-manager ~/Pictures/Inbox --recursive -y
 ```
 
-**Two-Step Review** — Stage files first, review them, then import:
+**Think of it like:** Asking someone to clean your room and put everything away without asking you about each item. Fast and easy!
+
+---
+
+### 🟡 Review Mode (Two Steps: Prepare, Then Import)
+
+**What it does:** First, it finds your photos and videos and puts them in a special folder (called a "staging folder"). Then it STOPS and waits for you. You can look through the files, remove any you don't want, and only then tell it to continue.
+
+**Perfect for:** When you want to double-check what will be imported before it happens.
+
+**How to use it:**
+
+**Step 1 — Prepare the files:**
 ```bash
-# Step 1: Scan and stage (creates FOUND_MEDIA_FILES_<timestamp> folder)
 smart-media-manager ~/Pictures/Inbox --recursive
-# Review the staged files, remove any you don't want imported
-# Step 2: Resume and import the staged folder
-smart-media-manager --resume FOUND_MEDIA_FILES_<timestamp>
 ```
+The tool creates a folder like `FOUND_MEDIA_FILES_20250122140530/` with all your media files inside.
+
+**Step 2 — Look through the folder:**
+Open the folder in Finder. Delete any files you don't want imported into Apple Photos.
+
+**Step 3 — Continue the import:**
+```bash
+smart-media-manager --resume FOUND_MEDIA_FILES_20250122140530
+```
+Or simply use `--resume last` to pick up where you left off:
+```bash
+smart-media-manager --resume last
+```
+
+**Think of it like:** Asking someone to gather all the toys into a box, showing you the box, letting you take out anything you don't want to keep, and THEN putting the rest on the shelf.
+
+> **📌 Important:** All the settings you used in Step 1 are automatically saved in a special file (`.smm_state.json`) inside the staging folder. When you resume in Step 3, the tool remembers exactly how you wanted things done!
+>
+> **Settings that are saved and restored:**
+> - Filter settings (images only, videos only, RAW only, size limits)
+> - Quality settings (video quality, image quality, codec preferences)
+> - RAW processing options (output format)
+> - Safety options (skip conversions, skip renaming, verification modes)
+> - Cleanup options (keep backups, delete originals)
+> - Logging preferences (log file, format, progress bars)
+
+---
+
+### 🔴 Quiet Mode (For Scripts and Automation)
+
+**What it does:** Runs silently without progress bars or interactive prompts. Perfect for running in the background or from automated scripts.
+
+**Perfect for:** Advanced users who want to run the tool from a script, cron job, or CI system.
+
+**How to use it:**
+```bash
+smart-media-manager ~/Pictures/Inbox --recursive -y --no-progress --quiet
+```
+
+**Think of it like:** A robot that does the work silently in another room and only tells you when it's completely finished.
+
+---
+
+### Which Mode Should I Use?
+
+| I want to... | Use this mode |
+|--------------|---------------|
+| Just import everything quickly | 🟢 **Quick Mode** with `-y` |
+| Check what will be imported before it happens | 🟡 **Review Mode** (no `-y`) |
+| Run it automatically from a script | 🔴 **Quiet Mode** with `-y --no-progress` |
+| Be asked before each file is processed | 🟡 **Review Mode** with `--confirm-each` |
+
+---
 
 ## ✦ Highlights
 
