@@ -2351,7 +2351,8 @@ Examples:
     parser.add_argument(
         "--delete",
         action="store_true",
-        help="Delete the temporary FOUND_MEDIA_FILES_<timestamp> folder after a successful import.",
+        help="Delete the temporary FOUND_MEDIA_FILES_<timestamp> folder after a successful import. "
+        "WARNING: This permanently deletes the staging folder. Use -y to skip the confirmation prompt.",
     )
     parser.add_argument(
         "--recursive",
@@ -5377,6 +5378,42 @@ def confirm_scan(root: Path, output_dir: Path, assume_yes: bool) -> bool:
     return False
 
 
+def confirm_delete_staging(staging_root: Path, assume_yes: bool) -> bool:
+    """Ask user confirmation before deleting staging folder.
+
+    Args:
+        staging_root: path to staging folder to be deleted
+        assume_yes: skip prompt when True
+
+    Returns:
+        True if deletion should proceed, False otherwise
+    """
+    if assume_yes:
+        return True
+
+    # Count files in staging folder
+    file_count = sum(1 for _ in staging_root.rglob("*") if _.is_file())
+
+    print("\n" + "=" * 60)
+    print("WARNING: About to delete staging folder")
+    print("=" * 60)
+    print(f"  Path: {staging_root}")
+    print(f"  Files: {file_count}")
+    print("\nThis action cannot be undone.")
+    print("Use -y/--yes to skip this prompt in the future.")
+
+    try:
+        response = input("\nDelete staging folder? [y/N]: ").strip().lower()
+    except (KeyboardInterrupt, EOFError):
+        print("\nAborted - staging folder preserved.")
+        return False
+
+    if response in ("y", "yes"):  # Explicit yes required (default no)
+        return True
+    print("Aborted - staging folder preserved.")
+    return False
+
+
 def cleanup_staging(staging: Path) -> None:
     if staging.exists():
         LOG.debug("Deleting staging folder %s", staging)
@@ -5734,7 +5771,12 @@ def main() -> int:
             imported_count,
         )
         if args.delete:
-            cleanup_staging(staging_root)
+            # Require explicit confirmation before deleting staging folder (unless -y passed)
+            if confirm_delete_staging(staging_root, args.assume_yes):
+                cleanup_staging(staging_root)
+            else:
+                LOG.info("Staging folder retained at user request: %s", staging_root)
+                print(f"Staging folder preserved: {staging_root}")
         else:
             LOG.debug("Staging folder retained at %s", staging_root)
         if skip_log and skip_log.exists():
