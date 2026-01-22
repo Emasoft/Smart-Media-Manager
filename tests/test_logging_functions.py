@@ -90,13 +90,15 @@ class TestAttachFileLogger:
 class TestConfigureLogging:
     """Tests for configure_logging function."""
 
-    def test_configure_logging_sets_log_level_to_info(self):
-        """Test configure_logging sets LOG level to INFO."""
+    def test_configure_logging_sets_log_level_to_debug(self):
+        """Test configure_logging sets LOG level to DEBUG (allows all messages to file handlers)."""
         from smart_media_manager.cli import configure_logging, LOG
 
         configure_logging()
 
-        assert LOG.level == logging.INFO
+        # LOG level is DEBUG to allow all messages through to file handlers
+        # Console handler controls what the user sees (default: WARNING)
+        assert LOG.level == logging.DEBUG
 
     def test_configure_logging_clears_existing_handlers(self):
         """Test configure_logging clears existing handlers."""
@@ -171,3 +173,48 @@ class TestConfigureLogging:
 
         # Should match pattern "LEVELNAME: message"
         assert formatted == "WARNING: test message"
+
+    def test_configure_logging_verbose_sets_info_level(self):
+        """Test configure_logging with verbosity=1 sets console to INFO."""
+        from smart_media_manager.cli import configure_logging, LOG
+
+        LOG.handlers.clear()
+
+        configure_logging(verbosity=1)
+
+        handler = LOG.handlers[0]
+        assert handler.level == logging.INFO
+
+    def test_configure_logging_very_verbose_sets_debug_level(self):
+        """Test configure_logging with verbosity=2 sets console to DEBUG."""
+        from smart_media_manager.cli import configure_logging, LOG
+
+        LOG.handlers.clear()
+
+        configure_logging(verbosity=2)
+
+        handler = LOG.handlers[0]
+        assert handler.level == logging.DEBUG
+
+    def test_configure_logging_quiet_sets_error_level(self):
+        """Test configure_logging with quiet=True sets console to ERROR."""
+        from smart_media_manager.cli import configure_logging, LOG
+
+        LOG.handlers.clear()
+
+        configure_logging(quiet=True)
+
+        handler = LOG.handlers[0]
+        assert handler.level == logging.ERROR
+
+    def test_configure_logging_quiet_overrides_verbose(self):
+        """Test configure_logging quiet mode overrides verbosity."""
+        from smart_media_manager.cli import configure_logging, LOG
+
+        LOG.handlers.clear()
+
+        # Even with verbosity=2, quiet should set ERROR level
+        configure_logging(verbosity=2, quiet=True)
+
+        handler = LOG.handlers[0]
+        assert handler.level == logging.ERROR

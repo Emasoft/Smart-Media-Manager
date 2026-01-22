@@ -44,6 +44,7 @@ except ImportError:  # pragma: no cover - system dependency
 LOG = logging.getLogger("smart_media_manager")
 _FILE_LOG_HANDLER: Optional[logging.Handler] = None
 SMM_LOGS_SUBDIR = ".smm__runtime_logs_"  # Unique prefix for timestamped log directories (created in CWD, excluded from scanning)
+_QUIET_MODE: bool = False  # Global flag to suppress progress bars (set by -q/--quiet)
 
 
 class ExitCode(IntEnum):
@@ -2425,6 +2426,22 @@ Examples:
         action="store_true",
         help="Simulate the scan and conversion without moving files or importing. "
         "Shows what would happen: detected media, needed conversions, and import plan.",
+    )
+    parser.add_argument(
+        "-v",
+        "--verbose",
+        dest="verbose",
+        action="count",
+        default=0,
+        help="Increase output verbosity. Use -v for INFO level, -vv for DEBUG level. "
+        "Default shows only warnings and errors.",
+    )
+    parser.add_argument(
+        "-q",
+        "--quiet",
+        dest="quiet",
+        action="store_true",
+        help="Suppress all output except errors. Disables progress bars.",
     )
 
     args = parser.parse_args()
@@ -5366,11 +5383,27 @@ def cleanup_staging(staging: Path) -> None:
         shutil.rmtree(staging)
 
 
-def configure_logging() -> None:
-    LOG.setLevel(logging.INFO)
+def configure_logging(verbosity: int = 0, quiet: bool = False) -> None:
+    """Configure console logging based on verbosity level.
+
+    Args:
+        verbosity: Number of -v flags (0=default, 1=INFO, 2+=DEBUG)
+        quiet: If True, only show ERROR level messages
+    """
+    LOG.setLevel(logging.DEBUG)  # Allow all levels to file handler
     LOG.handlers.clear()
     console = logging.StreamHandler()
-    console.setLevel(logging.WARNING)
+
+    # Determine console log level based on flags
+    if quiet:
+        console.setLevel(logging.ERROR)
+    elif verbosity >= 2:
+        console.setLevel(logging.DEBUG)
+    elif verbosity == 1:
+        console.setLevel(logging.INFO)
+    else:
+        console.setLevel(logging.WARNING)  # Default: warnings and errors only
+
     console.setFormatter(logging.Formatter("%(levelname)s: %(message)s"))
     LOG.addHandler(console)
 
@@ -5423,8 +5456,12 @@ def validate_root(path: Path, allow_file: bool = False) -> Path:
 
 
 def main() -> int:
-    configure_logging()
-    args = parse_args()
+    global _QUIET_MODE  # Allow setting the global flag for quiet mode
+    args = parse_args()  # Parse args first to get verbosity/quiet flags
+    _QUIET_MODE = args.quiet  # Set global flag for progress bar suppression
+    configure_logging(
+        args.verbose, args.quiet
+    )  # Configure logging with verbosity level
     LOG.info("smart-media-manager %s", __version__)
     skip_bootstrap = args.skip_bootstrap or bool(
         os.environ.get("SMART_MEDIA_MANAGER_SKIP_BOOTSTRAP")
@@ -5763,6 +5800,9 @@ class ProgressReporter:
 
     def update(self, step: int = 1, force: bool = False) -> None:
         self.completed += step
+        # Skip rendering in quiet mode
+        if _QUIET_MODE:
+            return
         now = time.time()
         if (
             not force
@@ -5792,6 +5832,8 @@ class ProgressReporter:
         sys.stdout.flush()
 
     def finish(self) -> None:
+        if _QUIET_MODE:
+            return
         if not self.dynamic:
             self.completed = self.total
         self.update(step=0, force=True)
