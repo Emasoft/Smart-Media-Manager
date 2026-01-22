@@ -784,17 +784,19 @@ class StagingState:
         return path in self.completed
 
 
-def find_staging_directories(search_dir: Path) -> list[tuple[Path, dict[str, Any]]]:
-    """Find all FOUND_MEDIA_FILES_* directories with valid state files.
+def find_state_files(search_dir: Path) -> list[tuple[Path, dict[str, Any]]]:
+    """Find all .smm_state.json files in FOUND_MEDIA_FILES_* directories.
 
-    Returns list of (directory_path, state_summary) tuples sorted by saved_at descending.
+    Returns list of (json_file_path, state_summary) tuples sorted by saved_at descending.
     """
     results: list[tuple[Path, dict[str, Any]]] = []
     for entry in search_dir.iterdir():
         if entry.is_dir() and entry.name.startswith("FOUND_MEDIA_FILES_"):
-            state_info = StagingState.peek(entry)
-            if state_info is not None:
-                results.append((entry, state_info))
+            state_file = entry / ".smm_state.json"
+            if state_file.exists():
+                state_info = StagingState.peek(entry)
+                if state_info is not None:
+                    results.append((state_file, state_info))
 
     # Sort by saved_at timestamp (newest first), fallback to directory name
     def sort_key(item: tuple[Path, dict[str, Any]]) -> str:
@@ -802,7 +804,7 @@ def find_staging_directories(search_dir: Path) -> list[tuple[Path, dict[str, Any
         if saved_at:
             return saved_at
         # Fallback: extract timestamp from folder name
-        return item[0].name.replace("FOUND_MEDIA_FILES_", "")
+        return item[0].parent.name.replace("FOUND_MEDIA_FILES_", "")
 
     results.sort(key=sort_key, reverse=True)
     return results
@@ -822,19 +824,19 @@ def format_timestamp_human(iso_timestamp: str) -> str:
 
 
 def interactive_resume_selector(search_dir: Path) -> Optional[Path]:
-    """Display interactive selector for staging directories.
+    """Display interactive selector for state files.
 
-    Shows list of available staging folders with previews.
+    Shows list of available .smm_state.json files with previews.
     User can select with number keys or arrow keys.
-    Returns selected directory path or None if cancelled.
+    Returns selected staging directory path or None if cancelled.
     """
     import sys
     import termios
     import tty
 
-    # Find staging directories
-    staging_dirs = find_staging_directories(search_dir)
-    if not staging_dirs:
+    # Find state files (returns list of (json_path, state_info) tuples)
+    state_files = find_state_files(search_dir)
+    if not state_files:
         return None
 
     def clear_screen() -> None:
@@ -866,12 +868,12 @@ def interactive_resume_selector(search_dir: Path) -> Optional[Path]:
         print(f"                              v{__version__}")
         print()
         print("┌─────────────────────────────────────────────────────────────────┐")
-        print("│  SELECT A STAGING FOLDER TO RESUME                              │")
+        print("│  SELECT A STATE FILE TO RESUME                                  │")
         print("│  Use ↑/↓ arrows or type number, Enter to select, q to cancel    │")
         print("└─────────────────────────────────────────────────────────────────┘")
         print()
 
-        for idx, (dir_path, state_info) in enumerate(staging_dirs):
+        for idx, (json_path, state_info) in enumerate(state_files):
             # Selection indicator
             prefix = " ▶ " if idx == selected_idx else "   "
             num = f"[{idx + 1}]"
@@ -886,12 +888,16 @@ def interactive_resume_selector(search_dir: Path) -> Optional[Path]:
             failed = state_info.get("failed_count", 0)
             album = state_info.get("album_name", "") or "(default album)"
 
+            # Display staging folder name (parent of JSON file)
+            staging_dir = json_path.parent
+
             # Highlight selected row
             if idx == selected_idx:
-                print(f"\033[7m{prefix}{num} {dir_path.name}\033[0m")
+                print(f"\033[7m{prefix}{num} {staging_dir.name}\033[0m")
             else:
-                print(f"{prefix}{num} {dir_path.name}")
+                print(f"{prefix}{num} {staging_dir.name}")
 
+            print(f"       State file: {json_path.name}")
             print(f"       Last saved: {saved_at}  |  Phase: {phase}")
             print(f"       Files: {file_count}  |  Completed: {completed}  |  Failed: {failed}")
             print(f"       Album: {album}")
@@ -913,12 +919,12 @@ def interactive_resume_selector(search_dir: Path) -> Optional[Path]:
             print()
 
         print("─" * 70)
-        print(f"  Found {len(staging_dirs)} staging folder(s) in: {search_dir}")
+        print(f"  Found {len(state_files)} state file(s) in: {search_dir}")
         print()
 
     # Main loop
     selected_idx = 0
-    max_idx = len(staging_dirs) - 1
+    max_idx = len(state_files) - 1
 
     while True:
         render(selected_idx)
@@ -930,15 +936,17 @@ def interactive_resume_selector(search_dir: Path) -> Optional[Path]:
             selected_idx = min(max_idx, selected_idx + 1)
         elif key == "\r" or key == "\n":  # Enter
             clear_screen()
-            return staging_dirs[selected_idx][0]
+            # Return staging directory (parent of JSON file)
+            return state_files[selected_idx][0].parent
         elif key == "q" or key == "\x03":  # q or Ctrl+C
             clear_screen()
             return None
         elif key.isdigit():
             num = int(key)
-            if 1 <= num <= len(staging_dirs):
+            if 1 <= num <= len(state_files):
                 clear_screen()
-                return staging_dirs[num - 1][0]
+                # Return staging directory (parent of JSON file)
+                return state_files[num - 1][0].parent
 
 
 class UnknownMappingCollector:
@@ -2603,8 +2611,8 @@ Examples:
         nargs="?",
         const="INTERACTIVE",  # Value when --resume is used without argument
         default=None,
-        metavar="STAGING_DIR",
-        help="Resume a previous interrupted import. Three modes: (1) '--resume <path>' - resume specific staging folder, (2) '--resume last' - auto-resume most recent staging folder, (3) '--resume' - interactive selector. Incompatible with PATH argument.",
+        metavar="STATE_JSON",
+        help="Resume a previous interrupted import. Three modes: (1) '--resume <json_path>' - resume from specific .smm_state.json file, (2) '--resume last' - auto-resume most recent state file, (3) '--resume' - interactive selector. Incompatible with PATH argument.",
     )
 
     args = parser.parse_args()
@@ -2636,21 +2644,29 @@ Examples:
             search_dir = Path.cwd()
             selected = interactive_resume_selector(search_dir)
             if selected is None:
-                print("No staging folder selected. Exiting.")
+                print("No state file selected. Exiting.")
                 sys.exit(0)
             args.resume_staging = selected
         elif args.resume_staging.lower() == "last":
-            # Last mode: auto-select most recent staging folder
+            # Last mode: auto-select most recent state file
             search_dir = Path.cwd()
-            staging_dirs = find_staging_directories(search_dir)
-            if not staging_dirs:
-                parser.error(f"No staging directories found in {search_dir}\nThere are no FOUND_MEDIA_FILES_* folders with valid state files to resume.")
-            # staging_dirs is sorted newest first, so first one is most recent
-            args.resume_staging = staging_dirs[0][0]
-            print(f"Auto-selecting most recent: {args.resume_staging.name}")
+            state_files = find_state_files(search_dir)
+            if not state_files:
+                parser.error(f"No state files found in {search_dir}\nThere are no .smm_state.json files in FOUND_MEDIA_FILES_* folders to resume.")
+            # state_files is sorted newest first, so first one is most recent
+            args.resume_staging = state_files[0][0].parent  # Get staging dir from JSON path
+            print(f"Auto-selecting most recent: {state_files[0][0]}")
         else:
-            # Direct path mode: convert to Path
-            args.resume_staging = Path(args.resume_staging)
+            # Direct path mode: can be JSON file or staging directory
+            resume_path = Path(args.resume_staging)
+            if resume_path.suffix.lower() == ".json" and resume_path.is_file():
+                # JSON file path provided - extract staging directory
+                args.resume_staging = resume_path.parent
+            elif resume_path.is_dir():
+                # Staging directory provided
+                args.resume_staging = resume_path
+            else:
+                parser.error(f"Resume path does not exist: {resume_path}")
 
         # Staging directory must exist
         if not args.resume_staging.is_dir():
