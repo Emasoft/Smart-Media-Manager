@@ -156,21 +156,79 @@ smart-media-manager ~/Pictures/Vacation --recursive --album "Summer 2024" -y
 
 ### Command-line options
 
+#### Basic Options
+
 | Option | Description |
 |--------|-------------|
 | `PATH` | Directory to scan (default: current directory) or path to a single file |
-| `--recursive` | Recursively scan subdirectories |
+| `-r, --recursive` | Recursively scan subdirectories |
 | `--follow-symlinks` | Follow symbolic links when scanning |
-| `--delete` | Delete staging folder after successful import |
+| `-d, --delete` | Delete staging folder after successful import |
 | `--album NAME` | Photos album name to import into (default: 'Smart Media Manager') |
-| `--copy` | Copy files to staging instead of moving (originals untouched) |
-| `--skip-duplicate-check` | Skip duplicate checking during import (faster but may import duplicates) |
-| `--skip-bootstrap` | Skip automatic dependency installation |
-| `--skip-convert` | Skip format conversion/transcoding (files must already be compatible) |
-| `--skip-compatibility-check` | Skip all compatibility validation (may cause import errors) |
-| `--max-image-pixels VALUE` | Set Pillow image pixel limit; use `none` to disable (default) |
+| `-c, --copy` | Copy files to staging instead of moving (originals untouched) |
 | `-y, --yes, --assume-yes` | Skip confirmation prompt (useful for automation) |
 | `--version` | Show version and exit |
+| `--resume [PATH]` | Resume from staging folder (path, "last", or interactive selector) |
+
+#### Filter Options
+
+| Option | Description |
+|--------|-------------|
+| `--include-types TYPES` | Only process these media types (comma-separated: image, video, raw) |
+| `--exclude-types TYPES` | Exclude these media types (comma-separated: image, video, raw) |
+| `--images-only` | Shortcut: only import images (equivalent to `--include-types image`) |
+| `--videos-only` | Shortcut: only import videos and animations (equivalent to `--include-types video`) |
+| `--only-raw, --raw-only` | Shortcut: only import RAW camera files (equivalent to `--include-types raw`) |
+| `--min-size SIZE` | Skip files smaller than SIZE (e.g., 100KB, 1MB, 500B) |
+| `--max-size SIZE` | Skip files larger than SIZE (e.g., 4GB, 100MB) |
+| `--exclude-pattern PATTERN` | Skip files matching glob pattern (can be repeated) |
+
+#### Conversion Options
+
+| Option | Description |
+|--------|-------------|
+| `--video-quality QUALITY` | Video encoding quality: ultrafast, fast, medium (default), slow, veryslow |
+| `--image-quality QUALITY` | Image conversion quality: 1-100 (default: 95) |
+| `--prefer-hevc` | Prefer HEVC/H.265 codec for video conversions (default) |
+| `--prefer-h264` | Prefer H.264/AVC codec for video conversions (wider compatibility) |
+
+#### RAW Processing Options
+
+| Option | Description |
+|--------|-------------|
+| `--raw-output-format FORMAT` | Output format for RAW conversion: tiff (default), jpeg, png |
+| `--skip-raw, --ignore-raw` | Skip all RAW camera files (don't import them) |
+
+#### Logging Options
+
+| Option | Description |
+|--------|-------------|
+| `--log-file PATH` | Write detailed log to custom file path |
+| `--log-format FORMAT` | Log format: text (default), json |
+| `--no-progress` | Disable progress bars (useful for CI/scripting) |
+
+#### Safety & Verification Options
+
+| Option | Description |
+|--------|-------------|
+| `--skip-duplicate-check` | Skip duplicate checking during import (faster but may import duplicates) |
+| `--skip-bootstrap` | Skip automatic dependency installation (Homebrew/pip) |
+| `--skip-convert` | Skip format conversion/transcoding (files must already be compatible) |
+| `--skip-compatibility-check` | Skip all compatibility validation (may cause import errors) |
+| `--no-conversions` | Skip files that need conversion (only import already-compatible files) |
+| `--skip-renaming` | Skip files with wrong extensions (don't rename, just skip them) |
+| `--skip-file-format-verification` | Trust extensions instead of analyzing file content; codec detection still runs |
+| `--skip-both-format-and-codec-verification` | Trust extensions only, skip all verification (fastest, riskiest) |
+| `--max-image-pixels VALUE` | Set Pillow image pixel limit; use `none` to disable (default) |
+
+#### Cleanup Options
+
+| Option | Description |
+|--------|-------------|
+| `--delete-originals` | Delete original files after successful staging (use with caution) |
+| `--confirm-each` | Prompt for confirmation before each file operation |
+| `--keep-backups` | Keep .bak backup files after successful conversion |
+| `--skip-import` | Stage and convert files but skip Apple Photos import step |
 
 ### What happens during a run
 
