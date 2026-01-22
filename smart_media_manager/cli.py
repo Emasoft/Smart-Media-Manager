@@ -17,6 +17,7 @@ import uuid
 from collections import Counter
 from contextlib import suppress
 from dataclasses import dataclass, field
+from enum import IntEnum
 from pathlib import Path
 from typing import Any, Callable, Iterable, Optional
 
@@ -43,6 +44,22 @@ except ImportError:  # pragma: no cover - system dependency
 LOG = logging.getLogger("smart_media_manager")
 _FILE_LOG_HANDLER: Optional[logging.Handler] = None
 SMM_LOGS_SUBDIR = ".smm__runtime_logs_"  # Unique prefix for timestamped log directories (created in CWD, excluded from scanning)
+
+
+class ExitCode(IntEnum):
+    """Exit codes for smart-media-manager CLI.
+
+    Standard codes allow shell scripts and CI/CD pipelines to
+    distinguish between different failure modes.
+    """
+
+    SUCCESS = 0  # Completed successfully
+    GENERAL_ERROR = 1  # Unspecified error
+    PERMISSION_DENIED = 2  # File/directory permission error
+    DEPENDENCY_MISSING = 3  # Required tool not found (ffmpeg, exiftool, etc.)
+    CONVERSION_FAILED = 4  # Media conversion/transcoding failed
+    IMPORT_FAILED = 5  # Apple Photos import failed
+    INTERRUPTED = 130  # User interrupted (Ctrl+C, 128 + SIGINT=2)
 
 
 def _log_directory() -> Optional[Path]:
@@ -2238,6 +2255,15 @@ def parse_args() -> argparse.Namespace:
   By default, this tool auto-installs Homebrew packages (ffmpeg, libheif, etc.)
   if they are not present. Use --skip-bootstrap to disable this behavior and
   install dependencies manually. See README for required packages.
+
+Exit Codes:
+  0   Success - all media imported successfully
+  1   General error - unspecified failure
+  2   Permission denied - cannot read/write files or directories
+  3   Dependency missing - required tool not found (ffmpeg, exiftool, etc.)
+  4   Conversion failed - media conversion/transcoding error
+  5   Import failed - Apple Photos import error
+  130 Interrupted - user cancelled (Ctrl+C)
 
 Examples:
   %(prog)s /path/to/media --recursive
@@ -5352,20 +5378,20 @@ def main() -> int:
         output_dir = root.parent if is_single_file else root
 
         if not confirm_scan(root, output_dir, args.assume_yes):
-            return 0
+            return ExitCode.SUCCESS
 
         # Check write permissions for both CWD (logs) and output_dir (skip logs, staging)
         try:
             check_write_permission(Path.cwd(), "create logs")
         except (PermissionError, OSError) as e:
             print(f"ERROR: {e}", file=sys.stderr)
-            return 1
+            return ExitCode.PERMISSION_DENIED
 
         try:
             check_write_permission(output_dir, "create skip logs and staging directory")
         except (PermissionError, OSError) as e:
             print(f"ERROR: {e}", file=sys.stderr)
-            return 1
+            return ExitCode.PERMISSION_DENIED
 
         log_path = attach_file_logger(
             root, run_ts
@@ -5398,10 +5424,10 @@ def main() -> int:
             elif reject_reason:
                 skip_logger.log(root, reject_reason)
                 LOG.debug("File rejected: %s", reject_reason)
-                return 0
+                return ExitCode.SUCCESS
             else:
                 LOG.debug("File is not a supported media format.")
-                return 0
+                return ExitCode.SUCCESS
         else:
             media_files = gather_media_files(
                 root,
@@ -5415,7 +5441,7 @@ def main() -> int:
             LOG.warning("No media files detected.")
             if skip_logger and not skip_logger.has_entries() and skip_log.exists():
                 skip_log.unlink()
-            return 0
+            return ExitCode.SUCCESS
         ensure_raw_dependencies_for_files(media_files)
 
         # Create staging directory in output directory (scan root or parent of single file)
@@ -5590,7 +5616,7 @@ def main() -> int:
             else:
                 skip_log.unlink()
         print(f"\nDetailed log: {log_path}")
-        return 0
+        return ExitCode.SUCCESS
     except KeyboardInterrupt:
         # Graceful handling of Ctrl+C - save logs and exit cleanly
         LOG.warning("Operation interrupted by user (Ctrl+C)")
@@ -5613,7 +5639,7 @@ def main() -> int:
             print(f"Staging folder preserved: {staging_root}")
             print("(Files can be manually imported or removed)")
         print("=" * 60)
-        return 130  # Standard exit code for Ctrl+C (128 + SIGINT=2)
+        return ExitCode.INTERRUPTED
     except Exception as exc:  # noqa: BLE001
         LOG.error("Error: %s", exc)
         revert_media_files(media_files, staging_root)
@@ -5624,7 +5650,7 @@ def main() -> int:
                 skip_log.unlink()
         if "log_path" in locals():
             print(f"See detailed log: {log_path}")
-        return 1
+        return ExitCode.GENERAL_ERROR
     finally:
         if UNKNOWN_MAPPINGS.has_entries():
             updates_path = UNKNOWN_MAPPINGS.write_updates(Path.cwd())
