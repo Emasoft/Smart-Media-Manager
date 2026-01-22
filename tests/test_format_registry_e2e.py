@@ -33,11 +33,7 @@ def temp_compat_file():
         else:
             # Create minimal test content
             test_content = {
-                "apple_photos_compatible": {
-                    "images": {
-                        "direct_import": ["d33d5c73-5f1a-5c4b-878e-58c3f9c193c0-I"]
-                    }
-                },
+                "apple_photos_compatible": {"images": {"direct_import": ["d33d5c73-5f1a-5c4b-878e-58c3f9c193c0-I"]}},
                 "format_names": {
                     "d33d5c73-5f1a-5c4b-878e-58c3f9c193c0-I": {
                         "canonical": "jpeg",
@@ -45,11 +41,7 @@ def temp_compat_file():
                         "category": "image",
                     }
                 },
-                "tool_mappings": {
-                    "libmagic": {
-                        "JPEG image data": "d33d5c73-5f1a-5c4b-878e-58c3f9c193c0-I"
-                    }
-                },
+                "tool_mappings": {"libmagic": {"JPEG image data": "d33d5c73-5f1a-5c4b-878e-58c3f9c193c0-I"}},
             }
             json.dump(test_content, f, indent=2)
 
@@ -68,9 +60,7 @@ def test_load_compatibility_data():
     compat = format_registry.load_compatibility_data()
 
     assert isinstance(compat, dict)
-    assert (
-        "apple_photos_compatible" in compat or len(compat) == 0
-    )  # Empty if file missing
+    assert "apple_photos_compatible" in compat or len(compat) == 0  # Empty if file missing
 
 
 def test_lookup_format_uuid():
@@ -155,9 +145,7 @@ def test_compatibility_json_modification(temp_compat_file):
     jpeg_uuid = "d33d5c73-5f1a-5c4b-878e-58c3f9c193c0-I"
     if "apple_photos_compatible" in compat_data:
         if "images" in compat_data["apple_photos_compatible"]:
-            direct_import = compat_data["apple_photos_compatible"]["images"].get(
-                "direct_import", []
-            )
+            direct_import = compat_data["apple_photos_compatible"]["images"].get("direct_import", [])
             if jpeg_uuid in direct_import:
                 direct_import.remove(jpeg_uuid)
 
@@ -186,11 +174,7 @@ def test_compatibility_json_modification(temp_compat_file):
         compat = format_registry.load_compatibility_data()
 
         # Verify JPEG is no longer in compatible list
-        direct_import = (
-            compat.get("apple_photos_compatible", {})
-            .get("images", {})
-            .get("direct_import", [])
-        )
+        direct_import = compat.get("apple_photos_compatible", {}).get("images", {}).get("direct_import", [])
         assert jpeg_uuid not in direct_import
 
         # Test compatibility check

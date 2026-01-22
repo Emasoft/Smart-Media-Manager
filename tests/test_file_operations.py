@@ -41,9 +41,7 @@ class TestCheckWritePermission:
             check_write_permission(file_path)
 
     @patch("smart_media_manager.cli.tempfile.NamedTemporaryFile")
-    def test_check_write_permission_raises_on_permission_denied(
-        self, mock_temp, tmp_path
-    ):
+    def test_check_write_permission_raises_on_permission_denied(self, mock_temp, tmp_path):
         """Test check_write_permission raises PermissionError when cannot write."""
         from smart_media_manager.cli import check_write_permission
 
@@ -100,9 +98,7 @@ class TestValidatePathArgument:
         # Simulate unmounted volume by using deeply nested nonexistent path
         unmounted = tmp_path / "nonexistent_parent" / "nonexistent_child"
 
-        with pytest.raises(
-            argparse.ArgumentTypeError, match="unmounted volume or network path"
-        ):
+        with pytest.raises(argparse.ArgumentTypeError, match="unmounted volume or network path"):
             validate_path_argument(str(unmounted))
 
     def test_validate_path_argument_warns_for_empty_file(self, tmp_path):
@@ -117,9 +113,7 @@ class TestValidatePathArgument:
         assert result == empty_file.resolve()
 
     @patch("smart_media_manager.cli.Path.iterdir")
-    def test_validate_path_argument_raises_for_unreadable_directory(
-        self, mock_iterdir, tmp_path
-    ):
+    def test_validate_path_argument_raises_for_unreadable_directory(self, mock_iterdir, tmp_path):
         """Test validate_path_argument raises for unreadable directory."""
         import argparse
         from smart_media_manager.cli import validate_path_argument
@@ -130,9 +124,7 @@ class TestValidatePathArgument:
             validate_path_argument(str(tmp_path))
 
     @patch("smart_media_manager.cli.Path.open")
-    def test_validate_path_argument_raises_for_unreadable_file(
-        self, mock_open, tmp_path
-    ):
+    def test_validate_path_argument_raises_for_unreadable_file(self, mock_open, tmp_path):
         """Test validate_path_argument raises for unreadable file."""
         import argparse
         from smart_media_manager.cli import validate_path_argument

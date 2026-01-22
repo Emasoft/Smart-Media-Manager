@@ -40,9 +40,7 @@ class TestDetectMediaIntegration:
         from smart_media_manager.cli import detect_media
 
         # Use real sample file from CI test suite
-        sample_jpg = (
-            Path(__file__).parent / "samples" / "ci" / "images" / "test_image.jpg"
-        )
+        sample_jpg = Path(__file__).parent / "samples" / "ci" / "images" / "test_image.jpg"
         assert sample_jpg.exists(), f"Sample file not found: {sample_jpg}"
 
         # Execute real detection pipeline
@@ -55,37 +53,25 @@ class TestDetectMediaIntegration:
         # Verify media file attributes
         assert media.kind == "image", f"Expected kind='image', got '{media.kind}'"
         assert media.source == sample_jpg, "Source path should match input"
-        assert media.extension in [".jpg", ".jpeg"], (
-            f"Expected JPEG extension, got '{media.extension}'"
-        )
-        assert media.format_name.lower() in ["jpg", "jpeg"], (
-            f"Expected JPEG format name, got '{media.format_name}'"
-        )
+        assert media.extension in [".jpg", ".jpeg"], f"Expected JPEG extension, got '{media.extension}'"
+        assert media.format_name.lower() in ["jpg", "jpeg"], f"Expected JPEG format name, got '{media.format_name}'"
 
         # Verify action is set (should be 'import' for compatible JPEG)
         assert media.action is not None, "Action should be set by detection"
-        assert media.action == "import", (
-            f"JPEG should be directly importable, got action='{media.action}'"
-        )
+        assert media.action == "import", f"JPEG should be directly importable, got action='{media.action}'"
         assert media.compatible is True, "JPEG should be compatible with Apple Photos"
-        assert media.requires_processing is False, (
-            "Compatible JPEG should not require processing"
-        )
+        assert media.requires_processing is False, "Compatible JPEG should not require processing"
 
         # Verify rule_id is set
         assert media.rule_id is not None, "Rule ID should be set by detection"
-        assert media.rule_id.startswith("R-"), (
-            f"Rule ID should start with 'R-', got '{media.rule_id}'"
-        )
+        assert media.rule_id.startswith("R-"), f"Rule ID should start with 'R-', got '{media.rule_id}'"
 
     def test_detect_media_mp4_video(self):
         """Test detect_media successfully detects a real MP4 video."""
         from smart_media_manager.cli import detect_media
 
         # Use real sample file from CI test suite
-        sample_mp4 = (
-            Path(__file__).parent / "samples" / "ci" / "videos" / "test_video.mp4"
-        )
+        sample_mp4 = Path(__file__).parent / "samples" / "ci" / "videos" / "test_video.mp4"
         assert sample_mp4.exists(), f"Sample file not found: {sample_mp4}"
 
         # Execute real detection pipeline
@@ -98,41 +84,27 @@ class TestDetectMediaIntegration:
         # Verify media file attributes
         assert media.kind == "video", f"Expected kind='video', got '{media.kind}'"
         assert media.source == sample_mp4, "Source path should match input"
-        assert media.extension in [".mp4", ".mov"], (
-            f"Expected MP4/MOV extension, got '{media.extension}'"
-        )
+        assert media.extension in [".mp4", ".mov"], f"Expected MP4/MOV extension, got '{media.extension}'"
 
         # Verify video codec is detected
         assert media.video_codec is not None, "Video codec should be detected"
-        assert isinstance(media.video_codec, str), (
-            f"Video codec should be string, got {type(media.video_codec)}"
-        )
+        assert isinstance(media.video_codec, str), f"Video codec should be string, got {type(media.video_codec)}"
 
         # Verify action is set
         assert media.action is not None, "Action should be set by detection"
-        assert media.action in ["import", "rewrap", "transcode"], (
-            f"Unexpected action for MP4: '{media.action}'"
-        )
+        assert media.action in ["import", "rewrap", "transcode"], f"Unexpected action for MP4: '{media.action}'"
 
         # Verify compatible flag matches action
         if media.action == "import":
             assert media.compatible is True, "Import action implies compatibility"
-            assert media.requires_processing is False, (
-                "Import action should not require processing"
-            )
+            assert media.requires_processing is False, "Import action should not require processing"
         else:
-            assert media.compatible is False, (
-                "Non-import action implies incompatibility"
-            )
-            assert media.requires_processing is True, (
-                "Non-import action requires processing"
-            )
+            assert media.compatible is False, "Non-import action implies incompatibility"
+            assert media.requires_processing is True, "Non-import action requires processing"
 
         # Verify rule_id is set
         assert media.rule_id is not None, "Rule ID should be set by detection"
-        assert media.rule_id.startswith("R-"), (
-            f"Rule ID should start with 'R-', got '{media.rule_id}'"
-        )
+        assert media.rule_id.startswith("R-"), f"Rule ID should start with 'R-', got '{media.rule_id}'"
 
     def test_detect_media_rejects_nonexistent_file(self):
         """Test detect_media handles nonexistent files gracefully."""
@@ -163,9 +135,7 @@ class TestDetectMediaIntegration:
         """Test detect_media respects skip_compatibility_check flag."""
         from smart_media_manager.cli import detect_media
 
-        sample_jpg = (
-            Path(__file__).parent / "samples" / "ci" / "images" / "test_image.jpg"
-        )
+        sample_jpg = Path(__file__).parent / "samples" / "ci" / "images" / "test_image.jpg"
         assert sample_jpg.exists(), f"Sample file not found: {sample_jpg}"
 
         # Call with skip flag
@@ -190,9 +160,7 @@ class TestDetectMediaEdgeCases:
         import shutil
 
         # Copy JPEG but give it .txt extension
-        sample_jpg = (
-            Path(__file__).parent / "samples" / "ci" / "images" / "test_image.jpg"
-        )
+        sample_jpg = Path(__file__).parent / "samples" / "ci" / "images" / "test_image.jpg"
         wrong_ext = tmp_path / "image.txt"
         shutil.copy(sample_jpg, wrong_ext)
 
@@ -202,9 +170,7 @@ class TestDetectMediaEdgeCases:
         if media is not None:
             # If detection succeeds, should identify as image despite .txt extension
             assert media.kind == "image", "Should detect as image based on content"
-            assert media.extension in [".jpg", ".jpeg"], (
-                "Should use detected format, not file extension"
-            )
+            assert media.extension in [".jpg", ".jpeg"], "Should use detected format, not file extension"
         else:
             # Or might reject as text file if filetype/puremagic see .txt first
             # Either behavior is acceptable - both are correct
@@ -216,9 +182,7 @@ class TestDetectMediaEdgeCases:
         import shutil
 
         # Copy JPEG but remove extension
-        sample_jpg = (
-            Path(__file__).parent / "samples" / "ci" / "images" / "test_image.jpg"
-        )
+        sample_jpg = Path(__file__).parent / "samples" / "ci" / "images" / "test_image.jpg"
         no_ext = tmp_path / "image_no_extension"
         shutil.copy(sample_jpg, no_ext)
 
@@ -229,6 +193,4 @@ class TestDetectMediaEdgeCases:
 
         if media is not None:
             assert media.kind == "image", "Should detect as image based on content"
-            assert media.extension in [".jpg", ".jpeg"], (
-                "Should assign detected extension"
-            )
+            assert media.extension in [".jpg", ".jpeg"], "Should assign detected extension"

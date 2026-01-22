@@ -92,9 +92,7 @@ SAFE_NAME_PATTERN = re.compile(r"[^A-Za-z0-9_.-]")
 MAX_APPLESCRIPT_CHARS = 20000  # Max characters for AppleScript arguments
 MAX_SAFE_STEM_LENGTH = 120  # Max length for safe filename stems
 MAX_PHOTOS_FILENAME_LENGTH = 60  # Apple Photos filename limit (including extension)
-APPLE_PHOTOS_FOLDER_IMPORT_TIMEOUT = (
-    1800  # seconds (30 min) - timeout for single folder import of large collections
-)
+APPLE_PHOTOS_FOLDER_IMPORT_TIMEOUT = 1800  # seconds (30 min) - timeout for single folder import of large collections
 
 STAGING_TOKEN_PREFIX = "__SMM"
 STAGING_TOKEN_PATTERN = re.compile(r"SMM([A-Za-z0-9]+)")
@@ -614,9 +612,7 @@ class MediaFile:
     was_converted: bool = False  # Tracks if file was actually converted (for stats)
     notes: str = ""
     metadata: dict[str, Any] = field(default_factory=dict)
-    detected_compatible: bool = (
-        False  # Detection-time compatibility prior to conversions
-    )
+    detected_compatible: bool = False  # Detection-time compatibility prior to conversions
 
 
 @dataclass
@@ -654,14 +650,16 @@ class StagingState:
     album_name: str  # Target album name for Photos import
     files: list[dict[str, Any]]  # MediaFile data as dicts
     completed: list[str] = field(default_factory=list)  # Paths of completed files
-    failed: list[tuple[str, str]] = field(
-        default_factory=list
-    )  # (path, reason) of failed files
+    failed: list[tuple[str, str]] = field(default_factory=list)  # (path, reason) of failed files
+    saved_at: str = ""  # ISO timestamp of last save
 
     STATE_FILENAME = ".smm_state.json"
 
     def save(self, staging_dir: Path) -> None:
         """Save state to .smm_state.json in staging directory."""
+        from datetime import datetime
+
+        self.saved_at = datetime.now().isoformat()
         state_file = staging_dir / self.STATE_FILENAME
         state_dict = {
             "phase": self.phase,
@@ -673,6 +671,7 @@ class StagingState:
             "files": self.files,
             "completed": self.completed,
             "failed": self.failed,
+            "saved_at": self.saved_at,
         }
         with state_file.open("w", encoding="utf-8") as f:
             json.dump(state_dict, f, indent=2)
@@ -698,7 +697,29 @@ class StagingState:
             files=data["files"],
             completed=data.get("completed", []),
             failed=failed_tuples,
+            saved_at=data.get("saved_at", ""),
         )
+
+    @classmethod
+    def peek(cls, staging_dir: Path) -> Optional[dict[str, Any]]:
+        """Peek at state file without fully loading. Returns dict with summary info."""
+        state_file = staging_dir / cls.STATE_FILENAME
+        if not state_file.exists():
+            return None
+        try:
+            with state_file.open("r", encoding="utf-8") as f:
+                data = json.load(f)
+            return {
+                "phase": data.get("phase", "unknown"),
+                "saved_at": data.get("saved_at", ""),
+                "album_name": data.get("album_name", ""),
+                "file_count": len(data.get("files", [])),
+                "completed_count": len(data.get("completed", [])),
+                "failed_count": len(data.get("failed", [])),
+                "files": data.get("files", []),  # For preview
+            }
+        except (json.JSONDecodeError, OSError):
+            return None
 
     def media_file_to_dict(self, media: "MediaFile") -> dict[str, Any]:
         """Convert MediaFile to dict for JSON serialization."""
@@ -763,6 +784,163 @@ class StagingState:
         return path in self.completed
 
 
+def find_staging_directories(search_dir: Path) -> list[tuple[Path, dict[str, Any]]]:
+    """Find all FOUND_MEDIA_FILES_* directories with valid state files.
+
+    Returns list of (directory_path, state_summary) tuples sorted by saved_at descending.
+    """
+    results: list[tuple[Path, dict[str, Any]]] = []
+    for entry in search_dir.iterdir():
+        if entry.is_dir() and entry.name.startswith("FOUND_MEDIA_FILES_"):
+            state_info = StagingState.peek(entry)
+            if state_info is not None:
+                results.append((entry, state_info))
+
+    # Sort by saved_at timestamp (newest first), fallback to directory name
+    def sort_key(item: tuple[Path, dict[str, Any]]) -> str:
+        saved_at = item[1].get("saved_at", "")
+        if saved_at:
+            return saved_at
+        # Fallback: extract timestamp from folder name
+        return item[0].name.replace("FOUND_MEDIA_FILES_", "")
+
+    results.sort(key=sort_key, reverse=True)
+    return results
+
+
+def format_timestamp_human(iso_timestamp: str) -> str:
+    """Convert ISO timestamp to human-readable format."""
+    from datetime import datetime
+
+    if not iso_timestamp:
+        return "unknown"
+    try:
+        dt = datetime.fromisoformat(iso_timestamp)
+        return dt.strftime("%Y-%m-%d %H:%M:%S")
+    except ValueError:
+        return iso_timestamp
+
+
+def interactive_resume_selector(search_dir: Path) -> Optional[Path]:
+    """Display interactive selector for staging directories.
+
+    Shows list of available staging folders with previews.
+    User can select with number keys or arrow keys.
+    Returns selected directory path or None if cancelled.
+    """
+    import sys
+    import termios
+    import tty
+
+    # Find staging directories
+    staging_dirs = find_staging_directories(search_dir)
+    if not staging_dirs:
+        return None
+
+    def clear_screen() -> None:
+        print("\033[2J\033[H", end="")
+
+    def get_key() -> str:
+        """Read a single keypress, handling arrow keys."""
+        fd = sys.stdin.fileno()
+        old_settings = termios.tcgetattr(fd)
+        try:
+            tty.setraw(fd)
+            ch = sys.stdin.read(1)
+            if ch == "\x1b":  # Escape sequence
+                ch2 = sys.stdin.read(1)
+                if ch2 == "[":
+                    ch3 = sys.stdin.read(1)
+                    if ch3 == "A":
+                        return "UP"
+                    elif ch3 == "B":
+                        return "DOWN"
+            return ch
+        finally:
+            termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
+
+    def render(selected_idx: int) -> None:
+        """Render the selector UI."""
+        clear_screen()
+        print(_BANNER)
+        print(f"                              v{__version__}")
+        print()
+        print("┌─────────────────────────────────────────────────────────────────┐")
+        print("│  SELECT A STAGING FOLDER TO RESUME                              │")
+        print("│  Use ↑/↓ arrows or type number, Enter to select, q to cancel    │")
+        print("└─────────────────────────────────────────────────────────────────┘")
+        print()
+
+        for idx, (dir_path, state_info) in enumerate(staging_dirs):
+            # Selection indicator
+            prefix = " ▶ " if idx == selected_idx else "   "
+            num = f"[{idx + 1}]"
+
+            # Format timestamp
+            saved_at = format_timestamp_human(state_info.get("saved_at", ""))
+
+            # Status info
+            phase = state_info.get("phase", "unknown")
+            file_count = state_info.get("file_count", 0)
+            completed = state_info.get("completed_count", 0)
+            failed = state_info.get("failed_count", 0)
+            album = state_info.get("album_name", "") or "(default album)"
+
+            # Highlight selected row
+            if idx == selected_idx:
+                print(f"\033[7m{prefix}{num} {dir_path.name}\033[0m")
+            else:
+                print(f"{prefix}{num} {dir_path.name}")
+
+            print(f"       Last saved: {saved_at}  |  Phase: {phase}")
+            print(f"       Files: {file_count}  |  Completed: {completed}  |  Failed: {failed}")
+            print(f"       Album: {album}")
+
+            # Preview first 6 files
+            files = state_info.get("files", [])
+            if files:
+                preview_files = files[:6]
+                file_names = []
+                for f in preview_files:
+                    source = f.get("source", "")
+                    if source:
+                        file_names.append(Path(source).name)
+                if file_names:
+                    preview_str = ", ".join(file_names)
+                    if len(files) > 6:
+                        preview_str += f", ... (+{len(files) - 6} more)"
+                    print(f"       Preview: {preview_str[:70]}")
+            print()
+
+        print("─" * 70)
+        print(f"  Found {len(staging_dirs)} staging folder(s) in: {search_dir}")
+        print()
+
+    # Main loop
+    selected_idx = 0
+    max_idx = len(staging_dirs) - 1
+
+    while True:
+        render(selected_idx)
+        key = get_key()
+
+        if key == "UP":
+            selected_idx = max(0, selected_idx - 1)
+        elif key == "DOWN":
+            selected_idx = min(max_idx, selected_idx + 1)
+        elif key == "\r" or key == "\n":  # Enter
+            clear_screen()
+            return staging_dirs[selected_idx][0]
+        elif key == "q" or key == "\x03":  # q or Ctrl+C
+            clear_screen()
+            return None
+        elif key.isdigit():
+            num = int(key)
+            if 1 <= num <= len(staging_dirs):
+                clear_screen()
+                return staging_dirs[num - 1][0]
+
+
 class UnknownMappingCollector:
     """Collects missing format UUID mappings and emits an update JSON.
 
@@ -815,9 +993,7 @@ class UnknownMappingCollector:
 
         for (tool, token, kind), sample in sorted(self._entries.items()):
             mapped_uuid = self._generated_uuid(token, kind)
-            update.setdefault("tool_mappings", {}).setdefault(tool, {})[token] = (
-                mapped_uuid
-            )
+            update.setdefault("tool_mappings", {}).setdefault(tool, {})[token] = mapped_uuid
             update["format_names"][mapped_uuid] = {
                 "canonical": token,
                 "extensions": [],
@@ -826,17 +1002,11 @@ class UnknownMappingCollector:
             }
 
             if kind == "video":
-                update["apple_photos_compatible"]["videos"][
-                    "needs_transcode_video"
-                ].append(mapped_uuid)
+                update["apple_photos_compatible"]["videos"]["needs_transcode_video"].append(mapped_uuid)
             elif kind == "audio":
-                update["apple_photos_compatible"]["videos"][
-                    "needs_transcode_audio"
-                ].append(mapped_uuid)
+                update["apple_photos_compatible"]["videos"]["needs_transcode_audio"].append(mapped_uuid)
             elif kind == "image":
-                update["apple_photos_compatible"]["images"]["needs_conversion"].append(
-                    mapped_uuid
-                )
+                update["apple_photos_compatible"]["images"]["needs_conversion"].append(mapped_uuid)
 
         run_ts = timestamp()
         out_path = output_dir / f"format_registry_updates_{run_ts}.json"
@@ -906,61 +1076,32 @@ class RunStatistics:
         print(f"{BOLD}{BLUE}Media Detection:{RESET}")
         print(f"  Media files detected:       {self.total_media_detected:>6}")
         print(f"  Compatible (no conversion): {GREEN}{self.media_compatible:>6}{RESET}")
-        print(
-            f"  Incompatible:               {YELLOW}{self.media_incompatible:>6}{RESET}"
-        )
-        print(
-            f"    └─ With conversion rule:  {self.incompatible_with_conversion_rule:>6}\n"
-        )
+        print(f"  Incompatible:               {YELLOW}{self.media_incompatible:>6}{RESET}")
+        print(f"    └─ With conversion rule:  {self.incompatible_with_conversion_rule:>6}\n")
 
         # Conversion section
         if self.conversion_attempted > 0:
             print(f"{BOLD}{BLUE}Conversion:{RESET}")
             print(f"  Attempted:                  {self.conversion_attempted:>6}")
-            print(
-                f"  Succeeded:                  {GREEN}{self.conversion_succeeded:>6}{RESET}"
-            )
-            print(
-                f"  Failed:                     {RED}{self.conversion_failed:>6}{RESET}\n"
-            )
+            print(f"  Succeeded:                  {GREEN}{self.conversion_succeeded:>6}{RESET}")
+            print(f"  Failed:                     {RED}{self.conversion_failed:>6}{RESET}\n")
 
         # Import section
         print(f"{BOLD}{BLUE}Apple Photos Import:{RESET}")
-        print(
-            f"  Imported (after conversion):{GREEN}{self.imported_after_conversion:>6}{RESET}"
-        )
-        print(
-            f"  Imported (direct):          {GREEN}{self.imported_without_conversion:>6}{RESET}"
-        )
-        print(
-            f"  Total imported:             {BOLD}{GREEN}{self.total_imported:>6}{RESET}"
-        )
-        print(
-            f"  Refused by Apple Photos:    {RED}{self.refused_by_apple_photos:>6}{RESET}"
-        )
+        print(f"  Imported (after conversion):{GREEN}{self.imported_after_conversion:>6}{RESET}")
+        print(f"  Imported (direct):          {GREEN}{self.imported_without_conversion:>6}{RESET}")
+        print(f"  Total imported:             {BOLD}{GREEN}{self.total_imported:>6}{RESET}")
+        print(f"  Refused by Apple Photos:    {RED}{self.refused_by_apple_photos:>6}{RESET}")
 
         if self.total_imported + self.refused_by_apple_photos > 0:
-            success_rate = (
-                self.total_imported
-                / (self.total_imported + self.refused_by_apple_photos)
-            ) * 100
-            color = (
-                GREEN if success_rate >= 95 else YELLOW if success_rate >= 80 else RED
-            )
-            print(
-                f"  Success rate:               {color}{success_rate:>5.1f}%{RESET}\n"
-            )
+            success_rate = (self.total_imported / (self.total_imported + self.refused_by_apple_photos)) * 100
+            color = GREEN if success_rate >= 95 else YELLOW if success_rate >= 80 else RED
+            print(f"  Success rate:               {color}{success_rate:>5.1f}%{RESET}\n")
         else:
             print()
 
         # Skipped section
-        total_skipped = (
-            self.skipped_errors
-            + self.skipped_unknown_format
-            + self.skipped_corrupt_or_empty
-            + self.skipped_non_media
-            + self.skipped_other
-        )
+        total_skipped = self.skipped_errors + self.skipped_unknown_format + self.skipped_corrupt_or_empty + self.skipped_non_media + self.skipped_other
         if total_skipped > 0:
             print(f"{BOLD}{BLUE}Skipped Files:{RESET}")
             print(f"  Due to errors:              {self.skipped_errors:>6}")
@@ -981,9 +1122,7 @@ class RunStatistics:
                 print(f"  • {path.name}")
                 print(f"    Reason: {reason}")
             if len(self.refused_filenames) > 10:
-                print(
-                    f"  ... and {len(self.refused_filenames) - 10} more (see log for full list)\n"
-                )
+                print(f"  ... and {len(self.refused_filenames) - 10} more (see log for full list)\n")
             else:
                 print()
 
@@ -1021,10 +1160,7 @@ class RunStatistics:
             self.refused_by_apple_photos,
         )
         if self.total_imported + self.refused_by_apple_photos > 0:
-            success_rate = (
-                self.total_imported
-                / (self.total_imported + self.refused_by_apple_photos)
-            ) * 100
+            success_rate = (self.total_imported / (self.total_imported + self.refused_by_apple_photos)) * 100
             LOG.info("Success rate: %.1f%%", success_rate)
         LOG.info(
             "Skipped: errors=%d, unknown=%d, corrupt=%d, non_media=%d, other=%d",
@@ -1034,9 +1170,7 @@ class RunStatistics:
             self.skipped_non_media,
             self.skipped_other,
         )
-        LOG.info(
-            "Staging: total=%d, expected=%d", self.staging_total, self.staging_expected
-        )
+        LOG.info("Staging: total=%d, expected=%d", self.staging_total, self.staging_expected)
         if self.refused_filenames:
             LOG.info("Refused files:")
             for path, reason in self.refused_filenames:
@@ -1063,9 +1197,7 @@ def print_dry_run_summary(media_files: list, stats: RunStatistics) -> None:
     print(f"  Total files scanned:        {stats.total_files_scanned:>6}")
     print(f"  Media files detected:       {stats.total_media_detected:>6}")
     print(f"  Compatible (no conversion): {GREEN}{stats.media_compatible:>6}{RESET}")
-    print(
-        f"  Need conversion:            {YELLOW}{stats.media_incompatible:>6}{RESET}\n"
-    )
+    print(f"  Need conversion:            {YELLOW}{stats.media_incompatible:>6}{RESET}\n")
 
     # Group by action
     actions_summary: dict[str, list] = {}
@@ -1133,9 +1265,7 @@ def find_executable(*candidates: str) -> Optional[str]:
 def resolve_imagemagick_command() -> str:
     cmd = find_executable("magick", "convert")
     if not cmd:
-        raise RuntimeError(
-            "ImageMagick (magick/convert) not found. Please install imagemagick."
-        )
+        raise RuntimeError("ImageMagick (magick/convert) not found. Please install imagemagick.")
     return cmd
 
 
@@ -1280,9 +1410,7 @@ def install_raw_dependency_groups(groups: Iterable[str]) -> None:
     _INSTALLED_RAW_GROUPS.update(needed)
 
 
-def refine_raw_media(
-    path: Path, extension_candidates: Iterable[Optional[str]]
-) -> tuple[Optional[MediaFile], Optional[str]]:
+def refine_raw_media(path: Path, extension_candidates: Iterable[Optional[str]]) -> tuple[Optional[MediaFile], Optional[str]]:
     try:
         with rawpy.imread(str(path)) as raw:
             make = (raw.metadata.camera_make or "").strip()
@@ -1314,9 +1442,7 @@ def refine_raw_media(
     return media, None
 
 
-def refine_image_media(
-    media: MediaFile, skip_compatibility_check: bool = False
-) -> tuple[Optional[MediaFile], Optional[str]]:
+def refine_image_media(media: MediaFile, skip_compatibility_check: bool = False) -> tuple[Optional[MediaFile], Optional[str]]:
     """
     FAST corruption detection for image files (<10ms for most images).
 
@@ -1420,9 +1546,7 @@ def refine_image_media(
     return media, None
 
 
-def refine_video_media(
-    media: MediaFile, skip_compatibility_check: bool = False
-) -> tuple[Optional[MediaFile], Optional[str]]:
+def refine_video_media(media: MediaFile, skip_compatibility_check: bool = False) -> tuple[Optional[MediaFile], Optional[str]]:
     """
     Validate video file compatibility with Apple Photos.
 
@@ -1561,9 +1685,7 @@ def refine_video_media(
                 lower = line.lower()
                 if lower.startswith("codec_type="):
                     current_stream_type = lower.split("=", 1)[1].strip()
-                elif current_stream_type == "audio" and lower.startswith(
-                    "sample_rate="
-                ):
+                elif current_stream_type == "audio" and lower.startswith("sample_rate="):
                     try:
                         sample_rate = int(lower.split("=", 1)[1].strip())
                     except (ValueError, IndexError):
@@ -1596,9 +1718,7 @@ def refine_video_media(
     return media, None
 
 
-def run_command_with_progress(
-    command: list[str], message: str, env: Optional[dict[str, str]] = None
-) -> None:
+def run_command_with_progress(command: list[str], message: str, env: Optional[dict[str, str]] = None) -> None:
     bar_length = 28
     start = time.time()
     fd, tmp_name = tempfile.mkstemp(prefix="smm_cmd_", suffix=".log")
@@ -1634,9 +1754,7 @@ def run_command_with_progress(
                     output_tail = data[-4000:].strip()
             except OSError:
                 output_tail = "(failed to read command output)"
-            error_message = (
-                f"Command '{command[0]}' failed with exit code {proc.returncode}."
-            )
+            error_message = f"Command '{command[0]}' failed with exit code {proc.returncode}."
             if output_tail:
                 LOG.error("%s Output:\n%s", error_message, output_tail)
             raise RuntimeError(error_message)
@@ -1659,10 +1777,7 @@ def ensure_homebrew() -> str:
         _BREW_PATH_CACHE = brew_path
         return brew_path
     # Homebrew not found - warn user before auto-installing
-    LOG.warning(
-        "Homebrew not found. Auto-installing from https://brew.sh. "
-        "Use --skip-bootstrap to disable auto-installation."
-    )
+    LOG.warning("Homebrew not found. Auto-installing from https://brew.sh. Use --skip-bootstrap to disable auto-installation.")
     install_cmd = [
         "/bin/bash",
         "-lc",
@@ -1672,16 +1787,12 @@ def ensure_homebrew() -> str:
     possible_paths = ["/opt/homebrew/bin/brew", "/usr/local/bin/brew"]
     for candidate in possible_paths:
         if Path(candidate).exists():
-            os.environ["PATH"] = (
-                f"{Path(candidate).parent}:{os.environ.get('PATH', '')}"
-            )
+            os.environ["PATH"] = f"{Path(candidate).parent}:{os.environ.get('PATH', '')}"
             _BREW_PATH_CACHE = str(Path(candidate))
             return _BREW_PATH_CACHE
     brew_path = shutil.which("brew")
     if not brew_path:
-        raise RuntimeError(
-            "Homebrew installation succeeded but brew binary not found in PATH."
-        )
+        raise RuntimeError("Homebrew installation succeeded but brew binary not found in PATH.")
     _BREW_PATH_CACHE = brew_path
     return brew_path
 
@@ -1689,9 +1800,7 @@ def ensure_homebrew() -> str:
 def brew_package_installed(brew_path: str, package: str) -> bool:
     check_cmd = [brew_path, "list", package]
     try:
-        result = subprocess.run(
-            check_cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=10
-        )
+        result = subprocess.run(check_cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=10)
         return result.returncode == 0
     except subprocess.TimeoutExpired:
         LOG.warning("brew list %s timed out (>10s)", package)
@@ -1701,13 +1810,9 @@ def brew_package_installed(brew_path: str, package: str) -> bool:
 def ensure_brew_package(brew_path: str, package: str) -> None:
     if not brew_package_installed(brew_path, package):
         try:
-            run_command_with_progress(
-                [brew_path, "install", "--quiet", package], f"Installing {package}"
-            )
+            run_command_with_progress([brew_path, "install", "--quiet", package], f"Installing {package}")
         except RuntimeError as exc:  # pragma: no cover - depends on user env
-            raise RuntimeError(
-                f"Failed to install {package} via Homebrew. Install it manually (brew install {package}) or rerun with --skip-bootstrap."
-            ) from exc
+            raise RuntimeError(f"Failed to install {package} via Homebrew. Install it manually (brew install {package}) or rerun with --skip-bootstrap.") from exc
     else:
         LOG.debug(
             "Package %s already installed; skipping upgrade to avoid repeated downloads.",
@@ -1718,9 +1823,7 @@ def ensure_brew_package(brew_path: str, package: str) -> None:
 def brew_cask_installed(brew_path: str, cask: str) -> bool:
     check_cmd = [brew_path, "list", "--cask", cask]
     try:
-        result = subprocess.run(
-            check_cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=10
-        )
+        result = subprocess.run(check_cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=10)
         return result.returncode == 0
     except subprocess.TimeoutExpired:
         LOG.warning("brew list --cask %s timed out (>10s)", cask)
@@ -1730,13 +1833,9 @@ def brew_cask_installed(brew_path: str, cask: str) -> bool:
 def ensure_brew_cask(brew_path: str, cask: str) -> None:
     if not brew_cask_installed(brew_path, cask):
         try:
-            run_command_with_progress(
-                [brew_path, "install", "--cask", "--quiet", cask], f"Installing {cask}"
-            )
+            run_command_with_progress([brew_path, "install", "--cask", "--quiet", cask], f"Installing {cask}")
         except RuntimeError as exc:  # pragma: no cover
-            raise RuntimeError(
-                f"Failed to install {cask} via Homebrew. Install it manually (brew install --cask {cask}) or rerun with --skip-bootstrap."
-            ) from exc
+            raise RuntimeError(f"Failed to install {cask} via Homebrew. Install it manually (brew install --cask {cask}) or rerun with --skip-bootstrap.") from exc
     else:
         LOG.debug(
             "Cask %s already installed; skipping upgrade to avoid repeated downloads.",
@@ -1749,9 +1848,7 @@ def pip_package_installed(package: str) -> bool:
         return True
     check_cmd = [sys.executable, "-m", "pip", "show", package]
     try:
-        result = subprocess.run(
-            check_cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=10
-        )
+        result = subprocess.run(check_cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=10)
         if result.returncode == 0:
             _PIP_PACKAGE_CACHE.add(package)
             return True
@@ -1822,13 +1919,9 @@ def copy_metadata_from_source(source: Path, target: Path) -> None:
             stderr=subprocess.DEVNULL,
             timeout=30,
         )
-        LOG.debug(
-            "Metadata copied from %s to %s via exiftool", source.name, target.name
-        )
+        LOG.debug("Metadata copied from %s to %s via exiftool", source.name, target.name)
     except subprocess.TimeoutExpired:
-        LOG.debug(
-            "Exiftool metadata copy timed out (>30s) for %s -> %s", source, target
-        )
+        LOG.debug("Exiftool metadata copy timed out (>30s) for %s -> %s", source, target)
     except (subprocess.SubprocessError, OSError) as e:
         LOG.debug("Exiftool metadata copy failed for %s -> %s: %s", source, target, e)
 
@@ -1836,9 +1929,7 @@ def copy_metadata_from_source(source: Path, target: Path) -> None:
 def ensure_raw_dependencies_for_files(media_files: Iterable[MediaFile]) -> None:
     required_groups: set[str] = set()
     for media in media_files:
-        required_groups.update(
-            collect_raw_groups_from_extensions([media.extension, media.original_suffix])
-        )
+        required_groups.update(collect_raw_groups_from_extensions([media.extension, media.original_suffix]))
     if not required_groups:
         return
     install_raw_dependency_groups(required_groups)
@@ -1937,14 +2028,9 @@ def kind_from_description(description: Optional[str]) -> Optional[str]:
     if not description:
         return None
     lowered = description.lower()
-    if "disk image" not in lowered and any(
-        word in lowered for word in ("image", "jpeg", "jpg", "png", "photo", "bitmap")
-    ):
+    if "disk image" not in lowered and any(word in lowered for word in ("image", "jpeg", "jpg", "png", "photo", "bitmap")):
         return "image"
-    if any(
-        word in lowered
-        for word in ("video", "movie", "mpeg", "quicktime", "mp4", "h264", "h.264")
-    ):
+    if any(word in lowered for word in ("video", "movie", "mpeg", "quicktime", "mp4", "h264", "h.264")):
         return "video"
     if any(word in lowered for word in ("audio", "sound", "mp3", "aac", "alac")):
         return "audio"
@@ -2024,11 +2110,7 @@ def choose_vote_by_priority(
 
 
 def select_consensus_vote(votes: list[FormatVote]) -> Optional[FormatVote]:
-    valid_votes = [
-        vote
-        for vote in votes
-        if not vote.error and (vote.mime or vote.extension or vote.description)
-    ]
+    valid_votes = [vote for vote in votes if not vote.error and (vote.mime or vote.extension or vote.description)]
     if not valid_votes:
         return None
 
@@ -2039,14 +2121,8 @@ def select_consensus_vote(votes: list[FormatVote]) -> Optional[FormatVote]:
             mime_weights[mime_val] = mime_weights.get(mime_val, 0.0) + vote_weight(vote)
     if mime_weights:
         top_weight = max(mime_weights.values())
-        top_mimes = {
-            mime
-            for mime, weight in mime_weights.items()
-            if math.isclose(weight, top_weight, rel_tol=1e-9, abs_tol=1e-9)
-        }
-        choice = choose_vote_by_priority(
-            valid_votes, lambda v: normalize_mime_value(v.mime) in top_mimes
-        )
+        top_mimes = {mime for mime, weight in mime_weights.items() if math.isclose(weight, top_weight, rel_tol=1e-9, abs_tol=1e-9)}
+        choice = choose_vote_by_priority(valid_votes, lambda v: normalize_mime_value(v.mime) in top_mimes)
         if choice:
             return choice
 
@@ -2057,14 +2133,8 @@ def select_consensus_vote(votes: list[FormatVote]) -> Optional[FormatVote]:
             ext_weights[ext_val] = ext_weights.get(ext_val, 0.0) + vote_weight(vote)
     if ext_weights:
         top_weight = max(ext_weights.values())
-        top_exts = {
-            ext
-            for ext, weight in ext_weights.items()
-            if math.isclose(weight, top_weight, rel_tol=1e-9, abs_tol=1e-9)
-        }
-        choice = choose_vote_by_priority(
-            valid_votes, lambda v: ensure_dot_extension(v.extension) in top_exts
-        )
+        top_exts = {ext for ext, weight in ext_weights.items() if math.isclose(weight, top_weight, rel_tol=1e-9, abs_tol=1e-9)}
+        choice = choose_vote_by_priority(valid_votes, lambda v: ensure_dot_extension(v.extension) in top_exts)
         if choice:
             return choice
 
@@ -2075,20 +2145,13 @@ def select_consensus_vote(votes: list[FormatVote]) -> Optional[FormatVote]:
     )
 
 
-def determine_media_kind(
-    votes: list[FormatVote], consensus: Optional[FormatVote]
-) -> Optional[str]:
+def determine_media_kind(votes: list[FormatVote], consensus: Optional[FormatVote]) -> Optional[str]:
     kind_weights: dict[str, float] = {}
     candidate_votes: list[FormatVote] = []
     for vote in votes:
         if vote.error:
             continue
-        inferred = (
-            vote.kind
-            or kind_from_mime(vote.mime)
-            or kind_from_extension(vote.extension)
-            or kind_from_description(vote.description)
-        )
+        inferred = vote.kind or kind_from_mime(vote.mime) or kind_from_extension(vote.extension) or kind_from_description(vote.description)
         if inferred:
             weight = vote_weight(vote)
             kind_weights[inferred] = kind_weights.get(inferred, 0.0) + weight
@@ -2096,45 +2159,20 @@ def determine_media_kind(
 
     if kind_weights:
         top_weight = max(kind_weights.values())
-        top_kinds = {
-            kind
-            for kind, weight in kind_weights.items()
-            if math.isclose(weight, top_weight, rel_tol=1e-9, abs_tol=1e-9)
-        }
+        top_kinds = {kind for kind, weight in kind_weights.items() if math.isclose(weight, top_weight, rel_tol=1e-9, abs_tol=1e-9)}
         if consensus:
-            consensus_kind = (
-                consensus.kind
-                or kind_from_mime(consensus.mime)
-                or kind_from_extension(consensus.extension)
-                or kind_from_description(consensus.description)
-            )
+            consensus_kind = consensus.kind or kind_from_mime(consensus.mime) or kind_from_extension(consensus.extension) or kind_from_description(consensus.description)
             if consensus_kind and consensus_kind in top_kinds:
                 return consensus_kind
         choice = choose_vote_by_priority(
             candidate_votes,
-            lambda v: (
-                v.kind
-                or kind_from_mime(v.mime)
-                or kind_from_extension(v.extension)
-                or kind_from_description(v.description)
-            )
-            in top_kinds,
+            lambda v: (v.kind or kind_from_mime(v.mime) or kind_from_extension(v.extension) or kind_from_description(v.description)) in top_kinds,
         )
         if choice:
-            return (
-                choice.kind
-                or kind_from_mime(choice.mime)
-                or kind_from_extension(choice.extension)
-                or kind_from_description(choice.description)
-            )
+            return choice.kind or kind_from_mime(choice.mime) or kind_from_extension(choice.extension) or kind_from_description(choice.description)
 
     if consensus:
-        return (
-            consensus.kind
-            or kind_from_mime(consensus.mime)
-            or kind_from_extension(consensus.extension)
-            or kind_from_description(consensus.description)
-        )
+        return consensus.kind or kind_from_mime(consensus.mime) or kind_from_extension(consensus.extension) or kind_from_description(consensus.description)
     return None
 
 
@@ -2145,9 +2183,7 @@ def votes_error_summary(votes: list[FormatVote]) -> str:
     return "detectors could not agree on a media format"
 
 
-def collect_format_votes(
-    path: Path, puremagic_signature: Optional[Signature] = None
-) -> list[FormatVote]:
+def collect_format_votes(path: Path, puremagic_signature: Optional[Signature] = None) -> list[FormatVote]:
     return [
         classify_with_libmagic(path),
         classify_with_puremagic(path, puremagic_signature),
@@ -2183,9 +2219,7 @@ def classify_with_libmagic(path: Path) -> FormatVote:
         return FormatVote(tool="libmagic", error=str(exc))
 
 
-def classify_with_puremagic(
-    path: Path, signature: Optional[Signature] = None
-) -> FormatVote:
+def classify_with_puremagic(path: Path, signature: Optional[Signature] = None) -> FormatVote:
     if signature is None:
         signature = safe_puremagic_guess(path)
     if signature.is_empty():
@@ -2251,11 +2285,7 @@ def classify_with_binwalk(path: Path) -> FormatVote:
     description = None
     for line in result.stdout.splitlines():
         stripped = line.strip()
-        if (
-            not stripped
-            or stripped.upper().startswith("DECIMAL")
-            or stripped.startswith("--")
-        ):
+        if not stripped or stripped.upper().startswith("DECIMAL") or stripped.startswith("--"):
             continue
         parts = stripped.split(None, 2)
         if len(parts) == 3:
@@ -2290,9 +2320,7 @@ def sanitize_path_string(path_str: str) -> str:
 
     # Strip control characters (U+0000 to U+001F and U+007F to U+009F)
     # but preserve path separators and valid unicode characters
-    control_chars = "".join(chr(i) for i in range(0, 32)) + "".join(
-        chr(i) for i in range(127, 160)
-    )
+    control_chars = "".join(chr(i) for i in range(0, 32)) + "".join(chr(i) for i in range(127, 160))
     cleaned = cleaned.translate(str.maketrans("", "", control_chars))
 
     # Normalize unicode to NFC (Canonical Decomposition, followed by Canonical Composition)
@@ -2352,9 +2380,7 @@ def validate_path_argument(path_str: str) -> Path:
             raise argparse.ArgumentTypeError(f"Path does not exist: {path}")
         else:
             # Parent doesn't exist - might be unmounted volume
-            raise argparse.ArgumentTypeError(
-                f"Path does not exist (unmounted volume or network path?): {path}"
-            )
+            raise argparse.ArgumentTypeError(f"Path does not exist (unmounted volume or network path?): {path}")
 
     # Check if we have read permissions
     try:
@@ -2363,9 +2389,7 @@ def validate_path_argument(path_str: str) -> Path:
             try:
                 next(path.iterdir(), None)
             except PermissionError:
-                raise argparse.ArgumentTypeError(
-                    f"Permission denied: Cannot read directory {path}"
-                )
+                raise argparse.ArgumentTypeError(f"Permission denied: Cannot read directory {path}")
             except OSError as e:
                 raise argparse.ArgumentTypeError(f"Cannot access directory {path}: {e}")
         # For files, try to open and read
@@ -2376,9 +2400,7 @@ def validate_path_argument(path_str: str) -> Path:
                     # Try to read first byte to check if file is accessible
                     f.read(1)
             except PermissionError:
-                raise argparse.ArgumentTypeError(
-                    f"Permission denied: Cannot read file {path}"
-                )
+                raise argparse.ArgumentTypeError(f"Permission denied: Cannot read file {path}")
             except OSError as e:
                 # Could be corrupt, on unmounted volume, or other I/O error
                 raise argparse.ArgumentTypeError(f"Cannot read file {path}: {e}")
@@ -2424,9 +2446,7 @@ def check_write_permission(directory: Path, operation_name: str = "write") -> No
             # Successfully created and can write
             tmp.write(b"test")
     except PermissionError:
-        raise PermissionError(
-            f"Permission denied: Cannot {operation_name} in directory {directory}\nPlease check that you have write permissions for this location."
-        )
+        raise PermissionError(f"Permission denied: Cannot {operation_name} in directory {directory}\nPlease check that you have write permissions for this location.")
     except OSError as e:
         raise OSError(f"Cannot {operation_name} in directory {directory}: {e}")
 
@@ -2438,13 +2458,9 @@ def parse_max_image_pixels(value: str) -> Optional[int]:
     try:
         pixels = int(normalized)
     except ValueError as exc:
-        raise argparse.ArgumentTypeError(
-            "max image pixels must be a positive integer or 'none' to disable"
-        ) from exc
+        raise argparse.ArgumentTypeError("max image pixels must be a positive integer or 'none' to disable") from exc
     if pixels <= 0:
-        raise argparse.ArgumentTypeError(
-            "max image pixels must be a positive integer or 'none' to disable"
-        )
+        raise argparse.ArgumentTypeError("max image pixels must be a positive integer or 'none' to disable")
     return pixels
 
 
@@ -2492,8 +2508,7 @@ Examples:
         "-d",
         "--delete",
         action="store_true",
-        help="Delete the temporary FOUND_MEDIA_FILES_<timestamp> folder after a successful import. "
-        "WARNING: This permanently deletes the staging folder. Use -y to skip the confirmation prompt.",
+        help="Delete the temporary FOUND_MEDIA_FILES_<timestamp> folder after a successful import. WARNING: This permanently deletes the staging folder. Use -y to skip the confirmation prompt.",
     )
     parser.add_argument(
         "-r",
@@ -2509,10 +2524,7 @@ Examples:
     parser.add_argument(
         "--skip-bootstrap",
         action="store_true",
-        help="Skip automatic dependency installation via Homebrew/pip. "
-        "Use this if you prefer to install dependencies manually or have security concerns "
-        "about automatic package installation. Required packages: ffmpeg, jpeg-xl, libheif, "
-        "imagemagick, webp, exiftool.",
+        help="Skip automatic dependency installation via Homebrew/pip. Use this if you prefer to install dependencies manually or have security concerns about automatic package installation. Required packages: ffmpeg, jpeg-xl, libheif, imagemagick, webp, exiftool.",
     )
     parser.add_argument(
         "--skip-convert",
@@ -2568,8 +2580,7 @@ Examples:
         "--dry-run",
         dest="dry_run",
         action="store_true",
-        help="Simulate the scan and conversion without moving files or importing. "
-        "Shows what would happen: detected media, needed conversions, and import plan.",
+        help="Simulate the scan and conversion without moving files or importing. Shows what would happen: detected media, needed conversions, and import plan.",
     )
     parser.add_argument(
         "-v",
@@ -2577,8 +2588,7 @@ Examples:
         dest="verbose",
         action="count",
         default=0,
-        help="Increase output verbosity. Use -v for INFO level, -vv for DEBUG level. "
-        "Default shows only warnings and errors.",
+        help="Increase output verbosity. Use -v for INFO level, -vv for DEBUG level. Default shows only warnings and errors.",
     )
     parser.add_argument(
         "-q",
@@ -2590,12 +2600,11 @@ Examples:
     parser.add_argument(
         "--resume",
         dest="resume_staging",
-        type=Path,
+        nargs="?",
+        const="INTERACTIVE",  # Value when --resume is used without argument
         default=None,
         metavar="STAGING_DIR",
-        help="Resume a previous interrupted import from the specified staging directory "
-        "(FOUND_MEDIA_FILES_<timestamp>). Loads state from .smm_state.json and continues "
-        "from where it stopped. Incompatible with PATH argument.",
+        help="Resume a previous interrupted import. Three modes: (1) '--resume <path>' - resume specific staging folder, (2) '--resume last' - auto-resume most recent staging folder, (3) '--resume' - interactive selector. Incompatible with PATH argument.",
     )
 
     args = parser.parse_args()
@@ -2621,19 +2630,35 @@ Examples:
         # --resume is incompatible with PATH argument
         if args.path is not None:
             parser.error("--resume cannot be used with PATH argument")
+
+        if args.resume_staging == "INTERACTIVE":
+            # Interactive mode: show selector
+            search_dir = Path.cwd()
+            selected = interactive_resume_selector(search_dir)
+            if selected is None:
+                print("No staging folder selected. Exiting.")
+                sys.exit(0)
+            args.resume_staging = selected
+        elif args.resume_staging.lower() == "last":
+            # Last mode: auto-select most recent staging folder
+            search_dir = Path.cwd()
+            staging_dirs = find_staging_directories(search_dir)
+            if not staging_dirs:
+                parser.error(f"No staging directories found in {search_dir}\nThere are no FOUND_MEDIA_FILES_* folders with valid state files to resume.")
+            # staging_dirs is sorted newest first, so first one is most recent
+            args.resume_staging = staging_dirs[0][0]
+            print(f"Auto-selecting most recent: {args.resume_staging.name}")
+        else:
+            # Direct path mode: convert to Path
+            args.resume_staging = Path(args.resume_staging)
+
         # Staging directory must exist
         if not args.resume_staging.is_dir():
-            parser.error(
-                f"Resume staging directory does not exist: {args.resume_staging}"
-            )
+            parser.error(f"Resume staging directory does not exist: {args.resume_staging}")
         # State file must exist
         state_file = args.resume_staging / ".smm_state.json"
         if not state_file.exists():
-            parser.error(
-                f"State file not found: {state_file}\n"
-                "The staging directory does not appear to have been created by smart-media-manager, "
-                "or the import was never started."
-            )
+            parser.error(f"State file not found: {state_file}\nThe staging directory does not appear to have been created by smart-media-manager, or the import was never started.")
 
     # Handle default path (current directory) if no path provided
     if args.path is None and args.resume_staging is None:
@@ -2725,9 +2750,7 @@ def extract_and_normalize_metadata(probe_data: dict[str, Any]) -> dict[str, Any]
     # This converts ffprobe field names to canonical UUIDs
     if raw_metadata:
         normalized = metadata_registry.normalize_metadata_dict("ffprobe", raw_metadata)
-        LOG.debug(
-            f"Extracted and normalized {len(normalized)} metadata fields from ffprobe"
-        )
+        LOG.debug(f"Extracted and normalized {len(normalized)} metadata fields from ffprobe")
         return normalized
 
     return {}
@@ -2847,9 +2870,7 @@ def is_video_corrupt_or_truncated(path: Path) -> tuple[bool, Optional[str]]:
         ]
 
         try:
-            result_end = subprocess.run(
-                cmd_end, capture_output=True, text=True, timeout=3
-            )
+            result_end = subprocess.run(cmd_end, capture_output=True, text=True, timeout=3)
             stderr_end = result_end.stderr.lower() if result_end.stderr else ""
 
             for indicator in corruption_indicators:
@@ -2896,9 +2917,7 @@ def is_skippable_file(path: Path) -> Optional[str]:
     return None
 
 
-def detect_media(
-    path: Path, skip_compatibility_check: bool = False
-) -> tuple[Optional[MediaFile], Optional[str]]:
+def detect_media(path: Path, skip_compatibility_check: bool = False) -> tuple[Optional[MediaFile], Optional[str]]:
     filetype_signature = safe_filetype_guess(path)
     puremagic_signature = safe_puremagic_guess(path)
     signatures = [filetype_signature, puremagic_signature]
@@ -2925,30 +2944,18 @@ def detect_media(
                 tool_results[vote.tool] = vote.mime
 
     # Try UUID-based detection
-    detected_uuid = (
-        format_registry.format_detection_result(tool_results) if tool_results else None
-    )
-    uuid_compatible = (
-        format_registry.is_apple_photos_compatible(detected_uuid)
-        if detected_uuid
-        else None
-    )
-    uuid_canonical_name = (
-        format_registry.get_canonical_name(detected_uuid) if detected_uuid else None
-    )
+    detected_uuid = format_registry.format_detection_result(tool_results) if tool_results else None
+    uuid_compatible = format_registry.is_apple_photos_compatible(detected_uuid) if detected_uuid else None
+    uuid_canonical_name = format_registry.get_canonical_name(detected_uuid) if detected_uuid else None
 
     # Register any tool outputs that lack a mapping to help expand the registry
     if tool_results:
         suffix = path.suffix.lower() if path.suffix else ""
 
         def infer_kind() -> str:
-            if is_image_signature(Signature(extension=suffix)) or any(
-                is_image_signature(sig) for sig in signatures
-            ):
+            if is_image_signature(Signature(extension=suffix)) or any(is_image_signature(sig) for sig in signatures):
                 return "image"
-            if is_video_signature(Signature(extension=suffix)) or any(
-                is_video_signature(sig) for sig in signatures
-            ):
+            if is_video_signature(Signature(extension=suffix)) or any(is_video_signature(sig) for sig in signatures):
                 return "video"
             return "container"
 
@@ -2960,9 +2967,7 @@ def detect_media(
 
     # Log UUID detection for debugging
     if detected_uuid:
-        LOG.debug(
-            f"UUID detection for {path.name}: uuid={detected_uuid}, canonical={uuid_canonical_name}, compatible={uuid_compatible}"
-        )
+        LOG.debug(f"UUID detection for {path.name}: uuid={detected_uuid}, canonical={uuid_canonical_name}, compatible={uuid_compatible}")
 
     detected_kind = determine_media_kind(votes, consensus)
     if detected_kind not in {"image", "video", "raw"}:
@@ -3001,11 +3006,7 @@ def detect_media(
     pyfsig_vote = vote_for("pyfsig")
     binwalk_vote = vote_for("binwalk")
 
-    libmagic_values = (
-        [val for val in (libmagic_vote.mime, libmagic_vote.description) if val]
-        if libmagic_vote
-        else []
-    )
+    libmagic_values = [val for val in (libmagic_vote.mime, libmagic_vote.description) if val] if libmagic_vote else []
     puremagic_values: list[str] = []
     if puremagic_vote:
         if puremagic_vote.mime:
@@ -3024,9 +3025,7 @@ def detect_media(
             pyfsig_values.append(pyfsig_vote.extension)
             if pyfsig_vote.extension.startswith("."):
                 pyfsig_values.append(pyfsig_vote.extension.lstrip("."))
-    binwalk_values = (
-        [binwalk_vote.description] if binwalk_vote and binwalk_vote.description else []
-    )
+    binwalk_values = [binwalk_vote.description] if binwalk_vote and binwalk_vote.description else []
 
     video_codec = None
     audio_codec = None
@@ -3069,18 +3068,12 @@ def detect_media(
             if codec_type == "video" and not video_codec:
                 video_codec = (stream.get("codec_name") or "").lower() or None
                 # Extract format parameters for expanded UUID generation
-                video_bit_depth = stream.get(
-                    "bits_per_raw_sample"
-                )  # Bit depth (8, 10, 12, 16)
+                video_bit_depth = stream.get("bits_per_raw_sample")  # Bit depth (8, 10, 12, 16)
                 if not video_bit_depth:
                     # Fallback: try bits_per_component or pix_fmt parsing
                     video_bit_depth = stream.get("bits_per_component")
-                video_pix_fmt = stream.get(
-                    "pix_fmt"
-                )  # Pixel format (yuv420p, yuv422p, etc.)
-                video_profile = stream.get(
-                    "profile"
-                )  # Profile (High, Main, Main 10, etc.)
+                video_pix_fmt = stream.get("pix_fmt")  # Pixel format (yuv420p, yuv422p, etc.)
+                video_profile = stream.get("profile")  # Profile (High, Main, Main 10, etc.)
             elif codec_type == "audio" and not audio_codec:
                 audio_codec = (stream.get("codec_name") or "").lower() or None
                 audio_channels = stream.get("channels")
@@ -3088,9 +3081,7 @@ def detect_media(
                 # Extract audio format parameters
                 sample_rate_val = stream.get("sample_rate")
                 try:
-                    audio_sample_rate = (
-                        int(sample_rate_val) if sample_rate_val is not None else None
-                    )
+                    audio_sample_rate = int(sample_rate_val) if sample_rate_val is not None else None
                 except (TypeError, ValueError):
                     audio_sample_rate = None
                 audio_sample_fmt = stream.get("sample_fmt")
@@ -3107,9 +3098,7 @@ def detect_media(
         if video_codec:
             try:
                 # Translate ffprobe codec name to base UUID using the unified translation layer
-                base_codec_uuid = format_registry.lookup_format_uuid(
-                    "ffprobe", video_codec
-                )
+                base_codec_uuid = format_registry.lookup_format_uuid("ffprobe", video_codec)
                 if base_codec_uuid:
                     # Extract the base UUID (everything before the type suffix)
                     # E.g., "b2e62c4a-6122-548c-9bfa-0fcf3613942a-V" → "b2e62c4a-6122-548c-9bfa-0fcf3613942a"
@@ -3120,11 +3109,7 @@ def detect_media(
                         # Convert bit_depth to int if it's a string
                         bit_depth_int = None
                         if video_bit_depth:
-                            bit_depth_int = (
-                                int(video_bit_depth)
-                                if isinstance(video_bit_depth, str)
-                                else video_bit_depth
-                            )
+                            bit_depth_int = int(video_bit_depth) if isinstance(video_bit_depth, str) else video_bit_depth
 
                         # Build expanded UUID with format parameters
                         # Start with base UUID, append parameters, then type suffix
@@ -3143,13 +3128,9 @@ def detect_media(
                             # No parameters, use base UUID with type suffix
                             video_codec_uuid = base_codec_uuid
 
-                        LOG.debug(
-                            f"Generated expanded video codec UUID for {path.name}: {video_codec_uuid} (base={base_uuid}, codec={video_codec}, bit_depth={bit_depth_int}, pix_fmt={video_pix_fmt}, profile={video_profile})"
-                        )
+                        LOG.debug(f"Generated expanded video codec UUID for {path.name}: {video_codec_uuid} (base={base_uuid}, codec={video_codec}, bit_depth={bit_depth_int}, pix_fmt={video_pix_fmt}, profile={video_profile})")
                     else:
-                        LOG.warning(
-                            f"Base codec UUID has unexpected format for {path.name}: {base_codec_uuid}"
-                        )
+                        LOG.warning(f"Base codec UUID has unexpected format for {path.name}: {base_codec_uuid}")
                         video_codec_uuid = base_codec_uuid  # Use as-is
                 else:
                     UNKNOWN_MAPPINGS.register("ffprobe", video_codec, "video", path)
@@ -3159,9 +3140,7 @@ def detect_media(
                         path.name,
                     )
             except (KeyError, ValueError, AttributeError) as e:
-                LOG.warning(
-                    f"Failed to generate expanded video codec UUID for {path.name}: {e}"
-                )
+                LOG.warning(f"Failed to generate expanded video codec UUID for {path.name}: {e}")
                 # Fall back to base UUID without parameters
                 video_codec_uuid = None
 
@@ -3172,9 +3151,7 @@ def detect_media(
         if audio_codec:
             try:
                 # Translate ffprobe codec name to base UUID using the unified translation layer
-                base_audio_uuid = format_registry.lookup_format_uuid(
-                    "ffprobe", audio_codec
-                )
+                base_audio_uuid = format_registry.lookup_format_uuid("ffprobe", audio_codec)
                 if base_audio_uuid:
                     # Extract the base UUID (everything before the type suffix)
                     # E.g., "501331ba-42ea-561c-e5df-8a824df17e3f-A" → "501331ba-42ea-561c-e5df-8a824df17e3f"
@@ -3197,13 +3174,9 @@ def detect_media(
                             # No parameters, use base UUID with type suffix
                             audio_codec_uuid = base_audio_uuid
 
-                        LOG.debug(
-                            f"Generated expanded audio codec UUID for {path.name}: {audio_codec_uuid} (base={base_uuid}, codec={audio_codec}, sample_rate={audio_sample_rate}, sample_fmt={audio_sample_fmt})"
-                        )
+                        LOG.debug(f"Generated expanded audio codec UUID for {path.name}: {audio_codec_uuid} (base={base_uuid}, codec={audio_codec}, sample_rate={audio_sample_rate}, sample_fmt={audio_sample_fmt})")
                     else:
-                        LOG.warning(
-                            f"Base audio codec UUID has unexpected format for {path.name}: {base_audio_uuid}"
-                        )
+                        LOG.warning(f"Base audio codec UUID has unexpected format for {path.name}: {base_audio_uuid}")
                         audio_codec_uuid = base_audio_uuid  # Use as-is
                 else:
                     UNKNOWN_MAPPINGS.register("ffprobe", audio_codec, "audio", path)
@@ -3213,22 +3186,16 @@ def detect_media(
                         path.name,
                     )
             except (KeyError, ValueError, AttributeError) as e:
-                LOG.warning(
-                    f"Failed to generate expanded audio codec UUID for {path.name}: {e}"
-                )
+                LOG.warning(f"Failed to generate expanded audio codec UUID for {path.name}: {e}")
                 # Fall back to None
                 audio_codec_uuid = None
 
     extension_candidates: list[Optional[str]] = []
     if consensus:
-        consensus_ext = canonicalize_extension(
-            consensus.extension
-        )  # Apply canonicalization to detected extension
+        consensus_ext = canonicalize_extension(consensus.extension)  # Apply canonicalization to detected extension
         if consensus_ext:
             extension_candidates.append(consensus_ext)
-    suffix_ext = canonicalize_extension(
-        path.suffix
-    )  # Apply canonicalization to file suffix
+    suffix_ext = canonicalize_extension(path.suffix)  # Apply canonicalization to file suffix
     if suffix_ext and suffix_ext not in extension_candidates:
         extension_candidates.append(suffix_ext)
     extension_candidates.append(None)
@@ -3265,33 +3232,25 @@ def detect_media(
         # Use expanded video codec UUID as primary, pass container UUID separately
         primary_uuid = video_codec_uuid
         container_uuid_param = detected_uuid
-        LOG.debug(
-            f"Using expanded video codec UUID for {path.name}: {video_codec_uuid} (container UUID: {detected_uuid})"
-        )
+        LOG.debug(f"Using expanded video codec UUID for {path.name}: {video_codec_uuid} (container UUID: {detected_uuid})")
 
     # UUID detected - determine action from JSON
     # Pass audio_codec_uuid instead of audio_codec to use UUID-based compatibility checking
-    uuid_action = format_registry.get_format_action(
-        primary_uuid, video_codec, audio_codec_uuid, container_uuid_param
-    )
+    uuid_action = format_registry.get_format_action(primary_uuid, video_codec, audio_codec_uuid, container_uuid_param)
     if not uuid_action:
         # UUID identified but format is unsupported
         LOG.debug(f"UUID {primary_uuid} identified but unsupported for {path.name}")
         return None, f"non-media: unsupported format (UUID={primary_uuid})"
 
     # UUID system says this format is supported - use its action
-    LOG.debug(
-        f"UUID-based action for {path.name}: {uuid_action} (UUID={primary_uuid}, container={container_uuid_param})"
-    )
+    LOG.debug(f"UUID-based action for {path.name}: {uuid_action} (UUID={primary_uuid}, container={container_uuid_param})")
 
     # JSON is the sole source of truth - we already have uuid_action from above
     # Keep rule for metadata only (rule_id, notes, extensions for legacy compatibility)
     if not rule:
         # No rule found - but UUID system already approved it, so create a minimal rule
         # This shouldn't happen often as most formats should have rules
-        LOG.warning(
-            f"UUID {detected_uuid} approved but no format rule found for {path.name}"
-        )
+        LOG.warning(f"UUID {detected_uuid} approved but no format rule found for {path.name}")
         return None, f"no format rule found for detected UUID {detected_uuid}"
 
     # Use uuid_action as the effective action (JSON is authoritative)
@@ -3310,9 +3269,7 @@ def detect_media(
 
     if rule.category == "raw":
         raw_extensions = [path.suffix] + list(rule.extensions)
-        install_raw_dependency_groups(
-            collect_raw_groups_from_extensions(raw_extensions)
-        )
+        install_raw_dependency_groups(collect_raw_groups_from_extensions(raw_extensions))
         raw_media, raw_reason = refine_raw_media(path, raw_extensions)
         if not raw_media:
             return None, raw_reason or "unsupported raw format"
@@ -3324,12 +3281,8 @@ def detect_media(
         return raw_media, None
 
     original_extension = canonicalize_extension(path.suffix)  # Apply canonicalization
-    consensus_extension = (
-        canonicalize_extension(consensus.extension) if consensus else None
-    )  # Apply canonicalization
-    preferred_extension = (
-        canonicalize_extension(rule.extensions[0]) if rule.extensions else None
-    )  # Apply canonicalization
+    consensus_extension = canonicalize_extension(consensus.extension) if consensus else None  # Apply canonicalization
+    preferred_extension = canonicalize_extension(rule.extensions[0]) if rule.extensions else None  # Apply canonicalization
 
     # NEVER change extension unless format detected differs from file extension
     # Priority: always keep original if valid, only use detected format if no extension or wrong extension
@@ -3338,9 +3291,7 @@ def detect_media(
         extension = original_extension
     elif original_extension:
         # File has extension but it doesn't match detected format - use detected format
-        extension = (
-            consensus_extension or preferred_extension or original_extension or ".media"
-        )
+        extension = consensus_extension or preferred_extension or original_extension or ".media"
     else:
         # File has no extension - use detected format
         extension = consensus_extension or preferred_extension or ".media"
@@ -3366,9 +3317,7 @@ def detect_media(
                 "psd_color_mode": psd_color_mode,
             }
         )
-        refined_media, refine_reason = refine_image_media(
-            media, skip_compatibility_check
-        )
+        refined_media, refine_reason = refine_image_media(media, skip_compatibility_check)
         if refined_media is None:
             return None, refine_reason or "image validation failed"
         return refined_media, None
@@ -3406,9 +3355,7 @@ def detect_media(
         # This includes creation_time, artist, title, etc. with UUID keys
         if normalized_metadata:
             media.metadata.update(normalized_metadata)
-        refined_media, refine_reason = refine_video_media(
-            media, skip_compatibility_check
-        )
+        refined_media, refine_reason = refine_video_media(media, skip_compatibility_check)
         if refined_media is None:
             return None, refine_reason or "video validation failed"
         return refined_media, None
@@ -3554,9 +3501,7 @@ def should_ignore(entry: Path) -> bool:
     # Exclude timestamped log directories (new pattern)
     if name.startswith(SMM_LOGS_SUBDIR):
         return True
-    if name.startswith("DEBUG_raw_applescript_output_") or name.startswith(
-        "DEBUG_photos_output_"
-    ):
+    if name.startswith("DEBUG_raw_applescript_output_") or name.startswith("DEBUG_photos_output_"):
         return True
     if name.startswith("Photos_rejections_"):
         return True
@@ -3637,9 +3582,7 @@ def extract_live_photo_content_id(path: Path) -> Optional[str]:
         )
         if result.returncode == 0 and result.stdout.strip():
             content_id = result.stdout.strip()
-            LOG.debug(
-                "Extracted Live Photo content ID from %s: %s", path.name, content_id
-            )
+            LOG.debug("Extracted Live Photo content ID from %s: %s", path.name, content_id)
             return content_id
     except (subprocess.SubprocessError, OSError) as exc:
         LOG.debug("Failed to extract Live Photo content ID from %s: %s", path.name, exc)
@@ -3733,15 +3676,8 @@ def detect_live_photo_pairs(
             continue
 
         # Find HEIC/JPG and MOV candidates
-        image_candidates = [
-            f
-            for f in files
-            if f.kind == "image"
-            and f.extension.lower() in {".heic", ".heif", ".jpg", ".jpeg"}
-        ]
-        video_candidates = [
-            f for f in files if f.kind == "video" and f.extension.lower() == ".mov"
-        ]
+        image_candidates = [f for f in files if f.kind == "image" and f.extension.lower() in {".heic", ".heif", ".jpg", ".jpeg"}]
+        video_candidates = [f for f in files if f.kind == "video" and f.extension.lower() == ".mov"]
 
         if not image_candidates or not video_candidates:
             continue
@@ -3789,12 +3725,8 @@ def gather_media_files(
 
     def iter_candidate_files() -> Iterable[Path]:
         if recursive:
-            for dirpath, dirnames, filenames in os.walk(
-                root, followlinks=follow_symlinks
-            ):
-                dirnames[:] = [
-                    d for d in dirnames if not should_ignore(Path(dirpath) / d)
-                ]
+            for dirpath, dirnames, filenames in os.walk(root, followlinks=follow_symlinks):
+                dirnames[:] = [d for d in dirnames if not should_ignore(Path(dirpath) / d)]
                 for filename in filenames:
                     entry = Path(dirpath) / filename
                     if should_ignore(entry) or entry.is_dir():
@@ -3829,10 +3761,7 @@ def gather_media_files(
             skip_logger.log(file_path, skippable_reason)
             if "text file" in skippable_reason.lower():
                 stats.total_text_files += 1
-            elif (
-                "empty" in skippable_reason.lower()
-                or "corrupt" in skippable_reason.lower()
-            ):
+            elif "empty" in skippable_reason.lower() or "corrupt" in skippable_reason.lower():
                 stats.skipped_corrupt_or_empty += 1
             else:
                 stats.skipped_other += 1
@@ -3868,9 +3797,7 @@ def gather_media_files(
             reason_lower = reject_reason.lower()
             is_non_media = reason_lower.startswith("non-media:")
             if not is_non_media:
-                is_non_media = any(
-                    keyword in reason_lower for keyword in NON_MEDIA_REASON_KEYWORDS
-                )
+                is_non_media = any(keyword in reason_lower for keyword in NON_MEDIA_REASON_KEYWORDS)
             if "unknown" in reason_lower or "not recognised" in reason_lower:
                 stats.skipped_unknown_format += 1
                 log_reason = reject_reason
@@ -3894,12 +3821,7 @@ def gather_media_files(
 
         suffix = normalize_extension(file_path.suffix)
         signatures = [safe_filetype_guess(file_path), safe_puremagic_guess(file_path)]
-        if (
-            suffix
-            and (suffix in ALL_IMAGE_EXTENSIONS or suffix in VIDEO_EXTENSION_HINTS)
-        ) or any(
-            is_image_signature(sig) or is_video_signature(sig) for sig in signatures
-        ):
+        if (suffix and (suffix in ALL_IMAGE_EXTENSIONS or suffix in VIDEO_EXTENSION_HINTS)) or any(is_image_signature(sig) or is_video_signature(sig) for sig in signatures):
             skip_logger.log(file_path, "corrupt or unsupported media")
             stats.skipped_corrupt_or_empty += 1
 
@@ -4004,9 +3926,7 @@ def move_to_staging(
 
     progress = ProgressReporter(len(media_list), "Staging media")
     for media in media_list:
-        stem = media.source.stem.replace(
-            " ", "_"
-        )  # Replace spaces to avoid Photos/import quirks
+        stem = media.source.stem.replace(" ", "_")  # Replace spaces to avoid Photos/import quirks
 
         if stem_needs_sanitization(stem):
             stem = build_safe_stem(stem, run_token, sequence_counter)
@@ -4022,10 +3942,7 @@ def move_to_staging(
             5,
             min(
                 MAX_SAFE_STEM_LENGTH - len(token_component),
-                MAX_PHOTOS_FILENAME_LENGTH
-                - len(token_component)
-                - len(suffix)
-                - len(media.extension),
+                MAX_PHOTOS_FILENAME_LENGTH - len(token_component) - len(suffix) - len(media.extension),
             ),
         )
         if len(stem) > max_base_len:
@@ -4046,10 +3963,7 @@ def move_to_staging(
                             5,
                             min(
                                 MAX_SAFE_STEM_LENGTH - len(token_component),
-                                MAX_PHOTOS_FILENAME_LENGTH
-                                - len(token_component)
-                                - len(suffix)
-                                - len(media.extension),
+                                MAX_PHOTOS_FILENAME_LENGTH - len(token_component) - len(suffix) - len(media.extension),
                             ),
                         )
                         if len(stem) > max_base_len:
@@ -4076,9 +3990,7 @@ def move_to_staging(
         collision_counter = 1
         while destination.exists():
             collision_counter += 1
-            unique_name = (
-                f"{stem}_({sequence_counter}-{collision_counter}){media.extension}"
-            )
+            unique_name = f"{stem}_({sequence_counter}-{collision_counter}){media.extension}"
             destination = staging / unique_name
 
         media.metadata.setdefault("original_source", str(media.source))
@@ -4128,9 +4040,7 @@ def move_to_staging(
         # Archive original if processing is required (before conversion)
         if media.requires_processing and not copy_files:
             # Use next_available_name for originals since they don't need reconciliation
-            original_target = next_available_name(
-                originals_dir, stem, media.original_suffix or media.extension
-            )
+            original_target = next_available_name(originals_dir, stem, media.original_suffix or media.extension)
             try:
                 shutil.copy2(destination, original_target)
                 media.metadata["original_archive"] = str(original_target)
@@ -4442,9 +4352,7 @@ def convert_animation_to_hevc_mp4(media: MediaFile) -> None:
     if media.stage_path is None:
         raise RuntimeError("Stage path missing for animation conversion")
     original_stage = media.stage_path  # Source file to convert in-place
-    target = next_available_name(
-        original_stage.parent, original_stage.stem, ".mp4"
-    )  # Target extension is .mp4
+    target = next_available_name(original_stage.parent, original_stage.stem, ".mp4")  # Target extension is .mp4
     ffmpeg = ensure_ffmpeg_path()
     cmd = [
         ffmpeg,
@@ -4464,9 +4372,7 @@ def convert_animation_to_hevc_mp4(media: MediaFile) -> None:
         "-an",  # Remove audio tracks
         str(target),
     ]
-    run_command_with_progress(
-        cmd, "Converting animation to HEVC"
-    )  # No try-except, fail fast
+    run_command_with_progress(cmd, "Converting animation to HEVC")  # No try-except, fail fast
     original_stage.unlink()  # Delete original file after successful conversion
     media.stage_path = target  # Update to new converted file
     media.extension = ".mp4"  # Target extension
@@ -4765,9 +4671,7 @@ def resolve_restore_path(path: Path) -> Path:
     return next_available_name(path.parent, path.stem, path.suffix)
 
 
-def revert_media_files(
-    media_files: Iterable[MediaFile], staging: Optional[Path]
-) -> None:
+def revert_media_files(media_files: Iterable[MediaFile], staging: Optional[Path]) -> None:
     for media in media_files:
         original = media.source
         try:
@@ -4799,16 +4703,10 @@ def ensure_compatibility(
         if media.kind == "image":
             return media.extension.lower() in COMPATIBLE_IMAGE_EXTENSIONS
         if media.kind == "video":
-            container = (
-                media.metadata.get("container") or media.format_name or ""
-            ).lower()
+            container = (media.metadata.get("container") or media.format_name or "").lower()
             video_codec = (media.video_codec or "").lower()
             audio_codec = (media.audio_codec or "").lower()
-            return (
-                container in COMPATIBLE_VIDEO_CONTAINERS
-                and video_codec in COMPATIBLE_VIDEO_CODECS
-                and (not audio_codec or audio_codec in COMPATIBLE_AUDIO_CODECS)
-            )
+            return container in COMPATIBLE_VIDEO_CONTAINERS and video_codec in COMPATIBLE_VIDEO_CODECS and (not audio_codec or audio_codec in COMPATIBLE_AUDIO_CODECS)
         return False
 
     for media in media_files:
@@ -4865,18 +4763,14 @@ def ensure_compatibility(
                 media.requires_processing = False
                 media.compatible = True
             elif media.action == "convert_to_png":
-                LOG.debug(
-                    "Converting %s to PNG: %s", media.format_name, media.stage_path
-                )
+                LOG.debug("Converting %s to PNG: %s", media.format_name, media.stage_path)
                 stats.conversion_attempted += 1
                 convert_to_png(media)
                 stats.conversion_succeeded += 1
                 media.was_converted = True
                 LOG.debug("Successfully converted to PNG: %s", media.stage_path)
             elif media.action == "convert_to_tiff":
-                LOG.debug(
-                    "Converting %s to TIFF: %s", media.format_name, media.stage_path
-                )
+                LOG.debug("Converting %s to TIFF: %s", media.format_name, media.stage_path)
                 stats.conversion_attempted += 1
                 convert_to_tiff(media)
                 stats.conversion_succeeded += 1
@@ -4903,9 +4797,7 @@ def ensure_compatibility(
                 convert_animation_to_hevc_mp4(media)
                 stats.conversion_succeeded += 1
                 media.was_converted = True
-                LOG.debug(
-                    "Successfully converted animation to HEVC MP4: %s", media.stage_path
-                )
+                LOG.debug("Successfully converted animation to HEVC MP4: %s", media.stage_path)
             elif media.action == "rewrap_to_mp4":
                 LOG.debug(
                     "Rewrapping %s (%s/%s) to MP4 container: %s",
@@ -4944,9 +4836,7 @@ def ensure_compatibility(
                 transcode_to_hevc_mp4(media, copy_audio=True)
                 stats.conversion_succeeded += 1
                 media.was_converted = True
-                LOG.debug(
-                    "Successfully transcoded to lossless HEVC MP4: %s", media.stage_path
-                )
+                LOG.debug("Successfully transcoded to lossless HEVC MP4: %s", media.stage_path)
             elif media.action == "transcode_audio_to_aac_or_eac3":
                 LOG.debug(
                     "Transcoding audio in %s (%s) to AAC/EAC-3: %s",
@@ -4974,9 +4864,7 @@ def ensure_compatibility(
                 LOG.debug("Successfully converted to MP4: %s", media.stage_path)
             else:
                 # Default: keep and log unknown action
-                skip_logger.log(
-                    media.source, f"unhandled action {media.action}, treating as import"
-                )
+                skip_logger.log(media.source, f"unhandled action {media.action}, treating as import")
                 media.requires_processing = False
                 media.compatible = True
         except Exception as exc:  # noqa: BLE001
@@ -4993,42 +4881,26 @@ def ensure_compatibility(
     progress.finish()
 
 
-def update_stats_after_compatibility(
-    stats: RunStatistics, media_files: list[MediaFile]
-) -> None:
+def update_stats_after_compatibility(stats: RunStatistics, media_files: list[MediaFile]) -> None:
     stats.total_media_detected = len(media_files)
     detected_compatible = sum(1 for media in media_files if media.detected_compatible)
     stats.media_compatible = detected_compatible
     stats.media_incompatible = stats.total_media_detected - detected_compatible
-    stats.incompatible_with_conversion_rule = sum(
-        1
-        for media in media_files
-        if not media.detected_compatible and media.was_converted
-    )
-    stats.staging_total = sum(
-        1 for media in media_files if media.stage_path and media.stage_path.exists()
-    )
-    stats.staging_expected = (
-        detected_compatible + stats.incompatible_with_conversion_rule
-    )
+    stats.incompatible_with_conversion_rule = sum(1 for media in media_files if not media.detected_compatible and media.was_converted)
+    stats.staging_total = sum(1 for media in media_files if media.stage_path and media.stage_path.exists())
+    stats.staging_expected = detected_compatible + stats.incompatible_with_conversion_rule
 
 
 def run_checked(cmd: list[str], timeout: int = 300) -> None:
     LOG.debug("Executing command: %s", " ".join(cmd))
     try:
-        result = subprocess.run(
-            cmd, capture_output=True, text=True, check=False, timeout=timeout
-        )
+        result = subprocess.run(cmd, capture_output=True, text=True, check=False, timeout=timeout)
     except subprocess.TimeoutExpired as exc:
         LOG.error("Command timed out (>%ds): %s", timeout, " ".join(cmd))
-        raise RuntimeError(
-            f"Command '{cmd[0]}' timed out after {timeout} seconds."
-        ) from exc
+        raise RuntimeError(f"Command '{cmd[0]}' timed out after {timeout} seconds.") from exc
     if result.returncode != 0:
         LOG.error("Command failed: %s", result.stderr.strip())
-        raise RuntimeError(
-            f"Command '{cmd[0]}' failed with exit code {result.returncode}."
-        )
+        raise RuntimeError(f"Command '{cmd[0]}' failed with exit code {result.returncode}.")
 
 
 # Pattern for safe album names: alphanumeric, spaces, basic punctuation
@@ -5061,20 +4933,13 @@ def sanitize_album_name(name: str) -> str:
 
     # Check length limit
     if len(sanitized) > MAX_ALBUM_NAME_LENGTH:
-        raise ValueError(
-            f"Album name exceeds maximum length of {MAX_ALBUM_NAME_LENGTH} characters"
-        )
+        raise ValueError(f"Album name exceeds maximum length of {MAX_ALBUM_NAME_LENGTH} characters")
 
     # Validate against safe pattern (prevents quotes, backslashes, newlines, tabs)
     if not SAFE_ALBUM_NAME_PATTERN.match(sanitized):
         # Find the offending characters for a helpful error message
-        unsafe_chars = set(
-            c for c in sanitized if not re.match(r"[\w\s\-_.(),'&]", c, re.UNICODE)
-        )
-        raise ValueError(
-            f"Album name contains unsafe characters: {unsafe_chars!r}. "
-            "Allowed: letters, numbers, spaces, hyphens, underscores, periods, parentheses, commas, apostrophes, ampersands."
-        )
+        unsafe_chars = set(c for c in sanitized if not re.match(r"[\w\s\-_.(),'&]", c, re.UNICODE))
+        raise ValueError(f"Album name contains unsafe characters: {unsafe_chars!r}. Allowed: letters, numbers, spaces, hyphens, underscores, periods, parentheses, commas, apostrophes, ampersands.")
 
     return sanitized
 
@@ -5117,9 +4982,7 @@ def import_folder_to_photos(
         function_start_timestamp,
     )
 
-    staged_media = [
-        media for media in media_files if media.stage_path and media.stage_path.exists()
-    ]
+    staged_media = [media for media in media_files if media.stage_path and media.stage_path.exists()]
     if not staged_media:
         return 0, 0, []
 
@@ -5213,9 +5076,7 @@ end run
     max_retries = 10
     for attempt in range(max_retries):
         # DEBUG: Timestamp when AppleScript execution begins
-        applescript_start_timestamp = dt.datetime.now().strftime(
-            "%Y-%m-%d %H:%M:%S.%f"
-        )[:-3]
+        applescript_start_timestamp = dt.datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
         LOG.debug(
             "📸 TIMESTAMP %s - About to execute AppleScript (osascript) to import folder to Photos.app (attempt %d/%d)",
             applescript_start_timestamp,
@@ -5226,9 +5087,7 @@ end run
         result = run_import_applescript()
 
         # DEBUG: Timestamp when AppleScript execution completes
-        applescript_end_timestamp = dt.datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[
-            :-3
-        ]
+        applescript_end_timestamp = dt.datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
         LOG.debug(
             "📸 TIMESTAMP %s - AppleScript execution COMPLETED",
             applescript_end_timestamp,
@@ -5240,9 +5099,7 @@ end run
             debug_parent = _log_directory() or staging_dir.parent
             timestamp_segment = dt.datetime.now().strftime("%Y%m%d%H%M%S")
             debug_parent.mkdir(parents=True, exist_ok=True)
-            raw_output_file = (
-                debug_parent / f"DEBUG_raw_applescript_output_{timestamp_segment}.txt"
-            )
+            raw_output_file = debug_parent / f"DEBUG_raw_applescript_output_{timestamp_segment}.txt"
             with raw_output_file.open("wb") as binary_handle:
                 binary_handle.write(result.stdout.encode("utf-8"))
             LOG.debug(
@@ -5263,23 +5120,13 @@ end run
                 print("   Please close any Photos dialogs and press Enter to retry...")
                 print("   Or type 'abort' to cancel the import.")
                 try:
-                    user_input = (
-                        input(
-                            f"   [Attempt {attempt + 1}/{max_retries}] Press Enter to retry or 'abort' to cancel: "
-                        )
-                        .strip()
-                        .lower()
-                    )
+                    user_input = input(f"   [Attempt {attempt + 1}/{max_retries}] Press Enter to retry or 'abort' to cancel: ").strip().lower()
                     if user_input == "abort":
-                        raise RuntimeError(
-                            f"Photos import aborted by user after AppleEvent timeout [{err_code}]: {err_msg}"
-                        )
+                        raise RuntimeError(f"Photos import aborted by user after AppleEvent timeout [{err_code}]: {err_msg}")
                     LOG.info("Retrying Photos import after user closed dialog...")
                     continue  # Retry the import
                 except (KeyboardInterrupt, EOFError):
-                    raise RuntimeError(
-                        f"Photos import cancelled by user [{err_code}]: {err_msg}"
-                    )
+                    raise RuntimeError(f"Photos import cancelled by user [{err_code}]: {err_msg}")
 
             # Other errors are fatal
             raise RuntimeError(f"Photos import failed [{err_code}]: {err_msg}")
@@ -5288,9 +5135,7 @@ end run
         break
     else:
         # Exhausted all retries
-        raise RuntimeError(
-            f"Photos import failed after {max_retries} attempts due to repeated AppleEvent timeouts"
-        )
+        raise RuntimeError(f"Photos import failed after {max_retries} attempts due to repeated AppleEvent timeouts")
 
     # Parse imported filenames from AppleScript output
     # Format: "FN\t<filename>" per line
@@ -5303,9 +5148,7 @@ end run
             filename = line[3:]  # Remove "FN\t" prefix
             imported_names.append(filename)
 
-    LOG.debug(
-        f"DEBUG: Parsed {len(imported_names)} filenames from {line_count} total lines"
-    )
+    LOG.debug(f"DEBUG: Parsed {len(imported_names)} filenames from {line_count} total lines")
 
     LOG.debug("Photos returned %d imported filenames", len(imported_names))
 
@@ -5313,9 +5156,7 @@ end run
         debug_parent = _log_directory() or staging_dir.parent
         timestamp_segment = dt.datetime.now().strftime("%Y%m%d%H%M%S")
         debug_parent.mkdir(parents=True, exist_ok=True)
-        photos_output_file = (
-            debug_parent / f"DEBUG_photos_output_{timestamp_segment}.txt"
-        )
+        photos_output_file = debug_parent / f"DEBUG_photos_output_{timestamp_segment}.txt"
         with photos_output_file.open("w", encoding="utf-8") as text_handle:
             text_handle.write("FILENAMES RETURNED BY PHOTOS.APP:\n")
             text_handle.write("=" * 80 + "\n")
@@ -5363,9 +5204,7 @@ end run
         if not assigned:
             unmatched_names.append(name)
 
-    remaining_media = [
-        media for media in staged_media if id(media) not in matched_media_ids
-    ]
+    remaining_media = [media for media in staged_media if id(media) not in matched_media_ids]
     imported_counter: Counter[str] = Counter(unmatched_names)
 
     def consume_exact(name: str) -> Optional[str]:
@@ -5406,27 +5245,17 @@ end run
         candidates = [stage_name]
         staging_stem = media.metadata.get("staging_stem")
         if staging_stem:
-            base_candidate = (
-                f"{staging_stem}{media.extension}" if media.extension else staging_stem
-            )
+            base_candidate = f"{staging_stem}{media.extension}" if media.extension else staging_stem
             if base_candidate not in candidates:
                 candidates.append(base_candidate)
         tokenized_stem = media.metadata.get("staging_tokenized_stem")
         if tokenized_stem:
-            token_base = (
-                f"{tokenized_stem}{media.extension}"
-                if media.extension
-                else tokenized_stem
-            )
+            token_base = f"{tokenized_stem}{media.extension}" if media.extension else tokenized_stem
             if token_base not in candidates:
                 candidates.append(token_base)
             if tokenized_stem.endswith("__"):
                 single_variant = tokenized_stem[:-1]
-                token_base_single = (
-                    f"{single_variant}{media.extension}"
-                    if media.extension
-                    else single_variant
-                )
+                token_base_single = f"{single_variant}{media.extension}" if media.extension else single_variant
                 if token_base_single not in candidates:
                     candidates.append(token_base_single)
                 single_stage = stage_name.replace(tokenized_stem, single_variant)
@@ -5465,21 +5294,14 @@ end run
         )
         rejection_parent = _log_directory() or staging_dir.parent
         rejection_parent.mkdir(parents=True, exist_ok=True)
-        rejection_path = (
-            rejection_parent
-            / f"Photos_rejections_{dt.datetime.now().strftime('%Y%m%d%H%M%S')}.txt"
-        )
+        rejection_path = rejection_parent / f"Photos_rejections_{dt.datetime.now().strftime('%Y%m%d%H%M%S')}.txt"
         with rejection_path.open("w", encoding="utf-8") as rejection_handle:
             rejection_handle.write("FILES REJECTED OR MISSING FROM PHOTOS IMPORT\n")
             rejection_handle.write("=" * 80 + "\n")
             for media in skipped_media:
                 stage_name = media.stage_path.name if media.stage_path else "<missing>"
-                original_source = media.metadata.get("original_source") or str(
-                    media.source
-                )
-                rejection_handle.write(
-                    f"Staged: {stage_name}\tOriginal: {original_source}\n"
-                )
+                original_source = media.metadata.get("original_source") or str(media.source)
+                rejection_handle.write(f"Staged: {stage_name}\tOriginal: {original_source}\n")
             if leftover_imported:
                 rejection_handle.write("\nFILENAMES RETURNED BY PHOTOS WITH NO MATCH\n")
                 rejection_handle.write("=" * 80 + "\n")
@@ -5505,11 +5327,7 @@ def prompt_retry_failed_imports() -> bool:
     """Prompt the user whether to retry failed Apple Photos imports."""
     while True:
         try:
-            response = (
-                input("\nWould you like to retry importing the failed files? (y/n): ")
-                .strip()
-                .lower()
-            )
+            response = input("\nWould you like to retry importing the failed files? (y/n): ").strip().lower()
             if response in ("y", "yes"):
                 return True
             elif response in ("n", "no"):
@@ -5658,9 +5476,7 @@ def validate_root(path: Path, allow_file: bool = False) -> Path:
     if not resolved.exists():
         raise RuntimeError(f"Path does not exist: {resolved}")
     if not resolved.is_dir() and not (allow_file and resolved.is_file()):
-        raise RuntimeError(
-            f"Path must be a {'file or ' if allow_file else ''}directory: {resolved}"
-        )
+        raise RuntimeError(f"Path must be a {'file or ' if allow_file else ''}directory: {resolved}")
     return resolved
 
 
@@ -5668,14 +5484,10 @@ def main() -> int:
     global _QUIET_MODE  # Allow setting the global flag for quiet mode
     args = parse_args()  # Parse args first to get verbosity/quiet flags
     _QUIET_MODE = args.quiet  # Set global flag for progress bar suppression
-    configure_logging(
-        args.verbose, args.quiet
-    )  # Configure logging with verbosity level
+    configure_logging(args.verbose, args.quiet)  # Configure logging with verbosity level
     print_banner(args.quiet)  # Print ASCII art banner with version
     LOG.info("smart-media-manager %s", __version__)
-    skip_bootstrap = args.skip_bootstrap or bool(
-        os.environ.get("SMART_MEDIA_MANAGER_SKIP_BOOTSTRAP")
-    )
+    skip_bootstrap = args.skip_bootstrap or bool(os.environ.get("SMART_MEDIA_MANAGER_SKIP_BOOTSTRAP"))
     if skip_bootstrap:
         LOG.debug("Skipping dependency bootstrap (manual mode).")
     else:
@@ -5711,9 +5523,7 @@ def main() -> int:
 
             # Reconstruct media_files from state
             media_files = [state.dict_to_media_file(mf) for mf in state.files]
-            LOG.info(
-                "Loaded %d file(s) from state, phase: %s", len(media_files), state.phase
-            )
+            LOG.info("Loaded %d file(s) from state, phase: %s", len(media_files), state.phase)
             print(f"Loaded {len(media_files)} file(s), phase: {state.phase}")
 
             # Count completed and failed
@@ -5725,9 +5535,7 @@ def main() -> int:
                     completed_count,
                     failed_count,
                 )
-                print(
-                    f"Previously completed: {completed_count}, failed: {failed_count}"
-                )
+                print(f"Previously completed: {completed_count}, failed: {failed_count}")
 
             # Jump to appropriate phase based on saved state
             if state.phase == "staged":
@@ -5786,16 +5594,12 @@ def main() -> int:
                 return ExitCode.PERMISSION_DENIED
 
             try:
-                check_write_permission(
-                    output_dir, "create skip logs and staging directory"
-                )
+                check_write_permission(output_dir, "create skip logs and staging directory")
             except (PermissionError, OSError) as e:
                 print(f"ERROR: {e}", file=sys.stderr)
                 return ExitCode.PERMISSION_DENIED
 
-            log_path = attach_file_logger(
-                root, run_ts
-            )  # root arg kept for compatibility, not used for log location
+            log_path = attach_file_logger(root, run_ts)  # root arg kept for compatibility, not used for log location
             configure_pillow_max_image_pixels(args.max_image_pixels)
 
             for dependency in ("ffprobe", "ffmpeg", "osascript"):
@@ -5849,12 +5653,7 @@ def main() -> int:
                 LOG.info("Dry run mode - no files will be modified")
                 print_dry_run_summary(media_files, stats)
                 # Clean up skip log if empty (no entries yet in dry run)
-                if (
-                    skip_log
-                    and skip_log.exists()
-                    and skip_logger
-                    and not skip_logger.has_entries()
-                ):
+                if skip_log and skip_log.exists() and skip_logger and not skip_logger.has_entries():
                     skip_log.unlink()
                 return ExitCode.SUCCESS
 
@@ -5866,9 +5665,7 @@ def main() -> int:
             # CRITICAL: Must NOT be inside staging_root or Photos will try to import incompatible original files!
             originals_root = output_dir / f"ORIGINALS_{run_ts}"
 
-            move_to_staging(
-                media_files, staging_root, originals_root, copy_files=args.copy_mode
-            )
+            move_to_staging(media_files, staging_root, originals_root, copy_files=args.copy_mode)
 
             # Save state after staging (for --resume support)
             state = StagingState(
@@ -5898,31 +5695,21 @@ def main() -> int:
 
         # Both resume and normal mode converge here for import phase
 
-        missing_media: list[MediaFile] = [
-            media
-            for media in media_files
-            if not media.stage_path or not media.stage_path.exists()
-        ]
+        missing_media: list[MediaFile] = [media for media in media_files if not media.stage_path or not media.stage_path.exists()]
 
         if missing_media:
-            missing_listing = ", ".join(
-                str((m.stage_path or m.source)) for m in missing_media[:5]
-            )
+            missing_listing = ", ".join(str((m.stage_path or m.source)) for m in missing_media[:5])
             raise RuntimeError(f"Missing staged file(s): {missing_listing}")
 
         staged_count = len(media_files)
-        LOG.info(
-            "Preparing to import %d staged file(s) into Apple Photos", staged_count
-        )
+        LOG.info("Preparing to import %d staged file(s) into Apple Photos", staged_count)
         print(f"\nStaging completed: {staged_count} file(s) ready for Photos import.")
 
         update_stats_after_compatibility(stats, media_files)
         stats.log_summary()
         stats.print_summary()
 
-        LOG.info(
-            "Importing %d file(s) into Apple Photos via folder import...", staged_count
-        )
+        LOG.info("Importing %d file(s) into Apple Photos via folder import...", staged_count)
         print(f"Importing {staged_count} file(s) into Apple Photos...")
 
         # Update state to importing phase (for --resume support)
@@ -5951,11 +5738,7 @@ def main() -> int:
         # Log skipped files (duplicates or rejected by Photos) and populate stats
         if skipped_media:
             for media in skipped_media:
-                log_target = (
-                    media.stage_path
-                    or media.metadata.get("original_source")
-                    or media.source
-                )
+                log_target = media.stage_path or media.metadata.get("original_source") or media.source
                 skip_logger.log(
                     Path(log_target),
                     "Skipped by Photos (duplicate or incompatible format)",
@@ -6004,13 +5787,11 @@ def main() -> int:
 
             if retry_media:
                 # Retry import with only the failed files
-                retry_imported, retry_skipped, retry_skipped_media = (
-                    import_folder_to_photos(
-                        staging_dir=retry_staging,
-                        media_files=retry_media,
-                        album_name=args.album,
-                        skip_duplicates=args.skip_duplicate_check,
-                    )
+                retry_imported, retry_skipped, retry_skipped_media = import_folder_to_photos(
+                    staging_dir=retry_staging,
+                    media_files=retry_media,
+                    album_name=args.album,
+                    skip_duplicates=args.skip_duplicate_check,
                 )
 
                 # Update statistics with retry results
@@ -6020,14 +5801,8 @@ def main() -> int:
                 # Update refused_filenames with final failures
                 stats.refused_filenames.clear()
                 for media in retry_skipped_media:
-                    log_target = (
-                        media.stage_path
-                        or media.metadata.get("original_source")
-                        or media.source
-                    )
-                    stats.refused_filenames.append(
-                        (Path(log_target), "Failed after retry")
-                    )
+                    log_target = media.stage_path or media.metadata.get("original_source") or media.source
+                    stats.refused_filenames.append((Path(log_target), "Failed after retry"))
                     skip_logger.log(Path(log_target), "Failed after retry")
 
                 # Clean up retry staging folder
@@ -6039,9 +5814,7 @@ def main() -> int:
                     retry_imported,
                     len(retry_skipped_media),
                 )
-                print(
-                    f"Retry complete: {retry_imported} imported, {len(retry_skipped_media)} still failed"
-                )
+                print(f"Retry complete: {retry_imported} imported, {len(retry_skipped_media)} still failed")
 
                 # Reprint final statistics
                 stats.print_summary()
@@ -6133,11 +5906,7 @@ class ProgressReporter:
         if _QUIET_MODE:
             return
         now = time.time()
-        if (
-            not force
-            and now - self.last_render < 0.1
-            and (not self.dynamic and self.completed < self.total)
-        ):
+        if not force and now - self.last_render < 0.1 and (not self.dynamic and self.completed < self.total):
             return
         self.last_render = now
         if self.dynamic:
@@ -6146,17 +5915,11 @@ class ProgressReporter:
             percent = min(self.completed / self.total if self.total else 1.0, 1.0)
             elapsed = now - self.start
             rate = self.completed / elapsed if elapsed > 0 else 0
-            remaining = (
-                (self.total - self.completed) / rate if rate > 0 else float("inf")
-            )
+            remaining = (self.total - self.completed) / rate if rate > 0 else float("inf")
             bar_len = 30
             filled = int(bar_len * percent)
             bar = "#" * filled + "-" * (bar_len - filled)
-            eta = (
-                "--:--"
-                if remaining == float("inf")
-                else time.strftime("%M:%S", time.gmtime(int(remaining)))
-            )
+            eta = "--:--" if remaining == float("inf") else time.strftime("%M:%S", time.gmtime(int(remaining)))
             sys.stdout.write(f"\r{self.label}: [{bar}] {percent * 100:5.1f}% ETA {eta}")
         sys.stdout.flush()
 

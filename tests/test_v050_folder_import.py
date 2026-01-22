@@ -27,9 +27,7 @@ from smart_media_manager.cli import (  # noqa: E402
 from tests.helpers import stage_media  # noqa: E402
 
 
-STAGING_NAME_RE = re.compile(
-    r"^(?P<stem>.+)__SMM(?P<token>[A-Za-z0-9]+)__(?P<suffix>_\([0-9-]+\))(?P<ext>\.[^.]+)$"
-)
+STAGING_NAME_RE = re.compile(r"^(?P<stem>.+)__SMM(?P<token>[A-Za-z0-9]+)__(?P<suffix>_\([0-9-]+\))(?P<ext>\.[^.]+)$")
 
 
 def assert_staged_name(name: str, expected_suffix: str, expected_ext: str) -> None:
@@ -105,9 +103,7 @@ class TestSequentialSuffixStaging:
         assert_staged_name(media.stage_path.name, expected_suffix, ".jpg")
         assert media.stage_path.exists()
 
-    def test_sequential_suffix_same_stem_different_folders(
-        self, tmp_path: Path
-    ) -> None:
+    def test_sequential_suffix_same_stem_different_folders(self, tmp_path: Path) -> None:
         """Test that files with same name from different folders get unique suffixes."""
         source_dir1 = tmp_path / "source1"
         source_dir1.mkdir()
@@ -476,9 +472,7 @@ class TestFolderImport:
                     skip_duplicates=True,
                 )
 
-    def test_import_folder_to_photos_appleevent_timeout_abort(
-        self, tmp_path: Path
-    ) -> None:
+    def test_import_folder_to_photos_appleevent_timeout_abort(self, tmp_path: Path) -> None:
         """Test that AppleEvent timeout (-1712) is handled with user abort."""
         staging = tmp_path / "staging"
         staging.mkdir()
@@ -571,9 +565,7 @@ class TestFolderImport:
         trimmed_name1 = f"{match.group(1)}{match.group(2)}"
 
         single_token_name = re.sub(r"(__SMM[0-9A-Za-z]+)__", r"\1_", staged_name1)
-        extra_token_name = (
-            single_token_name.replace("_ ", "_") + "_62abc123_SMMdeadbeef__"
-        )
+        extra_token_name = single_token_name.replace("_ ", "_") + "_62abc123_SMMdeadbeef__"
 
         returned_names = "\n".join(
             [
@@ -584,9 +576,7 @@ class TestFolderImport:
         )
 
         with patch("subprocess.run") as mock_run:
-            mock_run.return_value = MagicMock(
-                returncode=0, stdout=returned_names, stderr=""
-            )
+            mock_run.return_value = MagicMock(returncode=0, stdout=returned_names, stderr="")
 
             imported, skipped, skipped_media = import_folder_to_photos(
                 staging_dir=staging,
@@ -761,22 +751,16 @@ class TestCLIArguments:
         args = parse_args()
         assert args.album == "My Custom Album"
 
-    def test_skip_duplicate_check_argument_default(
-        self, tmp_path: Path, monkeypatch
-    ) -> None:
+    def test_skip_duplicate_check_argument_default(self, tmp_path: Path, monkeypatch) -> None:
         """Test --skip-duplicate-check is False by default (duplicate checking enabled)."""
         monkeypatch.setattr("sys.argv", ["smart-media-manager", str(tmp_path)])
         args = parse_args()
         assert hasattr(args, "skip_duplicate_check")
         assert args.skip_duplicate_check is False
 
-    def test_skip_duplicate_check_argument_enabled(
-        self, tmp_path: Path, monkeypatch
-    ) -> None:
+    def test_skip_duplicate_check_argument_enabled(self, tmp_path: Path, monkeypatch) -> None:
         """Test --skip-duplicate-check flag when enabled."""
-        monkeypatch.setattr(
-            "sys.argv", ["smart-media-manager", "--skip-duplicate-check", str(tmp_path)]
-        )
+        monkeypatch.setattr("sys.argv", ["smart-media-manager", "--skip-duplicate-check", str(tmp_path)])
         args = parse_args()
         assert args.skip_duplicate_check is True
 
@@ -840,9 +824,7 @@ class TestCLIArguments:
 
     def test_combined_short_flags(self, tmp_path: Path, monkeypatch) -> None:
         """Test combining multiple short flags."""
-        monkeypatch.setattr(
-            "sys.argv", ["smart-media-manager", "-r", "-c", "-n", str(tmp_path)]
-        )
+        monkeypatch.setattr("sys.argv", ["smart-media-manager", "-r", "-c", "-n", str(tmp_path)])
         args = parse_args()
         assert args.recursive is True
         assert args.copy_mode is True

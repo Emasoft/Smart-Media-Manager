@@ -158,9 +158,7 @@ class TestConvertVideo:
 
         # Partial target should be cleaned up by exception handler
         mp4_files = list(tmp_path.glob("*.mp4"))
-        assert len(mp4_files) == 0, (
-            f"Expected cleanup to remove partial MP4, but found: {mp4_files}"
-        )
+        assert len(mp4_files) == 0, f"Expected cleanup to remove partial MP4, but found: {mp4_files}"
 
 
 class TestTranscodeToHevcMp4:
@@ -168,9 +166,7 @@ class TestTranscodeToHevcMp4:
 
     @patch("smart_media_manager.cli.run_command_with_progress")
     @patch("smart_media_manager.cli.ensure_ffmpeg_path")
-    def test_transcode_to_hevc_mp4_with_aac_audio(
-        self, mock_ffmpeg, mock_run, tmp_path
-    ):
+    def test_transcode_to_hevc_mp4_with_aac_audio(self, mock_ffmpeg, mock_run, tmp_path):
         """Test transcode_to_hevc_mp4 transcodes to HEVC with AAC audio."""
         from smart_media_manager.cli import transcode_to_hevc_mp4, MediaFile
 
@@ -217,9 +213,7 @@ class TestTranscodeToHevcMp4:
 
     @patch("smart_media_manager.cli.run_command_with_progress")
     @patch("smart_media_manager.cli.ensure_ffmpeg_path")
-    def test_transcode_to_hevc_mp4_with_copy_audio(
-        self, mock_ffmpeg, mock_run, tmp_path
-    ):
+    def test_transcode_to_hevc_mp4_with_copy_audio(self, mock_ffmpeg, mock_run, tmp_path):
         """Test transcode_to_hevc_mp4 copies audio when copy_audio=True."""
         from smart_media_manager.cli import transcode_to_hevc_mp4, MediaFile
 
@@ -268,9 +262,7 @@ class TestTranscodeToHevcMp4:
 
     @patch("smart_media_manager.cli.run_command_with_progress")
     @patch("smart_media_manager.cli.ensure_ffmpeg_path")
-    def test_transcode_to_hevc_mp4_cleans_up_on_failure(
-        self, mock_ffmpeg, mock_run, tmp_path
-    ):
+    def test_transcode_to_hevc_mp4_cleans_up_on_failure(self, mock_ffmpeg, mock_run, tmp_path):
         """Test transcode_to_hevc_mp4 cleans up partial target on failure."""
         from smart_media_manager.cli import transcode_to_hevc_mp4, MediaFile
         from pathlib import Path
@@ -310,9 +302,7 @@ class TestTranscodeToHevcMp4:
         # Partial target should be cleaned up by exception handler
         # Note: target has _1.mp4 suffix (next_available_name), so we can distinguish it
         mp4_files = [f for f in tmp_path.glob("*.mp4") if f != source]
-        assert len(mp4_files) == 0, (
-            f"Expected cleanup to remove partial MP4, but found: {mp4_files}"
-        )
+        assert len(mp4_files) == 0, f"Expected cleanup to remove partial MP4, but found: {mp4_files}"
 
 
 class TestConvertAnimationToHevcMp4:
@@ -320,9 +310,7 @@ class TestConvertAnimationToHevcMp4:
 
     @patch("smart_media_manager.cli.run_command_with_progress")
     @patch("smart_media_manager.cli.ensure_ffmpeg_path")
-    def test_convert_animation_to_hevc_mp4_succeeds(
-        self, mock_ffmpeg, mock_run, tmp_path
-    ):
+    def test_convert_animation_to_hevc_mp4_succeeds(self, mock_ffmpeg, mock_run, tmp_path):
         """Test convert_animation_to_hevc_mp4 converts animation to HEVC MP4."""
         from smart_media_manager.cli import convert_animation_to_hevc_mp4, MediaFile
 
@@ -364,9 +352,7 @@ class TestConvertAnimationToHevcMp4:
         assert media.compatible is True
 
     @patch("smart_media_manager.cli.ensure_ffmpeg_path")
-    def test_convert_animation_to_hevc_mp4_raises_when_stage_path_missing(
-        self, mock_ffmpeg
-    ):
+    def test_convert_animation_to_hevc_mp4_raises_when_stage_path_missing(self, mock_ffmpeg):
         """Test convert_animation_to_hevc_mp4 raises when stage_path is None."""
         from smart_media_manager.cli import convert_animation_to_hevc_mp4, MediaFile
 
@@ -387,9 +373,7 @@ class TestTranscodeAudioToSupported:
 
     @patch("smart_media_manager.cli.run_command_with_progress")
     @patch("smart_media_manager.cli.ensure_ffmpeg_path")
-    def test_transcode_audio_to_supported_uses_aac_for_stereo(
-        self, mock_ffmpeg, mock_run, tmp_path
-    ):
+    def test_transcode_audio_to_supported_uses_aac_for_stereo(self, mock_ffmpeg, mock_run, tmp_path):
         """Test transcode_audio_to_supported uses AAC for stereo audio."""
         from smart_media_manager.cli import transcode_audio_to_supported, MediaFile
 
@@ -424,9 +408,7 @@ class TestTranscodeAudioToSupported:
 
     @patch("smart_media_manager.cli.run_command_with_progress")
     @patch("smart_media_manager.cli.ensure_ffmpeg_path")
-    def test_transcode_audio_to_supported_uses_eac3_for_surround(
-        self, mock_ffmpeg, mock_run, tmp_path
-    ):
+    def test_transcode_audio_to_supported_uses_eac3_for_surround(self, mock_ffmpeg, mock_run, tmp_path):
         """Test transcode_audio_to_supported uses EAC3 for 5.1 surround."""
         from smart_media_manager.cli import transcode_audio_to_supported, MediaFile
 
@@ -459,9 +441,7 @@ class TestTranscodeAudioToSupported:
 
     @patch("smart_media_manager.cli.run_command_with_progress")
     @patch("smart_media_manager.cli.ensure_ffmpeg_path")
-    def test_transcode_audio_to_supported_cleans_up_on_failure(
-        self, mock_ffmpeg, mock_run, tmp_path
-    ):
+    def test_transcode_audio_to_supported_cleans_up_on_failure(self, mock_ffmpeg, mock_run, tmp_path):
         """Test transcode_audio_to_supported cleans up on failure."""
         from smart_media_manager.cli import transcode_audio_to_supported, MediaFile
         from pathlib import Path
@@ -502,9 +482,7 @@ class TestTranscodeAudioToSupported:
         # Partial target should be cleaned up by exception handler
         # Note: target has _1.mp4 suffix (next_available_name), so we can distinguish it
         mp4_files = [f for f in tmp_path.glob("*.mp4") if f != source]
-        assert len(mp4_files) == 0, (
-            f"Expected cleanup to remove partial MP4, but found: {mp4_files}"
-        )
+        assert len(mp4_files) == 0, f"Expected cleanup to remove partial MP4, but found: {mp4_files}"
 
 
 class TestRewrapOrTranscodeToMp4:
@@ -512,9 +490,7 @@ class TestRewrapOrTranscodeToMp4:
 
     @patch("smart_media_manager.cli.run_command_with_progress")
     @patch("smart_media_manager.cli.ensure_ffmpeg_path")
-    def test_rewrap_or_transcode_to_mp4_succeeds_with_rewrap(
-        self, mock_ffmpeg, mock_run, tmp_path
-    ):
+    def test_rewrap_or_transcode_to_mp4_succeeds_with_rewrap(self, mock_ffmpeg, mock_run, tmp_path):
         """Test rewrap_or_transcode_to_mp4 succeeds with fast rewrap."""
         from smart_media_manager.cli import rewrap_or_transcode_to_mp4, MediaFile
 
@@ -546,9 +522,7 @@ class TestRewrapOrTranscodeToMp4:
 
     @patch("smart_media_manager.cli.run_command_with_progress")
     @patch("smart_media_manager.cli.ensure_ffmpeg_path")
-    def test_rewrap_or_transcode_to_mp4_falls_back_to_transcode(
-        self, mock_ffmpeg, mock_run, tmp_path
-    ):
+    def test_rewrap_or_transcode_to_mp4_falls_back_to_transcode(self, mock_ffmpeg, mock_run, tmp_path):
         """Test rewrap_or_transcode_to_mp4 falls back to transcode on rewrap failure."""
         from smart_media_manager.cli import rewrap_or_transcode_to_mp4, MediaFile
 
@@ -585,9 +559,7 @@ class TestRewrapOrTranscodeToMp4:
         assert media.compatible is True
 
     @patch("smart_media_manager.cli.ensure_ffmpeg_path")
-    def test_rewrap_or_transcode_to_mp4_raises_when_stage_path_missing(
-        self, mock_ffmpeg
-    ):
+    def test_rewrap_or_transcode_to_mp4_raises_when_stage_path_missing(self, mock_ffmpeg):
         """Test rewrap_or_transcode_to_mp4 raises when stage_path is None."""
         from smart_media_manager.cli import rewrap_or_transcode_to_mp4, MediaFile
 
@@ -604,9 +576,7 @@ class TestRewrapOrTranscodeToMp4:
 
     @patch("smart_media_manager.cli.run_command_with_progress")
     @patch("smart_media_manager.cli.ensure_ffmpeg_path")
-    def test_rewrap_or_transcode_to_mp4_raises_when_both_fail(
-        self, mock_ffmpeg, mock_run, tmp_path
-    ):
+    def test_rewrap_or_transcode_to_mp4_raises_when_both_fail(self, mock_ffmpeg, mock_run, tmp_path):
         """Test rewrap_or_transcode_to_mp4 raises when both rewrap and transcode fail."""
         from smart_media_manager.cli import rewrap_or_transcode_to_mp4, MediaFile
 

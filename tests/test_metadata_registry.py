@@ -33,9 +33,7 @@ def test_load_metadata_registry(sample_registry: Dict[str, Any]) -> None:
         "apple_specific",
     ]
     for category in expected_categories:
-        assert category in sample_registry["metadata_fields"], (
-            f"Missing category: {category}"
-        )
+        assert category in sample_registry["metadata_fields"], f"Missing category: {category}"
 
 
 def test_lookup_metadata_field_uuid_exiftool_temporal(
@@ -43,9 +41,7 @@ def test_lookup_metadata_field_uuid_exiftool_temporal(
 ) -> None:
     """Test looking up UUID for ExifTool temporal metadata field."""
     # ExifTool's DateTimeOriginal should map to creation_datetime UUID
-    uuid = metadata_registry.lookup_metadata_field_uuid(
-        "exiftool", "EXIF:DateTimeOriginal"
-    )
+    uuid = metadata_registry.lookup_metadata_field_uuid("exiftool", "EXIF:DateTimeOriginal")
     assert uuid is not None
     assert uuid.endswith("-M")
     assert uuid == "3d4f8a9c-1e7b-5c3d-9a2f-4e8c1b7d3a9f-M"
@@ -66,16 +62,10 @@ def test_lookup_metadata_field_uuid_cross_tool_consistency(
     sample_registry: Dict[str, Any],
 ) -> None:
     """Test that different tools' field names map to same UUID for same semantic field."""
-    exiftool_uuid = metadata_registry.lookup_metadata_field_uuid(
-        "exiftool", "EXIF:DateTimeOriginal"
-    )
-    ffprobe_uuid = metadata_registry.lookup_metadata_field_uuid(
-        "ffprobe", "creation_time"
-    )
+    exiftool_uuid = metadata_registry.lookup_metadata_field_uuid("exiftool", "EXIF:DateTimeOriginal")
+    ffprobe_uuid = metadata_registry.lookup_metadata_field_uuid("ffprobe", "creation_time")
 
-    assert exiftool_uuid == ffprobe_uuid, (
-        "Different tools should map to same UUID for creation datetime"
-    )
+    assert exiftool_uuid == ffprobe_uuid, "Different tools should map to same UUID for creation datetime"
 
 
 def test_lookup_metadata_field_uuid_not_found(sample_registry: Dict[str, Any]) -> None:
@@ -88,12 +78,8 @@ def test_lookup_metadata_field_uuid_spatial_gps(
     sample_registry: Dict[str, Any],
 ) -> None:
     """Test looking up UUID for GPS spatial metadata fields."""
-    lat_uuid = metadata_registry.lookup_metadata_field_uuid(
-        "exiftool", "GPS:GPSLatitude"
-    )
-    lon_uuid = metadata_registry.lookup_metadata_field_uuid(
-        "exiftool", "GPS:GPSLongitude"
-    )
+    lat_uuid = metadata_registry.lookup_metadata_field_uuid("exiftool", "GPS:GPSLatitude")
+    lon_uuid = metadata_registry.lookup_metadata_field_uuid("exiftool", "GPS:GPSLongitude")
 
     assert lat_uuid is not None
     assert lon_uuid is not None
@@ -118,9 +104,7 @@ def test_get_canonical_field_name_spatial(sample_registry: Dict[str, Any]) -> No
 
 def test_get_canonical_field_name_not_found(sample_registry: Dict[str, Any]) -> None:
     """Test that non-existent UUID returns None."""
-    canonical = metadata_registry.get_canonical_field_name(
-        "00000000-0000-0000-0000-000000000000-M"
-    )
+    canonical = metadata_registry.get_canonical_field_name("00000000-0000-0000-0000-000000000000-M")
     assert canonical is None
 
 
@@ -148,9 +132,7 @@ def test_get_tool_field_names_ffprobe(sample_registry: Dict[str, Any]) -> None:
 
 def test_get_tool_field_names_not_found(sample_registry: Dict[str, Any]) -> None:
     """Test that non-existent UUID returns empty list."""
-    field_names = metadata_registry.get_tool_field_names(
-        "00000000-0000-0000-0000-000000000000-M", "exiftool"
-    )
+    field_names = metadata_registry.get_tool_field_names("00000000-0000-0000-0000-000000000000-M", "exiftool")
     assert field_names == []
 
 
@@ -158,9 +140,7 @@ def test_translate_field_name_exiftool_to_ffprobe(
     sample_registry: Dict[str, Any],
 ) -> None:
     """Test translating field name from ExifTool to FFprobe."""
-    ffprobe_field = metadata_registry.translate_field_name(
-        "exiftool", "EXIF:DateTimeOriginal", "ffprobe"
-    )
+    ffprobe_field = metadata_registry.translate_field_name("exiftool", "EXIF:DateTimeOriginal", "ffprobe")
     assert ffprobe_field is not None
     assert ffprobe_field == "creation_time"
 
@@ -169,9 +149,7 @@ def test_translate_field_name_ffprobe_to_exiftool(
     sample_registry: Dict[str, Any],
 ) -> None:
     """Test translating field name from FFprobe to ExifTool."""
-    exiftool_field = metadata_registry.translate_field_name(
-        "ffprobe", "creation_time", "exiftool"
-    )
+    exiftool_field = metadata_registry.translate_field_name("ffprobe", "creation_time", "exiftool")
     assert exiftool_field is not None
     assert exiftool_field in [
         "EXIF:DateTimeOriginal",
@@ -182,9 +160,7 @@ def test_translate_field_name_ffprobe_to_exiftool(
 
 def test_translate_field_name_not_found(sample_registry: Dict[str, Any]) -> None:
     """Test that translation returns None for non-existent field."""
-    result = metadata_registry.translate_field_name(
-        "exiftool", "NonExistentField", "ffprobe"
-    )
+    result = metadata_registry.translate_field_name("exiftool", "NonExistentField", "ffprobe")
     assert result is None
 
 
@@ -201,10 +177,7 @@ def test_normalize_metadata_dict_ffprobe(sample_registry: Dict[str, Any]) -> Non
     assert isinstance(normalized, dict)
     # creation_time should be mapped to UUID
     assert "3d4f8a9c-1e7b-5c3d-9a2f-4e8c1b7d3a9f-M" in normalized
-    assert (
-        normalized["3d4f8a9c-1e7b-5c3d-9a2f-4e8c1b7d3a9f-M"]
-        == "2024-01-15T10:30:00.000000Z"
-    )
+    assert normalized["3d4f8a9c-1e7b-5c3d-9a2f-4e8c1b7d3a9f-M"] == "2024-01-15T10:30:00.000000Z"
 
 
 def test_normalize_metadata_dict_exiftool(sample_registry: Dict[str, Any]) -> None:
@@ -260,9 +233,7 @@ def test_get_field_description_spatial(sample_registry: Dict[str, Any]) -> None:
 
 def test_get_field_description_not_found(sample_registry: Dict[str, Any]) -> None:
     """Test that non-existent UUID returns None for description."""
-    description = metadata_registry.get_field_description(
-        "00000000-0000-0000-0000-000000000000-M"
-    )
+    description = metadata_registry.get_field_description("00000000-0000-0000-0000-000000000000-M")
     assert description is None
 
 
@@ -300,12 +271,8 @@ def test_metadata_registry_all_fields_have_uuids(
 
     for category_name, category_fields in metadata_fields.items():
         for field_name, field_info in category_fields.items():
-            assert "uuid" in field_info, (
-                f"Field {category_name}.{field_name} missing UUID"
-            )
-            assert field_info["uuid"].endswith("-M"), (
-                f"Field {category_name}.{field_name} UUID should end with -M"
-            )
+            assert "uuid" in field_info, f"Field {category_name}.{field_name} missing UUID"
+            assert field_info["uuid"].endswith("-M"), f"Field {category_name}.{field_name} UUID should end with -M"
 
 
 def test_metadata_registry_all_fields_have_tool_mappings(
@@ -316,19 +283,13 @@ def test_metadata_registry_all_fields_have_tool_mappings(
 
     for category_name, category_fields in metadata_fields.items():
         for field_name, field_info in category_fields.items():
-            assert "tool_mappings" in field_info, (
-                f"Field {category_name}.{field_name} missing tool_mappings"
-            )
-            assert len(field_info["tool_mappings"]) > 0, (
-                f"Field {category_name}.{field_name} has empty tool_mappings"
-            )
+            assert "tool_mappings" in field_info, f"Field {category_name}.{field_name} missing tool_mappings"
+            assert len(field_info["tool_mappings"]) > 0, f"Field {category_name}.{field_name} has empty tool_mappings"
 
 
 def test_apple_specific_live_photo_content_id(sample_registry: Dict[str, Any]) -> None:
     """Test Apple-specific Live Photo content identifier field."""
-    uuid = metadata_registry.lookup_metadata_field_uuid(
-        "exiftool", "QuickTime:ContentIdentifier"
-    )
+    uuid = metadata_registry.lookup_metadata_field_uuid("exiftool", "QuickTime:ContentIdentifier")
     assert uuid is not None
     assert uuid.endswith("-M")
 
@@ -354,12 +315,8 @@ def test_technical_camera_fields(sample_registry: Dict[str, Any]) -> None:
 
 def test_authorship_fields(sample_registry: Dict[str, Any]) -> None:
     """Test authorship metadata fields (creator, copyright)."""
-    creator_uuid = metadata_registry.lookup_metadata_field_uuid(
-        "exiftool", "EXIF:Artist"
-    )
-    copyright_uuid = metadata_registry.lookup_metadata_field_uuid(
-        "exiftool", "EXIF:Copyright"
-    )
+    creator_uuid = metadata_registry.lookup_metadata_field_uuid("exiftool", "EXIF:Artist")
+    copyright_uuid = metadata_registry.lookup_metadata_field_uuid("exiftool", "EXIF:Copyright")
 
     assert creator_uuid is not None
     assert copyright_uuid is not None
@@ -367,9 +324,7 @@ def test_authorship_fields(sample_registry: Dict[str, Any]) -> None:
 
     # FFprobe should map to same UUIDs
     ffprobe_creator = metadata_registry.lookup_metadata_field_uuid("ffprobe", "artist")
-    ffprobe_copyright = metadata_registry.lookup_metadata_field_uuid(
-        "ffprobe", "copyright"
-    )
+    ffprobe_copyright = metadata_registry.lookup_metadata_field_uuid("ffprobe", "copyright")
 
     assert ffprobe_creator == creator_uuid
     assert ffprobe_copyright == copyright_uuid

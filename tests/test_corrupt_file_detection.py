@@ -120,9 +120,7 @@ def test_truncated_jpeg_is_rejected(tmp_path: Path) -> None:
         # If it got through detection, it better be marked as incompatible
         truncated_media = [m for m in media_files if "truncated" in m.source.name]
         for m in truncated_media:
-            pytest.fail(
-                f"Truncated JPEG should be rejected, but got: action={m.action}, compatible={m.compatible}"
-            )
+            pytest.fail(f"Truncated JPEG should be rejected, but got: action={m.action}, compatible={m.compatible}")
 
     # Should have been skipped entirely
     assert len(media_files) == 0, "Truncated JPEG should be rejected during scan"
@@ -166,14 +164,10 @@ def test_truncated_mp4_is_rejected(tmp_path: Path) -> None:
     if len(media_files) > 0:
         truncated_media = [m for m in media_files if "truncated" in m.source.name]
         for m in truncated_media:
-            pytest.fail(
-                f"Truncated MP4 should be rejected! This causes 'Unknown Error' in Photos. Got: action={m.action}"
-            )
+            pytest.fail(f"Truncated MP4 should be rejected! This causes 'Unknown Error' in Photos. Got: action={m.action}")
 
     # Should have been skipped with reason logged
-    assert len(media_files) == 0, (
-        "Truncated MP4 MUST be rejected - causes Photos import errors!"
-    )
+    assert len(media_files) == 0, "Truncated MP4 MUST be rejected - causes Photos import errors!"
 
 
 def test_mp4_without_moov_atom_is_rejected(tmp_path: Path) -> None:
@@ -325,9 +319,7 @@ def test_video_with_invalid_codec_is_rejected(tmp_path: Path) -> None:
     if len(media_files) > 0:
         for m in media_files:
             if "corrupted" in m.source.name:
-                pytest.fail(
-                    f"Corrupted video should be rejected! Got: action={m.action}"
-                )
+                pytest.fail(f"Corrupted video should be rejected! Got: action={m.action}")
 
     assert len(media_files) == 0, "Corrupted video should be rejected"
 
@@ -441,17 +433,11 @@ def test_only_valid_files_reach_photos_import(tmp_path: Path) -> None:
 
     # CRITICAL ASSERTION: Only valid files should pass
     # Note: valid.mp4 is Dolby Vision (correctly rejected), so only valid.jpg should pass
-    assert len(media_files) == 1, (
-        f"Should have exactly 1 valid file (valid.jpg), got {len(media_files)}"
-    )
+    assert len(media_files) == 1, f"Should have exactly 1 valid file (valid.jpg), got {len(media_files)}"
 
     for media in media_files:
-        assert "valid" in media.source.name, (
-            f"CRITICAL: Invalid file reached staging: {media.source.name}"
-        )
-        assert media.source.name == "valid.jpg", (
-            f"Only valid.jpg should pass (valid.mp4 is Dolby Vision), got: {media.source.name}"
-        )
+        assert "valid" in media.source.name, f"CRITICAL: Invalid file reached staging: {media.source.name}"
+        assert media.source.name == "valid.jpg", f"Only valid.jpg should pass (valid.mp4 is Dolby Vision), got: {media.source.name}"
 
     # Stage and process
     if len(media_files) > 0:
@@ -473,31 +459,16 @@ def test_only_valid_files_reach_photos_import(tmp_path: Path) -> None:
         # If import failed due to path issues, that's okay - the corruption detection already worked
         if imported_count == 0 or len(failed_list) > 0:
             # Check if this is a path resolution issue
-            path_issues = (
-                any(
-                    "-1728" in str(reason) or "Can't get POSIX file" in str(reason)
-                    for _, reason in failed_list
-                )
-                if failed_list
-                else False
-            )
+            path_issues = any("-1728" in str(reason) or "Can't get POSIX file" in str(reason) for _, reason in failed_list) if failed_list else False
 
             if path_issues or imported_count == 0:
                 # AppleScript can't resolve pytest tmp_path (known limitation)
                 # The important thing is NO CORRUPT FILES reached this point
-                print(
-                    "Import had path resolution issues (expected in test env), but corruption detection worked!"
-                )
+                print("Import had path resolution issues (expected in test env), but corruption detection worked!")
             else:
                 # Real import failure that should be investigated
-                assert False, (
-                    f"Valid file failed import for non-path reason: {failed_list}"
-                )
+                assert False, f"Valid file failed import for non-path reason: {failed_list}"
 
     # Verify skip log contains rejected files
     skip_content = (tmp_path / "skip.log").read_text()
-    assert (
-        "truncated" in skip_content.lower()
-        or "empty" in skip_content.lower()
-        or "corrupt" in skip_content.lower()
-    ), "Skip log should document why invalid files were rejected"
+    assert "truncated" in skip_content.lower() or "empty" in skip_content.lower() or "corrupt" in skip_content.lower(), "Skip log should document why invalid files were rejected"

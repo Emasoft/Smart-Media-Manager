@@ -17,9 +17,7 @@ class TestCollectFormatVotes:
     @patch("smart_media_manager.cli.classify_with_pyfsig")
     @patch("smart_media_manager.cli.classify_with_puremagic")
     @patch("smart_media_manager.cli.classify_with_libmagic")
-    def test_collect_format_votes_calls_all_classifiers(
-        self, mock_libmagic, mock_puremagic, mock_pyfsig, mock_binwalk, tmp_path
-    ):
+    def test_collect_format_votes_calls_all_classifiers(self, mock_libmagic, mock_puremagic, mock_pyfsig, mock_binwalk, tmp_path):
         """Test collect_format_votes calls all 4 classifiers."""
         from smart_media_manager.cli import collect_format_votes, FormatVote
 
@@ -27,16 +25,10 @@ class TestCollectFormatVotes:
         test_file.touch()
 
         # Create mock votes
-        mock_libmagic.return_value = FormatVote(
-            tool="libmagic", mime="image/jpeg", extension=".jpg"
-        )
-        mock_puremagic.return_value = FormatVote(
-            tool="puremagic", mime="image/jpeg", extension=".jpg"
-        )
+        mock_libmagic.return_value = FormatVote(tool="libmagic", mime="image/jpeg", extension=".jpg")
+        mock_puremagic.return_value = FormatVote(tool="puremagic", mime="image/jpeg", extension=".jpg")
         mock_pyfsig.return_value = FormatVote(tool="pyfsig", extension=".jpg")
-        mock_binwalk.return_value = FormatVote(
-            tool="binwalk", description="JPEG image data"
-        )
+        mock_binwalk.return_value = FormatVote(tool="binwalk", description="JPEG image data")
 
         result = collect_format_votes(test_file)
 
@@ -57,9 +49,7 @@ class TestCollectFormatVotes:
     @patch("smart_media_manager.cli.classify_with_pyfsig")
     @patch("smart_media_manager.cli.classify_with_puremagic")
     @patch("smart_media_manager.cli.classify_with_libmagic")
-    def test_collect_format_votes_passes_puremagic_signature(
-        self, mock_libmagic, mock_puremagic, mock_pyfsig, mock_binwalk, tmp_path
-    ):
+    def test_collect_format_votes_passes_puremagic_signature(self, mock_libmagic, mock_puremagic, mock_pyfsig, mock_binwalk, tmp_path):
         """Test collect_format_votes passes puremagic signature."""
         from smart_media_manager.cli import collect_format_votes, FormatVote
 
@@ -109,15 +99,9 @@ class TestSelectConsensusVote:
         from smart_media_manager.cli import select_consensus_vote, FormatVote
 
         votes = [
-            FormatVote(
-                tool="libmagic", mime="image/jpeg", extension=".jpg", kind="image"
-            ),
-            FormatVote(
-                tool="puremagic", mime="image/jpeg", extension=".jpg", kind="image"
-            ),
-            FormatVote(
-                tool="binwalk", mime="image/png", extension=".png", kind="image"
-            ),
+            FormatVote(tool="libmagic", mime="image/jpeg", extension=".jpg", kind="image"),
+            FormatVote(tool="puremagic", mime="image/jpeg", extension=".jpg", kind="image"),
+            FormatVote(tool="binwalk", mime="image/png", extension=".png", kind="image"),
         ]
 
         result = select_consensus_vote(votes)
@@ -164,9 +148,7 @@ class TestSelectConsensusVote:
 
         votes = [
             FormatVote(tool="libmagic", mime="image/jpeg", extension=".jpg"),
-            FormatVote(
-                tool="puremagic", mime="image/jpg", extension=".jpg"
-            ),  # Different MIME but same meaning
+            FormatVote(tool="puremagic", mime="image/jpg", extension=".jpg"),  # Different MIME but same meaning
         ]
 
         result = select_consensus_vote(votes)
@@ -180,12 +162,8 @@ class TestSelectConsensusVote:
         from smart_media_manager.cli import select_consensus_vote, FormatVote
 
         votes = [
-            FormatVote(
-                tool="binwalk", mime="image/jpeg", extension=".jpg"
-            ),  # weight 1.2
-            FormatVote(
-                tool="puremagic", mime="image/png", extension=".png"
-            ),  # weight 1.1
+            FormatVote(tool="binwalk", mime="image/jpeg", extension=".jpg"),  # weight 1.2
+            FormatVote(tool="puremagic", mime="image/png", extension=".png"),  # weight 1.1
             FormatVote(tool="pyfsig", mime="video/mp4", extension=".mp4"),  # weight 1.0
         ]
 
@@ -284,9 +262,7 @@ class TestDetermineMediaKind:
         from smart_media_manager.cli import determine_media_kind, FormatVote
 
         votes = [
-            FormatVote(
-                tool="libmagic", kind="image"
-            ),  # priority 0 (highest weight 1.4)
+            FormatVote(tool="libmagic", kind="image"),  # priority 0 (highest weight 1.4)
             FormatVote(tool="binwalk", kind="video"),  # priority 1 (weight 1.2)
         ]
 

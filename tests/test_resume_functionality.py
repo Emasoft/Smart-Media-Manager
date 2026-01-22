@@ -389,9 +389,7 @@ class TestResumeArgumentParsing:
             )
         )
 
-        monkeypatch.setattr(
-            "sys.argv", ["smm", "--resume", str(staging_dir), "--skip-bootstrap"]
-        )
+        monkeypatch.setattr("sys.argv", ["smm", "--resume", str(staging_dir), "--skip-bootstrap"])
 
         args = parse_args()
 
@@ -454,9 +452,7 @@ class TestResumeArgumentParsing:
         staging_dir = tmp_path / "FOUND_MEDIA_FILES_20250101120000"
         staging_dir.mkdir()  # No state file
 
-        monkeypatch.setattr(
-            "sys.argv", ["smm", "--resume", str(staging_dir), "--skip-bootstrap"]
-        )
+        monkeypatch.setattr("sys.argv", ["smm", "--resume", str(staging_dir), "--skip-bootstrap"])
 
         from smart_media_manager.cli import parse_args
 

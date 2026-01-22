@@ -73,9 +73,7 @@ def load_format_registry() -> Dict[str, Any]:
         return _REGISTRY
 
     try:
-        resource_path = resources.files("smart_media_manager").joinpath(
-            "format_registry.json"
-        )
+        resource_path = resources.files("smart_media_manager").joinpath("format_registry.json")
         with resource_path.open("r", encoding="utf-8") as handle:
             _REGISTRY = json.load(handle)
             LOG.info(
@@ -104,12 +102,8 @@ def load_compatibility_data() -> Dict[str, Any]:
     compat_path = Path(__file__).parent / "format_compatibility.json"
     if not compat_path.exists():
         LOG.error(f"FATAL: Compatibility data not found at {compat_path}")
-        LOG.error(
-            "This file must be included in the package. The installation is corrupted."
-        )
-        LOG.error(
-            "Please reinstall: uv tool uninstall smart-media-manager && uv tool install smart-media-manager"
-        )
+        LOG.error("This file must be included in the package. The installation is corrupted.")
+        LOG.error("Please reinstall: uv tool uninstall smart-media-manager && uv tool install smart-media-manager")
         raise FileNotFoundError(f"Critical file missing: {compat_path}")
 
     try:
@@ -130,9 +124,7 @@ def load_compatibility_data() -> Dict[str, Any]:
         return _COMPATIBILITY
     except Exception as exc:
         LOG.error(f"FATAL: Failed to load compatibility data: {exc}")
-        raise RuntimeError(
-            f"Failed to load critical compatibility data from {compat_path}"
-        ) from exc
+        raise RuntimeError(f"Failed to load critical compatibility data from {compat_path}") from exc
 
 
 def lookup_format_uuid(tool_name: str, tool_output: str) -> Optional[str]:
@@ -288,23 +280,15 @@ def get_format_action(
     # For videos, check container AND codecs
     # If container_uuid is provided, check container compatibility first
     if container_uuid:
-        container_compatible = container_uuid in apple_compat.get("videos", {}).get(
-            "compatible_containers", []
-        )
-        container_needs_rewrap = container_uuid in apple_compat.get("videos", {}).get(
-            "needs_rewrap", []
-        )
+        container_compatible = container_uuid in apple_compat.get("videos", {}).get("compatible_containers", [])
+        container_needs_rewrap = container_uuid in apple_compat.get("videos", {}).get("needs_rewrap", [])
 
         # Check video codec compatibility
-        video_codec_compatible = format_uuid in apple_compat.get("videos", {}).get(
-            "compatible_video_codecs", []
-        )
+        video_codec_compatible = format_uuid in apple_compat.get("videos", {}).get("compatible_video_codecs", [])
 
         # Pattern-based matching for video codecs
         video_needs_transcode = False
-        for transcode_pattern in apple_compat.get("videos", {}).get(
-            "needs_transcode_video", []
-        ):
+        for transcode_pattern in apple_compat.get("videos", {}).get("needs_transcode_video", []):
             if _uuid_matches_pattern(format_uuid, transcode_pattern):
                 video_needs_transcode = True
                 break
@@ -324,9 +308,7 @@ def get_format_action(
             if audio_codec:
                 # Extract base UUID from expanded audio codec UUID
                 audio_needs_transcode = False
-                for transcode_pattern in apple_compat.get("videos", {}).get(
-                    "needs_transcode_audio", []
-                ):
+                for transcode_pattern in apple_compat.get("videos", {}).get("needs_transcode_audio", []):
                     if _uuid_matches_pattern(audio_codec, transcode_pattern):
                         audio_needs_transcode = True
                         break
@@ -348,9 +330,7 @@ def get_format_action(
         # Check audio codec compatibility using UUID matching
         if audio_codec:
             audio_needs_transcode = False
-            for transcode_pattern in apple_compat.get("videos", {}).get(
-                "needs_transcode_audio", []
-            ):
+            for transcode_pattern in apple_compat.get("videos", {}).get("needs_transcode_audio", []):
                 if _uuid_matches_pattern(audio_codec, transcode_pattern):
                     audio_needs_transcode = True
                     break
@@ -364,9 +344,7 @@ def get_format_action(
 
     # Pattern-based matching for video codecs with parameters
     # Check if UUID matches any transcode patterns (10-bit H.264, 4:2:2, 4:4:4)
-    for transcode_pattern in apple_compat.get("videos", {}).get(
-        "needs_transcode_video", []
-    ):
+    for transcode_pattern in apple_compat.get("videos", {}).get("needs_transcode_video", []):
         if _uuid_matches_pattern(format_uuid, transcode_pattern):
             return "transcode_to_hevc_mp4"
 
@@ -377,19 +355,13 @@ def get_format_action(
     if format_uuid in apple_compat.get("videos", {}).get("needs_rewrap", []):
         return "rewrap_to_mp4"  # Container incompatible, but codecs compatible
 
-    if format_uuid in apple_compat.get("videos", {}).get(
-        "needs_transcode_container", []
-    ):
-        return (
-            "transcode_to_hevc_mp4"  # Container always needs full transcode (e.g., AVI)
-        )
+    if format_uuid in apple_compat.get("videos", {}).get("needs_transcode_container", []):
+        return "transcode_to_hevc_mp4"  # Container always needs full transcode (e.g., AVI)
 
     # Check audio codec separately using UUID matching
     if audio_codec:
         audio_needs_transcode = False
-        for transcode_pattern in apple_compat.get("videos", {}).get(
-            "needs_transcode_audio", []
-        ):
+        for transcode_pattern in apple_compat.get("videos", {}).get("needs_transcode_audio", []):
             if _uuid_matches_pattern(audio_codec, transcode_pattern):
                 audio_needs_transcode = True
                 break

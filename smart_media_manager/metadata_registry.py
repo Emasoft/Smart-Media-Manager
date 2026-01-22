@@ -31,19 +31,14 @@ def load_metadata_registry() -> Dict[str, Any]:
 
     registry_path = Path(__file__).parent / "metadata_registry.json"
     if not registry_path.exists():
-        LOG.warning(
-            f"Metadata registry not found at {registry_path}, using empty registry"
-        )
+        LOG.warning(f"Metadata registry not found at {registry_path}, using empty registry")
         _METADATA_REGISTRY = {}
         return _METADATA_REGISTRY
 
     try:
         with open(registry_path) as f:
             _METADATA_REGISTRY = json.load(f)
-            field_count = sum(
-                len(fields)
-                for fields in _METADATA_REGISTRY.get("metadata_fields", {}).values()
-            )
+            field_count = sum(len(fields) for fields in _METADATA_REGISTRY.get("metadata_fields", {}).values())
             LOG.info(f"Loaded metadata registry with {field_count} field definitions")
             return _METADATA_REGISTRY
     except Exception as exc:
@@ -133,18 +128,12 @@ def get_tool_field_names(field_uuid: str, tool_name: str) -> List[str]:
                 tool_mappings = field_info.get("tool_mappings", {})
                 field_names = tool_mappings.get(tool_name, [])
                 # Ensure we return List[str], not Any - validate each item is a string
-                return (
-                    [str(name) for name in field_names]
-                    if isinstance(field_names, list)
-                    else []
-                )
+                return [str(name) for name in field_names] if isinstance(field_names, list) else []
 
     return []
 
 
-def translate_field_name(
-    source_tool: str, source_field: str, target_tool: str
-) -> Optional[str]:
+def translate_field_name(source_tool: str, source_field: str, target_tool: str) -> Optional[str]:
     """Translate a field name from one tool to another using UUID mapping.
 
     Args:

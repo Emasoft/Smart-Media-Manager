@@ -35,12 +35,8 @@ def test_ci_samples_exist(test_set_config: TestSetConfig):
 
     # Verify they're small enough for CI (only applies to public test set)
     if test_set_config.max_total_size_bytes is not None:
-        assert image_file.stat().st_size < 300 * 1024, (
-            "Test image should be under 300KB"
-        )
-        assert video_file.stat().st_size < 300 * 1024, (
-            "Test video should be under 300KB"
-        )
+        assert image_file.stat().st_size < 300 * 1024, "Test image should be under 300KB"
+        assert video_file.stat().st_size < 300 * 1024, "Test video should be under 300KB"
 
 
 @pytest.mark.minimal
@@ -53,25 +49,19 @@ def test_image_file_readable(sample_image: Path | None):
 
     # Verify we can open and read the image
     with Image.open(sample_image) as img:
-        assert img.format in ("JPEG", "PNG", "WEBP", "BMP", "TIFF"), (
-            f"Should be a valid image format, got {img.format}"
-        )
+        assert img.format in ("JPEG", "PNG", "WEBP", "BMP", "TIFF"), f"Should be a valid image format, got {img.format}"
         assert img.size[0] > 0 and img.size[1] > 0, "Should have valid dimensions"
 
 
 @pytest.mark.minimal
-def test_video_file_exists_and_small(
-    sample_video: Path | None, test_set_config: TestSetConfig
-):
+def test_video_file_exists_and_small(sample_video: Path | None, test_set_config: TestSetConfig):
     """Test that sample video exists and is appropriately sized."""
     if sample_video is None:
         pytest.skip("No video sample available in current test set")
 
     # Basic file validation without requiring ffprobe
     assert sample_video.exists(), "Video file should exist"
-    assert sample_video.suffix in (".mp4", ".mov", ".mkv"), (
-        f"Should have video extension, got {sample_video.suffix}"
-    )
+    assert sample_video.suffix in (".mp4", ".mov", ".mkv"), f"Should have video extension, got {sample_video.suffix}"
     assert sample_video.stat().st_size > 1000, "Should be larger than 1KB (not empty)"
 
     # Size limit only applies to public test set
@@ -212,9 +202,7 @@ def test_raw_dependency_group_canon():
         # Canon requires: libraw (brew), adobe-dng-converter (cask)
         # NOTE: pip packages (rawpy) are NOT installed at runtime
         mock_ensure_pkg.assert_called_once_with("/opt/homebrew/bin/brew", "libraw")
-        mock_ensure_cask.assert_called_once_with(
-            "/opt/homebrew/bin/brew", "adobe-dng-converter"
-        )
+        mock_ensure_cask.assert_called_once_with("/opt/homebrew/bin/brew", "adobe-dng-converter")
 
 
 @pytest.mark.minimal
