@@ -1406,7 +1406,7 @@ def run_command_with_progress(
                 with capture_path.open("r", encoding="utf-8") as capture_reader:
                     data = capture_reader.read()
                     output_tail = data[-4000:].strip()
-            except Exception:
+            except OSError:
                 output_tail = "(failed to read command output)"
             error_message = (
                 f"Command '{command[0]}' failed with exit code {proc.returncode}."
@@ -1603,7 +1603,7 @@ def copy_metadata_from_source(source: Path, target: Path) -> None:
         LOG.debug(
             "Exiftool metadata copy timed out (>30s) for %s -> %s", source, target
         )
-    except Exception as e:
+    except (subprocess.SubprocessError, OSError) as e:
         LOG.debug("Exiftool metadata copy failed for %s -> %s: %s", source, target, e)
 
 
@@ -2866,7 +2866,7 @@ def detect_media(
                         video_codec,
                         path.name,
                     )
-            except Exception as e:
+            except (KeyError, ValueError, AttributeError) as e:
                 LOG.warning(
                     f"Failed to generate expanded video codec UUID for {path.name}: {e}"
                 )
@@ -2920,7 +2920,7 @@ def detect_media(
                         audio_codec,
                         path.name,
                     )
-            except Exception as e:
+            except (KeyError, ValueError, AttributeError) as e:
                 LOG.warning(
                     f"Failed to generate expanded audio codec UUID for {path.name}: {e}"
                 )
@@ -3311,9 +3311,9 @@ def is_photos_managed_file(path: Path) -> bool:
                 timeout=5,
             )
             return "com.apple.assetsd.UUID" in result.stdout
-        except Exception:
+        except (subprocess.SubprocessError, OSError):
             return False
-    except Exception:
+    except OSError:
         return False
 
 
@@ -3349,7 +3349,7 @@ def extract_live_photo_content_id(path: Path) -> Optional[str]:
                 "Extracted Live Photo content ID from %s: %s", path.name, content_id
             )
             return content_id
-    except Exception as exc:
+    except (subprocess.SubprocessError, OSError) as exc:
         LOG.debug("Failed to extract Live Photo content ID from %s: %s", path.name, exc)
     return None
 
@@ -3402,7 +3402,7 @@ def is_panoramic_photo(path: Path) -> bool:
             ):
                 LOG.debug("Detected panoramic photo: %s", path.name)
                 return True
-    except Exception as exc:
+    except (subprocess.SubprocessError, OSError) as exc:
         LOG.debug("Failed to check panoramic metadata for %s: %s", path.name, exc)
     return False
 
@@ -3900,7 +3900,7 @@ def convert_image(media: MediaFile) -> None:
         media.extension = ".jpg"
         media.format_name = "jpeg"
         media.compatible = True
-    except Exception:
+    except (RuntimeError, OSError):
         # Conversion failed - clean up partial target, keep original
         with suppress(OSError):
             if target.exists():
@@ -3956,7 +3956,7 @@ def convert_video(media: MediaFile) -> None:
         media.video_codec = "h264"
         media.audio_codec = "aac" if media.audio_codec else None
         media.compatible = True
-    except Exception:
+    except (RuntimeError, OSError):
         # Conversion failed - clean up partial target, keep original
         with suppress(OSError):
             if target.exists():
@@ -3995,7 +3995,7 @@ def convert_to_png(media: MediaFile) -> None:
         media.format_name = "png"
         media.requires_processing = False
         media.compatible = True
-    except Exception:
+    except (RuntimeError, OSError):
         # Clean up partial target, keep original
         with suppress(OSError):
             if target.exists():
@@ -4035,7 +4035,7 @@ def convert_to_tiff(media: MediaFile) -> None:
         media.format_name = "tiff"
         media.requires_processing = False
         media.compatible = True
-    except Exception:
+    except (RuntimeError, OSError):
         # Clean up partial target, keep original
         with suppress(OSError):
             if target.exists():
@@ -4119,7 +4119,7 @@ def convert_to_heic_lossless(media: MediaFile) -> None:
         media.format_name = "heic"
         media.requires_processing = False
         media.compatible = True
-    except Exception:
+    except (RuntimeError, OSError):
         # Clean up partial target and intermediate files, keep original
         with suppress(OSError):
             if target.exists():
@@ -4314,7 +4314,7 @@ def transcode_to_hevc_mp4(media: MediaFile, copy_audio: bool = False) -> None:
         media.audio_codec = media.audio_codec if copy_audio else "aac"
         media.requires_processing = False
         media.compatible = True
-    except Exception:
+    except (RuntimeError, OSError):
         # Transcoding failed - clean up partial target, keep original
         with suppress(OSError):
             if target.exists():
@@ -4367,7 +4367,7 @@ def transcode_audio_to_supported(media: MediaFile) -> None:
         media.audio_codec = audio_codec
         media.requires_processing = False
         media.compatible = True
-    except Exception:
+    except (RuntimeError, OSError):
         # Conversion failed - clean up partial target, keep original
         with suppress(OSError):
             if target.exists():
@@ -4415,7 +4415,7 @@ def rewrap_or_transcode_to_mp4(media: MediaFile) -> None:
         media.requires_processing = False
         media.compatible = True
         return
-    except Exception:
+    except (RuntimeError, OSError):
         # Rewrap failed, clean up and try transcode
         with suppress(OSError):
             if target.exists():
@@ -4453,7 +4453,7 @@ def rewrap_or_transcode_to_mp4(media: MediaFile) -> None:
         media.format_name = "mp4"
         media.requires_processing = False
         media.compatible = True
-    except Exception:
+    except (RuntimeError, OSError):
         # Clean up partial target, keep original
         with suppress(OSError):
             if target.exists():

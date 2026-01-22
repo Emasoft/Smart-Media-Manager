@@ -120,14 +120,15 @@ class TestExtractLivePhotoContentId:
     def test_extract_live_photo_content_id_handles_exception(
         self, mock_find, mock_run, tmp_path
     ):
-        """Test extract_live_photo_content_id handles generic exceptions."""
+        """Test extract_live_photo_content_id handles subprocess exceptions."""
         from smart_media_manager.cli import extract_live_photo_content_id
+        import subprocess
 
         test_file = tmp_path / "IMG_1234.HEIC"
         test_file.touch()
 
         mock_find.return_value = "/usr/bin/exiftool"
-        mock_run.side_effect = Exception("Unexpected error")
+        mock_run.side_effect = subprocess.SubprocessError("Unexpected error")
 
         result = extract_live_photo_content_id(test_file)
 
