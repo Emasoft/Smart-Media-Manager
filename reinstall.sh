@@ -34,7 +34,7 @@ echo "    Built: $WHEEL_PATH"
 # Reinstall as uv tool
 echo "[4/4] Reinstalling as uv tool..."
 uv tool uninstall smart-media-manager 2>/dev/null || true
-uv tool install "$WHEEL_PATH"
+uv tool install "$WHEEL_PATH" --python 3.12
 
 echo ""
 echo "=== Done ==="
