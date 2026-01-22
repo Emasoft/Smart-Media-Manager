@@ -2473,12 +2473,14 @@ Examples:
         help="Directory to scan (default: current directory) or path to a single file",
     )
     parser.add_argument(
+        "-d",
         "--delete",
         action="store_true",
         help="Delete the temporary FOUND_MEDIA_FILES_<timestamp> folder after a successful import. "
         "WARNING: This permanently deletes the staging folder. Use -y to skip the confirmation prompt.",
     )
     parser.add_argument(
+        "-r",
         "--recursive",
         action="store_true",
         help="Recursively scan the folder for media files.",
@@ -2525,6 +2527,7 @@ Examples:
         help="Skip duplicate checking during import (faster but may import duplicates). Default: check for duplicates and prompt user.",
     )
     parser.add_argument(
+        "-c",
         "--copy",
         dest="copy_mode",
         action="store_true",

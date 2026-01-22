@@ -819,3 +819,31 @@ class TestCLIArguments:
         monkeypatch.setattr("sys.argv", ["smart-media-manager", str(tmp_path)])
         args = parse_args()
         assert args.max_image_pixels == 98765
+
+    def test_short_flag_recursive(self, tmp_path: Path, monkeypatch) -> None:
+        """Test -r short flag for --recursive."""
+        monkeypatch.setattr("sys.argv", ["smart-media-manager", "-r", str(tmp_path)])
+        args = parse_args()
+        assert args.recursive is True
+
+    def test_short_flag_delete(self, tmp_path: Path, monkeypatch) -> None:
+        """Test -d short flag for --delete."""
+        monkeypatch.setattr("sys.argv", ["smart-media-manager", "-d", str(tmp_path)])
+        args = parse_args()
+        assert args.delete is True
+
+    def test_short_flag_copy(self, tmp_path: Path, monkeypatch) -> None:
+        """Test -c short flag for --copy."""
+        monkeypatch.setattr("sys.argv", ["smart-media-manager", "-c", str(tmp_path)])
+        args = parse_args()
+        assert args.copy_mode is True
+
+    def test_combined_short_flags(self, tmp_path: Path, monkeypatch) -> None:
+        """Test combining multiple short flags."""
+        monkeypatch.setattr(
+            "sys.argv", ["smart-media-manager", "-r", "-c", "-n", str(tmp_path)]
+        )
+        args = parse_args()
+        assert args.recursive is True
+        assert args.copy_mode is True
+        assert args.dry_run is True
