@@ -161,14 +161,14 @@ FORMAT_RULES: tuple[FormatRule, ...] = (
     _rule(
         rule_id="R-IMG-009",
         category="image",
-        action="convert_to_png",
+        action="convert_to_tiff",
         extensions=[".psd"],
         libmagic=["application/photoshop"],
         puremagic=["psd", "image/vnd.adobe.photoshop"],
         pyfsig=["adobe photoshop image"],
         binwalk=["photoshop image data"],
         conditions={"psd_color_mode": "non-rgb"},
-        notes="PSD CMYK/multichannel",
+        notes="PSD CMYK/multichannel - convert to TIFF for Photos compatibility",
     ),
     _rule(
         rule_id="R-IMG-010",
@@ -651,17 +651,29 @@ def match_rule(
                 continue
         if "max_size_mb" in conditions and size_bytes is not None:
             max_size_mb = conditions["max_size_mb"]
-            if isinstance(max_size_mb, (int, float)) and size_bytes / (1024 * 1024) > float(max_size_mb):
+            if isinstance(max_size_mb, (int, float)) and size_bytes / (
+                1024 * 1024
+            ) > float(max_size_mb):
                 continue
         if "min_size_mb" in conditions and size_bytes is not None:
             min_size_mb = conditions["min_size_mb"]
-            if isinstance(min_size_mb, (int, float)) and size_bytes / (1024 * 1024) < float(min_size_mb):
+            if isinstance(min_size_mb, (int, float)) and size_bytes / (
+                1024 * 1024
+            ) < float(min_size_mb):
                 continue
         if "psd_color_mode" in conditions and psd_color_mode is not None:
             required_mode = conditions["psd_color_mode"]
-            if isinstance(required_mode, str) and required_mode == "rgb" and psd_color_mode.lower() != "rgb":
+            if (
+                isinstance(required_mode, str)
+                and required_mode == "rgb"
+                and psd_color_mode.lower() != "rgb"
+            ):
                 continue
-            if isinstance(required_mode, str) and required_mode == "non-rgb" and psd_color_mode.lower() == "rgb":
+            if (
+                isinstance(required_mode, str)
+                and required_mode == "non-rgb"
+                and psd_color_mode.lower() == "rgb"
+            ):
                 continue
 
         return rule
