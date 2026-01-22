@@ -46,6 +46,22 @@ _FILE_LOG_HANDLER: Optional[logging.Handler] = None
 SMM_LOGS_SUBDIR = ".smm__runtime_logs_"  # Unique prefix for timestamped log directories (created in CWD, excluded from scanning)
 _QUIET_MODE: bool = False  # Global flag to suppress progress bars (set by -q/--quiet)
 
+# ASCII art banner for startup
+_BANNER = r"""
+┏┓┳┳┓┏┓┳┓┏┳┓  ┳┳┓┏┓┳┓┳┏┓  ┳┳┓┏┓┳┓┏┓┏┓┏┓┳┓
+┗┓┃┃┃┣┫┣┫ ┃   ┃┃┃┣ ┃┃┃┣┫  ┃┃┃┣┫┃┃┣┫┃┓┣ ┣┫
+┗┛┛ ┗┛┗┛┗ ┻   ┛ ┗┗┛┻┛┻┛┗  ┛ ┗┛┗┛┗┛┗┗┛┗┛┛┗
+"""
+
+
+def print_banner(quiet: bool = False) -> None:
+    """Print the ASCII art banner with version number."""
+    if quiet:
+        return
+    print(_BANNER)
+    print(f"                              v{__version__}")
+    print()
+
 
 class ExitCode(IntEnum):
     """Exit codes for smart-media-manager CLI.
@@ -5655,6 +5671,7 @@ def main() -> int:
     configure_logging(
         args.verbose, args.quiet
     )  # Configure logging with verbosity level
+    print_banner(args.quiet)  # Print ASCII art banner with version
     LOG.info("smart-media-manager %s", __version__)
     skip_bootstrap = args.skip_bootstrap or bool(
         os.environ.get("SMART_MEDIA_MANAGER_SKIP_BOOTSTRAP")

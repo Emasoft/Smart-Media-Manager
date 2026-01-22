@@ -1,6 +1,6 @@
 [project]
 name = "smart-media-manager"
-version = "0.5.44a1"
+version = "0.5.44a2"
 description = "A macOS CLI that audits media folders, fixes extensions, and imports into Apple Photos"
 readme = "README.md"
 requires-python = ">=3.12"
