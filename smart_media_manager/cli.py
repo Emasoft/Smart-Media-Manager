@@ -2854,6 +2854,12 @@ Examples:
         action="store_true",
         help="Skip files that require conversion. Files needing conversion will be logged but not imported. Only already-compatible files will be processed.",
     )
+    parser.add_argument(
+        "--skip-renaming",
+        dest="skip_renaming",
+        action="store_true",
+        help="Skip files that have wrong extensions (mismatched with actual content). These files will be logged but not renamed or imported.",
+    )
 
     args = parser.parse_args()
 
@@ -5867,6 +5873,7 @@ def main() -> int:
                 args.keep_backups = state.options.get("keep_backups", args.keep_backups)
                 args.skip_import = state.options.get("skip_import", args.skip_import)
                 args.no_conversions = state.options.get("no_conversions", args.no_conversions)
+                args.skip_renaming = state.options.get("skip_renaming", args.skip_renaming)
 
             # Create skip logger for this session
             skip_log = output_dir / f"smm_skipped_files_{run_ts}_resume.log"
@@ -6069,6 +6076,7 @@ def main() -> int:
                 "keep_backups": args.keep_backups,
                 "skip_import": args.skip_import,
                 "no_conversions": args.no_conversions,
+                "skip_renaming": args.skip_renaming,
             }
             state = StagingState(
                 phase="staged",
