@@ -13,7 +13,12 @@ import hashlib
 from typing import Optional
 
 
-def generate_video_uuid(codec: str, bit_depth: Optional[int] = None, pix_fmt: Optional[str] = None, profile: Optional[str] = None) -> str:
+def generate_video_uuid(
+    codec: str,
+    bit_depth: Optional[int] = None,
+    pix_fmt: Optional[str] = None,
+    profile: Optional[str] = None,
+) -> str:
     """Generate a deterministic UUID for video format.
 
     Args:
@@ -59,7 +64,9 @@ def generate_video_uuid(codec: str, bit_depth: Optional[int] = None, pix_fmt: Op
     return f"{base_uuid}-{param_suffix}-V"
 
 
-def generate_audio_uuid(codec: str, sample_rate: Optional[int] = None, sample_fmt: Optional[str] = None) -> str:
+def generate_audio_uuid(
+    codec: str, sample_rate: Optional[int] = None, sample_fmt: Optional[str] = None
+) -> str:
     """Generate a deterministic UUID for audio format.
 
     Args:
@@ -125,10 +132,18 @@ def parse_video_uuid(uuid: str) -> dict:
 if __name__ == "__main__":
     # Test UUID generation
     print("Video UUIDs:")
-    print(f"  H.264 8-bit 4:2:0 High: {generate_video_uuid('h264', 8, 'yuv420p', 'high')}")
-    print(f"  H.264 10-bit 4:2:0 High10: {generate_video_uuid('h264', 10, 'yuv420p', 'high10')}")
-    print(f"  HEVC 8-bit 4:2:0 Main: {generate_video_uuid('hevc', 8, 'yuv420p', 'main')}")
-    print(f"  HEVC 10-bit 4:2:0 Main10: {generate_video_uuid('hevc', 10, 'yuv420p', 'main10')}")
+    print(
+        f"  H.264 8-bit 4:2:0 High: {generate_video_uuid('h264', 8, 'yuv420p', 'high')}"
+    )
+    print(
+        f"  H.264 10-bit 4:2:0 High10: {generate_video_uuid('h264', 10, 'yuv420p', 'high10')}"
+    )
+    print(
+        f"  HEVC 8-bit 4:2:0 Main: {generate_video_uuid('hevc', 8, 'yuv420p', 'main')}"
+    )
+    print(
+        f"  HEVC 10-bit 4:2:0 Main10: {generate_video_uuid('hevc', 10, 'yuv420p', 'main10')}"
+    )
 
     print("\nAudio UUIDs:")
     print(f"  AAC 48kHz 16-bit: {generate_audio_uuid('aac', 48000, 's16')}")

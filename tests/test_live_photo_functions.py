@@ -22,7 +22,9 @@ class TestExtractLivePhotoContentId:
     """Tests for extract_live_photo_content_id function."""
 
     @patch("smart_media_manager.cli.find_executable")
-    def test_extract_live_photo_content_id_returns_none_without_exiftool(self, mock_find):
+    def test_extract_live_photo_content_id_returns_none_without_exiftool(
+        self, mock_find
+    ):
         """Test extract_live_photo_content_id returns None when exiftool unavailable."""
         from smart_media_manager.cli import extract_live_photo_content_id
 
@@ -35,7 +37,9 @@ class TestExtractLivePhotoContentId:
 
     @patch("smart_media_manager.cli.subprocess.run")
     @patch("smart_media_manager.cli.find_executable")
-    def test_extract_live_photo_content_id_returns_content_id_on_success(self, mock_find, mock_run, tmp_path):
+    def test_extract_live_photo_content_id_returns_content_id_on_success(
+        self, mock_find, mock_run, tmp_path
+    ):
         """Test extract_live_photo_content_id returns content ID when found."""
         from smart_media_manager.cli import extract_live_photo_content_id
 
@@ -43,7 +47,9 @@ class TestExtractLivePhotoContentId:
         test_file.touch()
 
         mock_find.return_value = "/usr/bin/exiftool"
-        mock_run.return_value = Mock(returncode=0, stdout="ABC123-DEF456-GHI789\n", stderr="")
+        mock_run.return_value = Mock(
+            returncode=0, stdout="ABC123-DEF456-GHI789\n", stderr=""
+        )
 
         result = extract_live_photo_content_id(test_file)
 
@@ -57,7 +63,9 @@ class TestExtractLivePhotoContentId:
 
     @patch("smart_media_manager.cli.subprocess.run")
     @patch("smart_media_manager.cli.find_executable")
-    def test_extract_live_photo_content_id_returns_none_on_failure(self, mock_find, mock_run, tmp_path):
+    def test_extract_live_photo_content_id_returns_none_on_failure(
+        self, mock_find, mock_run, tmp_path
+    ):
         """Test extract_live_photo_content_id returns None when exiftool fails."""
         from smart_media_manager.cli import extract_live_photo_content_id
 
@@ -73,7 +81,9 @@ class TestExtractLivePhotoContentId:
 
     @patch("smart_media_manager.cli.subprocess.run")
     @patch("smart_media_manager.cli.find_executable")
-    def test_extract_live_photo_content_id_returns_none_on_empty_output(self, mock_find, mock_run, tmp_path):
+    def test_extract_live_photo_content_id_returns_none_on_empty_output(
+        self, mock_find, mock_run, tmp_path
+    ):
         """Test extract_live_photo_content_id returns None when output empty."""
         from smart_media_manager.cli import extract_live_photo_content_id
 
@@ -89,7 +99,9 @@ class TestExtractLivePhotoContentId:
 
     @patch("smart_media_manager.cli.subprocess.run")
     @patch("smart_media_manager.cli.find_executable")
-    def test_extract_live_photo_content_id_handles_timeout(self, mock_find, mock_run, tmp_path):
+    def test_extract_live_photo_content_id_handles_timeout(
+        self, mock_find, mock_run, tmp_path
+    ):
         """Test extract_live_photo_content_id handles subprocess timeout."""
         from smart_media_manager.cli import extract_live_photo_content_id
 
@@ -105,7 +117,9 @@ class TestExtractLivePhotoContentId:
 
     @patch("smart_media_manager.cli.subprocess.run")
     @patch("smart_media_manager.cli.find_executable")
-    def test_extract_live_photo_content_id_handles_exception(self, mock_find, mock_run, tmp_path):
+    def test_extract_live_photo_content_id_handles_exception(
+        self, mock_find, mock_run, tmp_path
+    ):
         """Test extract_live_photo_content_id handles generic exceptions."""
         from smart_media_manager.cli import extract_live_photo_content_id
 
@@ -171,7 +185,9 @@ class TestDetectLivePhotoPairs:
         assert img_media.metadata["live_photo_content_id"] == "ABC123-CONTENT-ID"
 
     @patch("smart_media_manager.cli.extract_live_photo_content_id")
-    def test_detect_live_photo_pairs_ignores_mismatched_content_ids(self, mock_extract, tmp_path):
+    def test_detect_live_photo_pairs_ignores_mismatched_content_ids(
+        self, mock_extract, tmp_path
+    ):
         """Test detect_live_photo_pairs ignores pairs with different content IDs."""
         from smart_media_manager.cli import detect_live_photo_pairs, MediaFile
 
@@ -180,8 +196,12 @@ class TestDetectLivePhotoPairs:
         img_path.touch()
         vid_path.touch()
 
-        img_media = MediaFile(source=img_path, kind="image", extension=".heic", format_name="heic")
-        vid_media = MediaFile(source=vid_path, kind="video", extension=".mov", format_name="mov")
+        img_media = MediaFile(
+            source=img_path, kind="image", extension=".heic", format_name="heic"
+        )
+        vid_media = MediaFile(
+            source=vid_path, kind="video", extension=".mov", format_name="mov"
+        )
 
         # Different content IDs
         mock_extract.side_effect = [
@@ -205,8 +225,12 @@ class TestDetectLivePhotoPairs:
         img_path.touch()
         vid_path.touch()
 
-        img_media = MediaFile(source=img_path, kind="image", extension=".heic", format_name="heic")
-        vid_media = MediaFile(source=vid_path, kind="video", extension=".mov", format_name="mov")
+        img_media = MediaFile(
+            source=img_path, kind="image", extension=".heic", format_name="heic"
+        )
+        vid_media = MediaFile(
+            source=vid_path, kind="video", extension=".mov", format_name="mov"
+        )
 
         mock_extract.return_value = "SAME-ID"
 
@@ -218,7 +242,9 @@ class TestDetectLivePhotoPairs:
         mock_extract.assert_not_called()
 
     @patch("smart_media_manager.cli.extract_live_photo_content_id")
-    def test_detect_live_photo_pairs_handles_missing_content_id(self, mock_extract, tmp_path):
+    def test_detect_live_photo_pairs_handles_missing_content_id(
+        self, mock_extract, tmp_path
+    ):
         """Test detect_live_photo_pairs handles files without content IDs."""
         from smart_media_manager.cli import detect_live_photo_pairs, MediaFile
 
@@ -227,8 +253,12 @@ class TestDetectLivePhotoPairs:
         img_path.touch()
         vid_path.touch()
 
-        img_media = MediaFile(source=img_path, kind="image", extension=".heic", format_name="heic")
-        vid_media = MediaFile(source=vid_path, kind="video", extension=".mov", format_name="mov")
+        img_media = MediaFile(
+            source=img_path, kind="image", extension=".heic", format_name="heic"
+        )
+        vid_media = MediaFile(
+            source=vid_path, kind="video", extension=".mov", format_name="mov"
+        )
 
         # Image has no content ID
         mock_extract.side_effect = [
@@ -242,7 +272,9 @@ class TestDetectLivePhotoPairs:
         assert len(result) == 0
 
     @patch("smart_media_manager.cli.extract_live_photo_content_id")
-    def test_detect_live_photo_pairs_only_checks_heic_jpg_mov(self, mock_extract, tmp_path):
+    def test_detect_live_photo_pairs_only_checks_heic_jpg_mov(
+        self, mock_extract, tmp_path
+    ):
         """Test detect_live_photo_pairs only considers HEIC/JPG + MOV pairs."""
         from smart_media_manager.cli import detect_live_photo_pairs, MediaFile
 
@@ -252,8 +284,12 @@ class TestDetectLivePhotoPairs:
         img_path.touch()
         vid_path.touch()
 
-        img_media = MediaFile(source=img_path, kind="image", extension=".png", format_name="png")
-        vid_media = MediaFile(source=vid_path, kind="video", extension=".mp4", format_name="mp4")
+        img_media = MediaFile(
+            source=img_path, kind="image", extension=".png", format_name="png"
+        )
+        vid_media = MediaFile(
+            source=vid_path, kind="video", extension=".mp4", format_name="mp4"
+        )
 
         result = detect_live_photo_pairs([img_media, vid_media])
 
@@ -273,7 +309,9 @@ class TestSkipUnknownVideo:
         vid_path = tmp_path / "video.mkv"
         vid_path.touch()
 
-        media = MediaFile(source=vid_path, kind="video", extension=".mkv", format_name="mkv")
+        media = MediaFile(
+            source=vid_path, kind="video", extension=".mkv", format_name="mkv"
+        )
 
         skip_log_path = tmp_path / "skip.log"
         skip_logger = SkipLogger(path=skip_log_path)

@@ -53,7 +53,9 @@ class TestMetadataFunctions:
 
     @patch("smart_media_manager.cli.subprocess.run")
     @patch("smart_media_manager.cli.shutil.which")
-    def test_copy_metadata_from_source_no_exiftool(self, mock_which, mock_run, tmp_path):
+    def test_copy_metadata_from_source_no_exiftool(
+        self, mock_which, mock_run, tmp_path
+    ):
         """Test copy_metadata_from_source handles missing exiftool."""
         source = tmp_path / "source.jpg"
         target = tmp_path / "target.jpg"
@@ -70,7 +72,9 @@ class TestMetadataFunctions:
 
     @patch("smart_media_manager.cli.subprocess.run")
     @patch("smart_media_manager.cli.shutil.which")
-    def test_copy_metadata_from_source_nonexistent_source(self, mock_which, mock_run, tmp_path):
+    def test_copy_metadata_from_source_nonexistent_source(
+        self, mock_which, mock_run, tmp_path
+    ):
         """Test copy_metadata_from_source handles nonexistent source."""
         source = tmp_path / "nonexistent.jpg"
         target = tmp_path / "target.jpg"
@@ -238,7 +242,9 @@ class TestExecutableFinders:
     @patch("smart_media_manager.cli.shutil.which")
     def test_resolve_imagemagick_command_magick(self, mock_which):
         """Test resolve_imagemagick_command prefers 'magick'."""
-        mock_which.side_effect = lambda x: "/usr/bin/" + x if x in ["magick", "convert"] else None
+        mock_which.side_effect = (
+            lambda x: "/usr/bin/" + x if x in ["magick", "convert"] else None
+        )
 
         result = resolve_imagemagick_command()
 
@@ -247,7 +253,9 @@ class TestExecutableFinders:
     @patch("smart_media_manager.cli.shutil.which")
     def test_resolve_imagemagick_command_convert(self, mock_which):
         """Test resolve_imagemagick_command falls back to 'convert'."""
-        mock_which.side_effect = lambda x: "/usr/bin/convert" if x == "convert" else None
+        mock_which.side_effect = (
+            lambda x: "/usr/bin/convert" if x == "convert" else None
+        )
 
         result = resolve_imagemagick_command()
 
@@ -258,7 +266,9 @@ class TestExecutableFinders:
         """Test resolve_imagemagick_command raises when not found."""
         mock_which.return_value = None
 
-        with pytest.raises(RuntimeError, match=r"ImageMagick \(magick/convert\) not found"):
+        with pytest.raises(
+            RuntimeError, match=r"ImageMagick \(magick/convert\) not found"
+        ):
             resolve_imagemagick_command()
 
     @patch("smart_media_manager.cli.shutil.which")
@@ -292,7 +302,10 @@ class TestPanoramicPhotoDetection:
         photo.write_bytes(b"\xff\xd8\xff" + b"\x00" * 100 + b"\xff\xd9")
 
         mock_which.return_value = "/usr/bin/exiftool"
-        mock_run.return_value = Mock(returncode=0, stdout="ProjectionType: equirectangular\nUsePanoramaViewer: true\n")
+        mock_run.return_value = Mock(
+            returncode=0,
+            stdout="ProjectionType: equirectangular\nUsePanoramaViewer: true\n",
+        )
 
         result = is_panoramic_photo(photo)
 
@@ -309,7 +322,9 @@ class TestPanoramicPhotoDetection:
         photo.write_bytes(b"\xff\xd8\xff" + b"\x00" * 100 + b"\xff\xd9")
 
         mock_which.return_value = "/usr/bin/exiftool"
-        mock_run.return_value = Mock(returncode=0, stdout="Make: Canon\nModel: EOS 5D\n")
+        mock_run.return_value = Mock(
+            returncode=0, stdout="Make: Canon\nModel: EOS 5D\n"
+        )
 
         result = is_panoramic_photo(photo)
 

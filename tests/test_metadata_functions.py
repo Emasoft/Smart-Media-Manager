@@ -34,7 +34,9 @@ class TestEnsureDependency:
 
         mock_which.return_value = None
 
-        with pytest.raises(RuntimeError, match="Required dependency 'nonexistent' is not available"):
+        with pytest.raises(
+            RuntimeError, match="Required dependency 'nonexistent' is not available"
+        ):
             ensure_dependency("nonexistent")
 
     @patch("smart_media_manager.cli.shutil.which")
@@ -188,7 +190,9 @@ class TestExtractAndNormalizeMetadata:
         assert "title" in call_args[1]
 
     @patch("smart_media_manager.cli.metadata_registry")
-    def test_extract_and_normalize_metadata_prioritizes_format_over_stream(self, mock_registry):
+    def test_extract_and_normalize_metadata_prioritizes_format_over_stream(
+        self, mock_registry
+    ):
         """Test extract_and_normalize_metadata prioritizes format tags over stream tags."""
         from smart_media_manager.cli import extract_and_normalize_metadata
 
@@ -197,7 +201,9 @@ class TestExtractAndNormalizeMetadata:
             "streams": [{"tags": {"title": "Stream Title"}}],
         }
 
-        mock_registry.normalize_metadata_dict.return_value = {"uuid-title": "Format Title"}
+        mock_registry.normalize_metadata_dict.return_value = {
+            "uuid-title": "Format Title"
+        }
 
         extract_and_normalize_metadata(probe_data)
 
@@ -206,7 +212,9 @@ class TestExtractAndNormalizeMetadata:
         assert call_args[1]["title"] == "Format Title"
 
     @patch("smart_media_manager.cli.metadata_registry")
-    def test_extract_and_normalize_metadata_normalizes_keys_to_lowercase(self, mock_registry):
+    def test_extract_and_normalize_metadata_normalizes_keys_to_lowercase(
+        self, mock_registry
+    ):
         """Test extract_and_normalize_metadata normalizes tag keys to lowercase."""
         from smart_media_manager.cli import extract_and_normalize_metadata
 
@@ -229,7 +237,9 @@ class TestExtractAndNormalizeMetadata:
         assert "artist" in call_args[1]
 
     @patch("smart_media_manager.cli.metadata_registry")
-    def test_extract_and_normalize_metadata_returns_empty_dict_when_no_tags(self, mock_registry):
+    def test_extract_and_normalize_metadata_returns_empty_dict_when_no_tags(
+        self, mock_registry
+    ):
         """Test extract_and_normalize_metadata returns empty dict when no tags."""
         from smart_media_manager.cli import extract_and_normalize_metadata
 

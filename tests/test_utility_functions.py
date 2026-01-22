@@ -137,7 +137,9 @@ class TestPathUtilities:
 
     def test_sanitize_path_string_removes_unsafe_chars(self):
         """Test sanitize_path_string removes unsafe characters."""
-        assert sanitize_path_string("file:name") == "file:name"  # Colon is allowed (macOS/Linux)
+        assert (
+            sanitize_path_string("file:name") == "file:name"
+        )  # Colon is allowed (macOS/Linux)
         assert sanitize_path_string("file<>name") == "filename"  # < > are removed
         assert sanitize_path_string('file"name') == "filename"  # " is removed
 
@@ -300,7 +302,9 @@ class TestMimeAndKindHelpers:
         """Test kind_from_description identifies video descriptions."""
         assert kind_from_description("ISO Media, MP4") == "video"
         assert kind_from_description("MPEG video") == "video"
-        assert kind_from_description("Matroska data") is None  # Doesn't match video keywords
+        assert (
+            kind_from_description("Matroska data") is None
+        )  # Doesn't match video keywords
 
     def test_extension_from_mime_image_types(self):
         """Test extension_from_mime returns correct extensions for images."""
@@ -497,11 +501,15 @@ class TestFileFiltering:
     def test_should_ignore_staging_folders(self):
         """Test should_ignore filters staging folders."""
         assert should_ignore(Path("FOUND_MEDIA_FILES_123")) is True
-        assert should_ignore(Path("ORIGINALS_123")) is False  # Only FOUND_MEDIA_FILES_* is filtered
+        assert (
+            should_ignore(Path("ORIGINALS_123")) is False
+        )  # Only FOUND_MEDIA_FILES_* is filtered
 
     def test_should_ignore_hidden_files(self):
         """Test should_ignore doesn't filter all hidden files."""
-        assert should_ignore(Path(".hidden")) is False  # Only specific patterns are filtered
+        assert (
+            should_ignore(Path(".hidden")) is False
+        )  # Only specific patterns are filtered
         assert should_ignore(Path(".DS_Store")) is True  # DS_Store is filtered
 
     def test_should_ignore_allows_normal_files(self):
@@ -574,7 +582,9 @@ class TestVideoHelpers:
 
     def test_extract_container_mp4(self):
         """Test extract_container extracts first container format."""
-        assert extract_container("mov,mp4,m4a,3gp,3g2,mj2") == "mov"  # Returns first format
+        assert (
+            extract_container("mov,mp4,m4a,3gp,3g2,mj2") == "mov"
+        )  # Returns first format
 
     def test_extract_container_matroska(self):
         """Test extract_container extracts Matroska container."""

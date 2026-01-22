@@ -137,9 +137,15 @@ def pytest_addoption(parser: pytest.Parser) -> None:
 
 def pytest_configure(config: pytest.Config) -> None:
     """Configure pytest with test set markers."""
-    config.addinivalue_line("markers", "minimal: Minimal tests for CI with small samples")
-    config.addinivalue_line("markers", "requires_raw: Tests requiring RAW camera samples")
-    config.addinivalue_line("markers", "requires_large: Tests requiring large media files")
+    config.addinivalue_line(
+        "markers", "minimal: Minimal tests for CI with small samples"
+    )
+    config.addinivalue_line(
+        "markers", "requires_raw: Tests requiring RAW camera samples"
+    )
+    config.addinivalue_line(
+        "markers", "requires_large: Tests requiring large media files"
+    )
     config.addinivalue_line("markers", "e2e: End-to-end tests")
     config.addinivalue_line("markers", "slow: Slow tests (may be skipped in CI)")
 
@@ -205,14 +211,18 @@ def skip_if_no_sample(test_set_config: TestSetConfig) -> Callable[[str, str], Pa
     def _skip_if_no_sample(category: str, format_key: str = "default") -> Path:
         sample = test_set_config.get_sample(category, format_key)
         if sample is None:
-            pytest.skip(f"Sample not available: {category}/{format_key} (using {test_set_config.name} test set)")
+            pytest.skip(
+                f"Sample not available: {category}/{format_key} (using {test_set_config.name} test set)"
+            )
         return sample
 
     return _skip_if_no_sample
 
 
 @pytest.fixture(autouse=True)
-def preserve_test_logs(request: pytest.FixtureRequest, tmp_path: Path) -> Generator[None, None, None]:
+def preserve_test_logs(
+    request: pytest.FixtureRequest, tmp_path: Path
+) -> Generator[None, None, None]:
     """Preserve test logs with timestamps after each test completes.
 
     This fixture automatically runs for every test and:

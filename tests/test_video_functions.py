@@ -24,7 +24,9 @@ class TestIsVideoCorruptOrTruncated:
 
     @patch("smart_media_manager.cli.subprocess.run")
     @patch("smart_media_manager.cli.ffprobe")
-    def test_is_video_corrupt_or_truncated_detects_unreadable_file(self, mock_ffprobe, mock_run):
+    def test_is_video_corrupt_or_truncated_detects_unreadable_file(
+        self, mock_ffprobe, mock_run
+    ):
         """Test is_video_corrupt_or_truncated detects file ffprobe cannot read."""
         from smart_media_manager.cli import is_video_corrupt_or_truncated
 
@@ -37,7 +39,9 @@ class TestIsVideoCorruptOrTruncated:
 
     @patch("smart_media_manager.cli.subprocess.run")
     @patch("smart_media_manager.cli.ffprobe")
-    def test_is_video_corrupt_or_truncated_detects_no_streams(self, mock_ffprobe, mock_run):
+    def test_is_video_corrupt_or_truncated_detects_no_streams(
+        self, mock_ffprobe, mock_run
+    ):
         """Test is_video_corrupt_or_truncated detects missing streams."""
         from smart_media_manager.cli import is_video_corrupt_or_truncated
 
@@ -50,7 +54,9 @@ class TestIsVideoCorruptOrTruncated:
 
     @patch("smart_media_manager.cli.subprocess.run")
     @patch("smart_media_manager.cli.ffprobe")
-    def test_is_video_corrupt_or_truncated_detects_no_video_stream(self, mock_ffprobe, mock_run):
+    def test_is_video_corrupt_or_truncated_detects_no_video_stream(
+        self, mock_ffprobe, mock_run
+    ):
         """Test is_video_corrupt_or_truncated detects missing video stream."""
         from smart_media_manager.cli import is_video_corrupt_or_truncated
 
@@ -67,7 +73,9 @@ class TestIsVideoCorruptOrTruncated:
 
     @patch("smart_media_manager.cli.subprocess.run")
     @patch("smart_media_manager.cli.ffprobe")
-    def test_is_video_corrupt_or_truncated_detects_invalid_duration(self, mock_ffprobe, mock_run):
+    def test_is_video_corrupt_or_truncated_detects_invalid_duration(
+        self, mock_ffprobe, mock_run
+    ):
         """Test is_video_corrupt_or_truncated detects invalid duration."""
         from smart_media_manager.cli import is_video_corrupt_or_truncated
 
@@ -83,7 +91,9 @@ class TestIsVideoCorruptOrTruncated:
 
     @patch("smart_media_manager.cli.subprocess.run")
     @patch("smart_media_manager.cli.ffprobe")
-    def test_is_video_corrupt_or_truncated_passes_valid_video(self, mock_ffprobe, mock_run):
+    def test_is_video_corrupt_or_truncated_passes_valid_video(
+        self, mock_ffprobe, mock_run
+    ):
         """Test is_video_corrupt_or_truncated passes valid video."""
         from smart_media_manager.cli import is_video_corrupt_or_truncated
 
@@ -102,7 +112,9 @@ class TestIsVideoCorruptOrTruncated:
 
     @patch("smart_media_manager.cli.subprocess.run")
     @patch("smart_media_manager.cli.ffprobe")
-    def test_is_video_corrupt_or_truncated_detects_corruption_in_stderr(self, mock_ffprobe, mock_run):
+    def test_is_video_corrupt_or_truncated_detects_corruption_in_stderr(
+        self, mock_ffprobe, mock_run
+    ):
         """Test is_video_corrupt_or_truncated detects corruption indicators in stderr."""
         from smart_media_manager.cli import is_video_corrupt_or_truncated
 
@@ -112,7 +124,9 @@ class TestIsVideoCorruptOrTruncated:
         }
 
         # Mock ffmpeg with corruption in stderr
-        mock_run.return_value = Mock(returncode=0, stderr="Error: partial file detected at byte 1024")
+        mock_run.return_value = Mock(
+            returncode=0, stderr="Error: partial file detected at byte 1024"
+        )
 
         is_corrupt, reason = is_video_corrupt_or_truncated(TEST_VIDEO)
 
@@ -122,7 +136,9 @@ class TestIsVideoCorruptOrTruncated:
 
     @patch("smart_media_manager.cli.subprocess.run")
     @patch("smart_media_manager.cli.ffprobe")
-    def test_is_video_corrupt_or_truncated_detects_decode_failure(self, mock_ffprobe, mock_run):
+    def test_is_video_corrupt_or_truncated_detects_decode_failure(
+        self, mock_ffprobe, mock_run
+    ):
         """Test is_video_corrupt_or_truncated detects ffmpeg decode failure."""
         from smart_media_manager.cli import is_video_corrupt_or_truncated
 
@@ -141,7 +157,9 @@ class TestIsVideoCorruptOrTruncated:
 
     @patch("smart_media_manager.cli.subprocess.run")
     @patch("smart_media_manager.cli.ffprobe")
-    def test_is_video_corrupt_or_truncated_handles_timeout(self, mock_ffprobe, mock_run):
+    def test_is_video_corrupt_or_truncated_handles_timeout(
+        self, mock_ffprobe, mock_run
+    ):
         """Test is_video_corrupt_or_truncated handles subprocess timeout."""
         from smart_media_manager.cli import is_video_corrupt_or_truncated
 
@@ -160,7 +178,9 @@ class TestIsVideoCorruptOrTruncated:
 
     @patch("smart_media_manager.cli.subprocess.run")
     @patch("smart_media_manager.cli.ffprobe")
-    def test_is_video_corrupt_or_truncated_checks_end_for_long_videos(self, mock_ffprobe, mock_run):
+    def test_is_video_corrupt_or_truncated_checks_end_for_long_videos(
+        self, mock_ffprobe, mock_run
+    ):
         """Test is_video_corrupt_or_truncated checks end of video for long files."""
         from smart_media_manager.cli import is_video_corrupt_or_truncated
 
@@ -186,7 +206,9 @@ class TestIsVideoCorruptOrTruncated:
 
     @patch("smart_media_manager.cli.subprocess.run")
     @patch("smart_media_manager.cli.ffprobe")
-    def test_is_video_corrupt_or_truncated_uses_correct_ffmpeg_args(self, mock_ffprobe, mock_run):
+    def test_is_video_corrupt_or_truncated_uses_correct_ffmpeg_args(
+        self, mock_ffprobe, mock_run
+    ):
         """Test is_video_corrupt_or_truncated uses correct ffmpeg arguments."""
         from smart_media_manager.cli import is_video_corrupt_or_truncated
 
@@ -215,7 +237,9 @@ class TestIsVideoCorruptWithRealFile:
 
     @patch("smart_media_manager.cli.subprocess.run")
     @patch("smart_media_manager.cli.ffprobe")
-    def test_is_video_corrupt_or_truncated_with_real_video_file(self, mock_ffprobe, mock_run):
+    def test_is_video_corrupt_or_truncated_with_real_video_file(
+        self, mock_ffprobe, mock_run
+    ):
         """Test is_video_corrupt_or_truncated with actual test video file."""
         from smart_media_manager.cli import is_video_corrupt_or_truncated
 

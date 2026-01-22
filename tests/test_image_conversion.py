@@ -25,7 +25,9 @@ class TestConvertToPng:
 
     @patch("smart_media_manager.cli.copy_metadata_from_source")
     @patch("smart_media_manager.cli.run_command_with_progress")
-    def test_convert_to_png_succeeds_and_updates_media(self, mock_run, mock_copy, tmp_path):
+    def test_convert_to_png_succeeds_and_updates_media(
+        self, mock_run, mock_copy, tmp_path
+    ):
         """Test convert_to_png succeeds and updates MediaFile."""
         from smart_media_manager.cli import convert_to_png, MediaFile
 
@@ -124,7 +126,9 @@ class TestConvertToPng:
 
         # Partial target should be cleaned up by exception handler
         png_files = list(tmp_path.glob("*.png"))
-        assert len(png_files) == 0, f"Expected cleanup to remove partial PNG, but found: {png_files}"
+        assert len(png_files) == 0, (
+            f"Expected cleanup to remove partial PNG, but found: {png_files}"
+        )
 
 
 class TestConvertToTiff:
@@ -133,7 +137,9 @@ class TestConvertToTiff:
     @patch("smart_media_manager.cli.copy_metadata_from_source")
     @patch("smart_media_manager.cli.run_command_with_progress")
     @patch("smart_media_manager.cli.resolve_imagemagick_command")
-    def test_convert_to_tiff_succeeds_and_updates_media(self, mock_resolve, mock_run, mock_copy, tmp_path):
+    def test_convert_to_tiff_succeeds_and_updates_media(
+        self, mock_resolve, mock_run, mock_copy, tmp_path
+    ):
         """Test convert_to_tiff succeeds and updates MediaFile."""
         from smart_media_manager.cli import convert_to_tiff, MediaFile
 
@@ -182,7 +188,9 @@ class TestConvertToTiff:
 
     @patch("smart_media_manager.cli.resolve_imagemagick_command")
     @patch("smart_media_manager.cli.run_command_with_progress")
-    def test_convert_to_tiff_raises_when_stage_path_missing(self, mock_run, mock_resolve):
+    def test_convert_to_tiff_raises_when_stage_path_missing(
+        self, mock_run, mock_resolve
+    ):
         """Test convert_to_tiff raises RuntimeError when stage_path is None."""
         from smart_media_manager.cli import convert_to_tiff, MediaFile
 
@@ -203,7 +211,9 @@ class TestConvertToTiff:
     @patch("smart_media_manager.cli.copy_metadata_from_source")
     @patch("smart_media_manager.cli.run_command_with_progress")
     @patch("smart_media_manager.cli.resolve_imagemagick_command")
-    def test_convert_to_tiff_cleans_up_on_failure(self, mock_resolve, mock_run, mock_copy, tmp_path):
+    def test_convert_to_tiff_cleans_up_on_failure(
+        self, mock_resolve, mock_run, mock_copy, tmp_path
+    ):
         """Test convert_to_tiff cleans up partial target on failure."""
         from smart_media_manager.cli import convert_to_tiff, MediaFile
 
@@ -241,7 +251,9 @@ class TestConvertToTiff:
 
         # Partial target should be cleaned up by exception handler
         tiff_files = list(tmp_path.glob("*.tiff"))
-        assert len(tiff_files) == 0, f"Expected cleanup to remove partial TIFF, but found: {tiff_files}"
+        assert len(tiff_files) == 0, (
+            f"Expected cleanup to remove partial TIFF, but found: {tiff_files}"
+        )
 
 
 class TestConvertImage:
@@ -347,7 +359,9 @@ class TestConvertImage:
 
         # Partial target should be cleaned up by exception handler
         jpg_files = list(tmp_path.glob("*.jpg"))
-        assert len(jpg_files) == 0, f"Expected cleanup to remove partial JPEG, but found: {jpg_files}"
+        assert len(jpg_files) == 0, (
+            f"Expected cleanup to remove partial JPEG, but found: {jpg_files}"
+        )
 
 
 class TestConvertToHeicLossless:
@@ -356,7 +370,9 @@ class TestConvertToHeicLossless:
     @patch("smart_media_manager.cli.copy_metadata_from_source")
     @patch("smart_media_manager.cli.run_command_with_progress")
     @patch("smart_media_manager.cli.find_executable")
-    def test_convert_to_heic_lossless_with_heif_enc(self, mock_find, mock_run, mock_copy, tmp_path):
+    def test_convert_to_heic_lossless_with_heif_enc(
+        self, mock_find, mock_run, mock_copy, tmp_path
+    ):
         """Test convert_to_heic_lossless uses heif-enc when available."""
         from smart_media_manager.cli import convert_to_heic_lossless, MediaFile
 
@@ -394,7 +410,9 @@ class TestConvertToHeicLossless:
     @patch("smart_media_manager.cli.run_command_with_progress")
     @patch("smart_media_manager.cli.ensure_ffmpeg_path")
     @patch("smart_media_manager.cli.find_executable")
-    def test_convert_to_heic_lossless_with_ffmpeg_fallback(self, mock_find, mock_ffmpeg, mock_run, mock_copy, tmp_path):
+    def test_convert_to_heic_lossless_with_ffmpeg_fallback(
+        self, mock_find, mock_ffmpeg, mock_run, mock_copy, tmp_path
+    ):
         """Test convert_to_heic_lossless falls back to ffmpeg when heif-enc unavailable."""
         from smart_media_manager.cli import convert_to_heic_lossless, MediaFile
 
@@ -431,7 +449,9 @@ class TestConvertToHeicLossless:
     @patch("smart_media_manager.cli.copy_metadata_from_source")
     @patch("smart_media_manager.cli.run_command_with_progress")
     @patch("smart_media_manager.cli.find_executable")
-    def test_convert_to_heic_lossless_handles_jxl_with_djxl(self, mock_find, mock_run, mock_copy, tmp_path):
+    def test_convert_to_heic_lossless_handles_jxl_with_djxl(
+        self, mock_find, mock_run, mock_copy, tmp_path
+    ):
         """Test convert_to_heic_lossless decodes JXL with djxl before encoding."""
         from smart_media_manager.cli import convert_to_heic_lossless, MediaFile
 
@@ -473,7 +493,9 @@ class TestConvertToHeicLossless:
 
     @patch("smart_media_manager.cli.convert_to_tiff")
     @patch("smart_media_manager.cli.find_executable")
-    def test_convert_to_heic_lossless_falls_back_to_tiff_for_jxl_without_djxl(self, mock_find, mock_convert, tmp_path):
+    def test_convert_to_heic_lossless_falls_back_to_tiff_for_jxl_without_djxl(
+        self, mock_find, mock_convert, tmp_path
+    ):
         """Test convert_to_heic_lossless falls back to TIFF when djxl unavailable for JXL."""
         from smart_media_manager.cli import convert_to_heic_lossless, MediaFile
 
@@ -517,7 +539,9 @@ class TestConvertToHeicLossless:
     @patch("smart_media_manager.cli.copy_metadata_from_source")
     @patch("smart_media_manager.cli.run_command_with_progress")
     @patch("smart_media_manager.cli.find_executable")
-    def test_convert_to_heic_lossless_cleans_up_on_failure(self, mock_find, mock_run, mock_copy, tmp_path):
+    def test_convert_to_heic_lossless_cleans_up_on_failure(
+        self, mock_find, mock_run, mock_copy, tmp_path
+    ):
         """Test convert_to_heic_lossless cleans up target and intermediate on failure."""
         from smart_media_manager.cli import convert_to_heic_lossless, MediaFile
 

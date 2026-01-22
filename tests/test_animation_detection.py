@@ -208,7 +208,16 @@ class TestPsdColorModeDetection:
     def test_get_psd_color_mode_rgb(self, tmp_path):
         """Test get_psd_color_mode detects RGB mode."""
         psd_rgb = tmp_path / "rgb.psd"
-        psd_data = b"8BPS" + b"\x00\x01" + b"\x00" * 6 + b"\x00\x03" + b"\x00\x00\x00\x10" + b"\x00\x00\x00\x10" + b"\x00\x08" + b"\x00\x03"
+        psd_data = (
+            b"8BPS"
+            + b"\x00\x01"
+            + b"\x00" * 6
+            + b"\x00\x03"
+            + b"\x00\x00\x00\x10"
+            + b"\x00\x00\x00\x10"
+            + b"\x00\x08"
+            + b"\x00\x03"
+        )
         psd_rgb.write_bytes(psd_data)
         result = get_psd_color_mode(psd_rgb)
         assert result == "rgb"
@@ -216,7 +225,16 @@ class TestPsdColorModeDetection:
     def test_get_psd_color_mode_cmyk(self, tmp_path):
         """Test get_psd_color_mode detects CMYK mode."""
         psd_cmyk = tmp_path / "cmyk.psd"
-        psd_data = b"8BPS" + b"\x00\x01" + b"\x00" * 6 + b"\x00\x04" + b"\x00\x00\x00\x10" + b"\x00\x00\x00\x10" + b"\x00\x08" + b"\x00\x04"
+        psd_data = (
+            b"8BPS"
+            + b"\x00\x01"
+            + b"\x00" * 6
+            + b"\x00\x04"
+            + b"\x00\x00\x00\x10"
+            + b"\x00\x00\x00\x10"
+            + b"\x00\x08"
+            + b"\x00\x04"
+        )
         psd_cmyk.write_bytes(psd_data)
         result = get_psd_color_mode(psd_cmyk)
         assert result == "cmyk"
@@ -224,7 +242,16 @@ class TestPsdColorModeDetection:
     def test_get_psd_color_mode_grayscale(self, tmp_path):
         """Test get_psd_color_mode detects grayscale mode."""
         psd_gray = tmp_path / "gray.psd"
-        psd_data = b"8BPS" + b"\x00\x01" + b"\x00" * 6 + b"\x00\x01" + b"\x00\x00\x00\x10" + b"\x00\x00\x00\x10" + b"\x00\x08" + b"\x00\x01"
+        psd_data = (
+            b"8BPS"
+            + b"\x00\x01"
+            + b"\x00" * 6
+            + b"\x00\x01"
+            + b"\x00\x00\x00\x10"
+            + b"\x00\x00\x00\x10"
+            + b"\x00\x08"
+            + b"\x00\x01"
+        )
         psd_gray.write_bytes(psd_data)
         result = get_psd_color_mode(psd_gray)
         assert result == "grayscale"

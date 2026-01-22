@@ -18,7 +18,9 @@ class TestRewrapToMp4:
 
     @patch("smart_media_manager.cli.run_command_with_progress")
     @patch("smart_media_manager.cli.ensure_ffmpeg_path")
-    def test_rewrap_to_mp4_succeeds_and_updates_media(self, mock_ffmpeg, mock_run, tmp_path):
+    def test_rewrap_to_mp4_succeeds_and_updates_media(
+        self, mock_ffmpeg, mock_run, tmp_path
+    ):
         """Test rewrap_to_mp4 succeeds and updates MediaFile."""
         from smart_media_manager.cli import rewrap_to_mp4, MediaFile
 
@@ -80,7 +82,9 @@ class TestRewrapToMp4:
 
     @patch("smart_media_manager.cli.run_command_with_progress")
     @patch("smart_media_manager.cli.ensure_ffmpeg_path")
-    def test_rewrap_to_mp4_preserves_original_on_failure(self, mock_ffmpeg, mock_run, tmp_path):
+    def test_rewrap_to_mp4_preserves_original_on_failure(
+        self, mock_ffmpeg, mock_run, tmp_path
+    ):
         """Test rewrap_to_mp4 preserves original when ffmpeg fails.
 
         NOTE: rewrap_to_mp4 does NOT have cleanup logic for partial target files.
@@ -126,7 +130,9 @@ class TestRewrapToMp4:
         # This verifies CURRENT behavior, which may leave partial files behind
         mp4_files = list(tmp_path.glob("*.mp4"))
         # The partial file will exist because rewrap_to_mp4 has no cleanup
-        assert len(mp4_files) == 1, "Partial MP4 is left behind (function has no cleanup logic)"
+        assert len(mp4_files) == 1, (
+            "Partial MP4 is left behind (function has no cleanup logic)"
+        )
 
 
 class TestRevertMediaFiles:
@@ -134,7 +140,9 @@ class TestRevertMediaFiles:
 
     @patch("smart_media_manager.cli.shutil.rmtree")
     @patch("smart_media_manager.cli.resolve_restore_path")
-    def test_revert_media_files_restores_staged_files(self, mock_resolve, mock_rmtree, tmp_path):
+    def test_revert_media_files_restores_staged_files(
+        self, mock_resolve, mock_rmtree, tmp_path
+    ):
         """Test revert_media_files restores files to original locations."""
         from smart_media_manager.cli import revert_media_files, MediaFile
 
@@ -190,7 +198,9 @@ class TestRevertMediaFiles:
 
     @patch("smart_media_manager.cli.shutil.rmtree")
     @patch("smart_media_manager.cli.resolve_restore_path")
-    def test_revert_media_files_handles_missing_staged_files(self, mock_resolve, mock_rmtree, tmp_path):
+    def test_revert_media_files_handles_missing_staged_files(
+        self, mock_resolve, mock_rmtree, tmp_path
+    ):
         """Test revert_media_files handles files that no longer exist in staging."""
         from smart_media_manager.cli import revert_media_files, MediaFile
 
@@ -242,7 +252,9 @@ class TestRevertMediaFiles:
 
     @patch("smart_media_manager.cli.shutil.rmtree")
     @patch("smart_media_manager.cli.resolve_restore_path")
-    def test_revert_media_files_continues_on_individual_failure(self, mock_resolve, mock_rmtree, tmp_path):
+    def test_revert_media_files_continues_on_individual_failure(
+        self, mock_resolve, mock_rmtree, tmp_path
+    ):
         """Test revert_media_files continues processing after individual restore failure."""
         from smart_media_manager.cli import revert_media_files, MediaFile
 

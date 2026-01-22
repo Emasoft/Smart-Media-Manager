@@ -108,7 +108,13 @@ def test_jpeg_direct_import(tmp_path: Path) -> None:
 
     stats = RunStatistics()
     skip_logger = SkipLogger(tmp_path / "skip.log")
-    media_files = gather_media_files(source_dir, recursive=False, follow_symlinks=False, skip_logger=skip_logger, stats=stats)
+    media_files = gather_media_files(
+        source_dir,
+        recursive=False,
+        follow_symlinks=False,
+        skip_logger=skip_logger,
+        stats=stats,
+    )
 
     assert len(media_files) >= 1
     jpeg = media_files[0]
@@ -139,7 +145,13 @@ def test_png_direct_import(tmp_path: Path) -> None:
 
     stats = RunStatistics()
     skip_logger = SkipLogger(tmp_path / "skip.log")
-    media_files = gather_media_files(source_dir, recursive=False, follow_symlinks=False, skip_logger=skip_logger, stats=stats)
+    media_files = gather_media_files(
+        source_dir,
+        recursive=False,
+        follow_symlinks=False,
+        skip_logger=skip_logger,
+        stats=stats,
+    )
 
     assert len(media_files) >= 1
     png = media_files[0]
@@ -170,7 +182,13 @@ def test_heic_direct_import(tmp_path: Path) -> None:
 
     stats = RunStatistics()
     skip_logger = SkipLogger(tmp_path / "skip.log")
-    media_files = gather_media_files(source_dir, recursive=False, follow_symlinks=False, skip_logger=skip_logger, stats=stats)
+    media_files = gather_media_files(
+        source_dir,
+        recursive=False,
+        follow_symlinks=False,
+        skip_logger=skip_logger,
+        stats=stats,
+    )
 
     assert len(media_files) >= 1
     heic = media_files[0]
@@ -218,7 +236,13 @@ def test_mp4_h264_direct_import(tmp_path: Path) -> None:
 
     stats = RunStatistics()
     skip_logger = SkipLogger(tmp_path / "skip.log")
-    media_files = gather_media_files(source_dir, recursive=False, follow_symlinks=False, skip_logger=skip_logger, stats=stats)
+    media_files = gather_media_files(
+        source_dir,
+        recursive=False,
+        follow_symlinks=False,
+        skip_logger=skip_logger,
+        stats=stats,
+    )
 
     assert len(media_files) >= 1
     mp4 = media_files[0]
@@ -227,7 +251,9 @@ def test_mp4_h264_direct_import(tmp_path: Path) -> None:
 
     # MP4 with H.264 should import directly
     if mp4.video_codec in ("h264", "avc1"):
-        assert mp4.action == "import", f"H.264 MP4 should import directly, got action: {mp4.action}"
+        assert mp4.action == "import", (
+            f"H.264 MP4 should import directly, got action: {mp4.action}"
+        )
 
     staging_dir = tmp_path / "staging"
     staging_dir.mkdir()
@@ -259,7 +285,13 @@ def test_mov_direct_import(tmp_path: Path) -> None:
 
     stats = RunStatistics()
     skip_logger = SkipLogger(tmp_path / "skip.log")
-    media_files = gather_media_files(source_dir, recursive=False, follow_symlinks=False, skip_logger=skip_logger, stats=stats)
+    media_files = gather_media_files(
+        source_dir,
+        recursive=False,
+        follow_symlinks=False,
+        skip_logger=skip_logger,
+        stats=stats,
+    )
 
     assert len(media_files) >= 1
     mov = media_files[0]
@@ -300,12 +332,20 @@ def test_webp_requires_conversion_to_png(tmp_path: Path) -> None:
 
     stats = RunStatistics()
     skip_logger = SkipLogger(tmp_path / "skip.log")
-    media_files = gather_media_files(source_dir, recursive=False, follow_symlinks=False, skip_logger=skip_logger, stats=stats)
+    media_files = gather_media_files(
+        source_dir,
+        recursive=False,
+        follow_symlinks=False,
+        skip_logger=skip_logger,
+        stats=stats,
+    )
 
     assert len(media_files) >= 1
     webp = media_files[0]
     # Empirical evidence: WebP imports directly into Apple Photos with 100% success rate
-    assert webp.action == "import", f"WebP should have action='import', got: {webp.action}"
+    assert webp.action == "import", (
+        f"WebP should have action='import', got: {webp.action}"
+    )
     assert not webp.requires_processing, "WebP should NOT require processing"
     assert webp.compatible, "WebP should be marked compatible"
 
@@ -317,7 +357,9 @@ def test_webp_requires_conversion_to_png(tmp_path: Path) -> None:
     ensure_compatibility(media_files, skip_logger, stats)
 
     # After ensure_compatibility, format should be unchanged
-    assert webp.extension == ".webp", f"WebP extension should be preserved, got: {webp.extension}"
+    assert webp.extension == ".webp", (
+        f"WebP extension should be preserved, got: {webp.extension}"
+    )
     assert webp.compatible, "WebP should remain compatible"
 
     imported_count, failed_list = import_into_photos(media_files, stats)
@@ -351,15 +393,27 @@ def test_mkv_h264_requires_rewrap_to_mp4(tmp_path: Path) -> None:
 
     stats = RunStatistics()
     skip_logger = SkipLogger(tmp_path / "skip.log")
-    media_files = gather_media_files(source_dir, recursive=False, follow_symlinks=False, skip_logger=skip_logger, stats=stats)
+    media_files = gather_media_files(
+        source_dir,
+        recursive=False,
+        follow_symlinks=False,
+        skip_logger=skip_logger,
+        stats=stats,
+    )
 
     # Current behavior: 10-bit MKV is correctly rejected (UUID system limitation)
     # File is skipped because code detects 10-bit color depth incompatibility
-    assert len(media_files) == 0, "10-bit MKV should be skipped (current UUID system cannot handle bit depth)"
+    assert len(media_files) == 0, (
+        "10-bit MKV should be skipped (current UUID system cannot handle bit depth)"
+    )
 
     # Verify skip log contains the rejection reason
-    skip_content = (tmp_path / "skip.log").read_text() if (tmp_path / "skip.log").exists() else ""
-    assert "10-bit color depth" in skip_content or len(skip_content) == 0, "Should document 10-bit rejection reason"
+    skip_content = (
+        (tmp_path / "skip.log").read_text() if (tmp_path / "skip.log").exists() else ""
+    )
+    assert "10-bit color depth" in skip_content or len(skip_content) == 0, (
+        "Should document 10-bit rejection reason"
+    )
 
 
 def test_avi_requires_transcode(tmp_path: Path) -> None:
@@ -394,15 +448,27 @@ def test_avi_requires_transcode(tmp_path: Path) -> None:
 
     stats = RunStatistics()
     skip_logger = SkipLogger(tmp_path / "skip.log")
-    media_files = gather_media_files(source_dir, recursive=False, follow_symlinks=False, skip_logger=skip_logger, stats=stats)
+    media_files = gather_media_files(
+        source_dir,
+        recursive=False,
+        follow_symlinks=False,
+        skip_logger=skip_logger,
+        stats=stats,
+    )
 
     # Current behavior: AVI is correctly rejected because UUID not in compatibility lists
     # This is the expected behavior per "JSON as sole source of truth" requirement
-    assert len(media_files) == 0, "AVI should be skipped (UUID not in apple_photos_compatible section)"
+    assert len(media_files) == 0, (
+        "AVI should be skipped (UUID not in apple_photos_compatible section)"
+    )
 
     # Verify skip log contains the rejection reason
-    skip_content = (tmp_path / "skip.log").read_text() if (tmp_path / "skip.log").exists() else ""
-    assert "format not identified by UUID system" in skip_content or len(skip_content) == 0, "Should document UUID system rejection"
+    skip_content = (
+        (tmp_path / "skip.log").read_text() if (tmp_path / "skip.log").exists() else ""
+    )
+    assert (
+        "format not identified by UUID system" in skip_content or len(skip_content) == 0
+    ), "Should document UUID system rejection"
 
 
 def test_gif_static_direct_import(tmp_path: Path) -> None:
@@ -429,7 +495,13 @@ def test_gif_static_direct_import(tmp_path: Path) -> None:
 
     stats = RunStatistics()
     skip_logger = SkipLogger(tmp_path / "skip.log")
-    media_files = gather_media_files(source_dir, recursive=False, follow_symlinks=False, skip_logger=skip_logger, stats=stats)
+    media_files = gather_media_files(
+        source_dir,
+        recursive=False,
+        follow_symlinks=False,
+        skip_logger=skip_logger,
+        stats=stats,
+    )
 
     assert len(media_files) >= 1
     gif = media_files[0]
@@ -470,12 +542,20 @@ def test_jpeg_with_wrong_extension(tmp_path: Path) -> None:
 
     stats = RunStatistics()
     skip_logger = SkipLogger(tmp_path / "skip.log")
-    media_files = gather_media_files(source_dir, recursive=False, follow_symlinks=False, skip_logger=skip_logger, stats=stats)
+    media_files = gather_media_files(
+        source_dir,
+        recursive=False,
+        follow_symlinks=False,
+        skip_logger=skip_logger,
+        stats=stats,
+    )
 
     assert len(media_files) >= 1
     jpeg = media_files[0]
     # Should be detected as JPEG despite wrong extension
-    assert jpeg.extension in (".jpg", ".jpeg"), f"Should detect as JPEG despite .png extension, got: {jpeg.extension}"
+    assert jpeg.extension in (".jpg", ".jpeg"), (
+        f"Should detect as JPEG despite .png extension, got: {jpeg.extension}"
+    )
 
     staging_dir = tmp_path / "staging"
     staging_dir.mkdir()
@@ -507,12 +587,20 @@ def test_png_with_no_extension(tmp_path: Path) -> None:
 
     stats = RunStatistics()
     skip_logger = SkipLogger(tmp_path / "skip.log")
-    media_files = gather_media_files(source_dir, recursive=False, follow_symlinks=False, skip_logger=skip_logger, stats=stats)
+    media_files = gather_media_files(
+        source_dir,
+        recursive=False,
+        follow_symlinks=False,
+        skip_logger=skip_logger,
+        stats=stats,
+    )
 
     assert len(media_files) >= 1
     png = media_files[0]
     # Should be detected as PNG despite no extension
-    assert png.extension == ".png", f"Should detect as PNG despite no extension, got: {png.extension}"
+    assert png.extension == ".png", (
+        f"Should detect as PNG despite no extension, got: {png.extension}"
+    )
 
     staging_dir = tmp_path / "staging"
     staging_dir.mkdir()
@@ -545,12 +633,20 @@ def test_mp4_with_wrong_extension(tmp_path: Path) -> None:
 
     stats = RunStatistics()
     skip_logger = SkipLogger(tmp_path / "skip.log")
-    media_files = gather_media_files(source_dir, recursive=False, follow_symlinks=False, skip_logger=skip_logger, stats=stats)
+    media_files = gather_media_files(
+        source_dir,
+        recursive=False,
+        follow_symlinks=False,
+        skip_logger=skip_logger,
+        stats=stats,
+    )
 
     assert len(media_files) >= 1
     mp4 = media_files[0]
     # Should be detected as MP4 despite .avi extension
-    assert mp4.extension == ".mp4", f"Should detect as MP4 despite .avi extension, got: {mp4.extension}"
+    assert mp4.extension == ".mp4", (
+        f"Should detect as MP4 despite .avi extension, got: {mp4.extension}"
+    )
 
     staging_dir = tmp_path / "staging"
     staging_dir.mkdir()
@@ -586,10 +682,18 @@ def test_pdf_is_skipped(tmp_path: Path) -> None:
 
     stats = RunStatistics()
     skip_logger = SkipLogger(tmp_path / "skip.log")
-    media_files = gather_media_files(source_dir, recursive=False, follow_symlinks=False, skip_logger=skip_logger, stats=stats)
+    media_files = gather_media_files(
+        source_dir,
+        recursive=False,
+        follow_symlinks=False,
+        skip_logger=skip_logger,
+        stats=stats,
+    )
 
     # PDF should be filtered out during scan
-    assert all(m.extension != ".pdf" for m in media_files), "PDF should not reach staging"
+    assert all(m.extension != ".pdf" for m in media_files), (
+        "PDF should not reach staging"
+    )
     assert len(media_files) >= 1, "Should have valid media"
 
     staging_dir = tmp_path / "staging"
@@ -621,10 +725,18 @@ def test_svg_is_skipped(tmp_path: Path) -> None:
 
     stats = RunStatistics()
     skip_logger = SkipLogger(tmp_path / "skip.log")
-    media_files = gather_media_files(source_dir, recursive=False, follow_symlinks=False, skip_logger=skip_logger, stats=stats)
+    media_files = gather_media_files(
+        source_dir,
+        recursive=False,
+        follow_symlinks=False,
+        skip_logger=skip_logger,
+        stats=stats,
+    )
 
     # SVG should be filtered out during scan
-    assert all(m.extension != ".svg" for m in media_files), "SVG should not reach staging"
+    assert all(m.extension != ".svg" for m in media_files), (
+        "SVG should not reach staging"
+    )
     assert len(media_files) >= 1, "Should have valid media"
 
     staging_dir = tmp_path / "staging"

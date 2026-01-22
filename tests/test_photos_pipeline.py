@@ -44,7 +44,13 @@ def test_png_import_pipeline(monkeypatch, tmp_path: Path) -> None:
 
     skip_log = tmp_path / "skip.log"
     stats = RunStatistics()
-    media_files = gather_media_files(source_dir, recursive=False, follow_symlinks=False, skip_logger=SkipLogger(skip_log), stats=stats)
+    media_files = gather_media_files(
+        source_dir,
+        recursive=False,
+        follow_symlinks=False,
+        skip_logger=SkipLogger(skip_log),
+        stats=stats,
+    )
 
     assert len(media_files) == 1
     media = media_files[0]
@@ -74,7 +80,13 @@ def test_pdf_vector_skipped(monkeypatch, tmp_path: Path) -> None:
 
     skip_log = tmp_path / "skip.log"
     stats = RunStatistics()
-    media_files = gather_media_files(source_dir, recursive=False, follow_symlinks=False, skip_logger=SkipLogger(skip_log), stats=stats)
+    media_files = gather_media_files(
+        source_dir,
+        recursive=False,
+        follow_symlinks=False,
+        skip_logger=SkipLogger(skip_log),
+        stats=stats,
+    )
 
     assert media_files == []
     assert skip_log.exists()
@@ -90,7 +102,13 @@ def test_corrupt_png_skipped(tmp_path: Path) -> None:
 
     skip_log = tmp_path / "skip.log"
     stats = RunStatistics()
-    media_files = gather_media_files(source_dir, recursive=False, follow_symlinks=False, skip_logger=SkipLogger(skip_log), stats=stats)
+    media_files = gather_media_files(
+        source_dir,
+        recursive=False,
+        follow_symlinks=False,
+        skip_logger=SkipLogger(skip_log),
+        stats=stats,
+    )
 
     assert media_files == []
     assert skip_log.exists()
@@ -107,7 +125,13 @@ def test_typescript_file_is_skipped(tmp_path: Path) -> None:
     skip_log = tmp_path / "skip.log"
     logger = SkipLogger(skip_log)
     stats = RunStatistics()
-    media_files = gather_media_files(source_dir, recursive=False, follow_symlinks=False, skip_logger=logger, stats=stats)
+    media_files = gather_media_files(
+        source_dir,
+        recursive=False,
+        follow_symlinks=False,
+        skip_logger=logger,
+        stats=stats,
+    )
 
     assert media_files == []
     assert skip_log.exists()
@@ -125,7 +149,13 @@ def test_media_with_wrong_extension_is_normalised(tmp_path: Path) -> None:
     skip_log = tmp_path / "skip.log"
     logger = SkipLogger(skip_log)
     stats = RunStatistics()
-    media_files = gather_media_files(source_dir, recursive=False, follow_symlinks=False, skip_logger=logger, stats=stats)
+    media_files = gather_media_files(
+        source_dir,
+        recursive=False,
+        follow_symlinks=False,
+        skip_logger=logger,
+        stats=stats,
+    )
 
     assert len(media_files) == 1
     media = media_files[0]

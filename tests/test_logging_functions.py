@@ -40,7 +40,9 @@ class TestAttachFileLogger:
         assert log_dir.name.startswith(".smm__runtime_logs_20250101120000_")
 
     @patch("smart_media_manager.cli._FILE_LOG_HANDLER", None)
-    def test_attach_file_logger_returns_same_path_when_called_twice(self, tmp_path, monkeypatch):
+    def test_attach_file_logger_returns_same_path_when_called_twice(
+        self, tmp_path, monkeypatch
+    ):
         """Test attach_file_logger returns same path on subsequent calls."""
         from smart_media_manager.cli import attach_file_logger
 

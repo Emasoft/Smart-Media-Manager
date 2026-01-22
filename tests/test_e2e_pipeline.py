@@ -55,7 +55,13 @@ def test_compatible_jpeg_should_import(tmp_path: Path) -> None:
     # Scan and detect
     stats = RunStatistics()
     skip_logger = SkipLogger(tmp_path / "skip.log")
-    media_files = gather_media_files(source_dir, recursive=False, follow_symlinks=False, skip_logger=skip_logger, stats=stats)
+    media_files = gather_media_files(
+        source_dir,
+        recursive=False,
+        follow_symlinks=False,
+        skip_logger=skip_logger,
+        stats=stats,
+    )
 
     assert len(media_files) >= 1, "JPEG file should be detected"
     jpeg_media = [m for m in media_files if m.extension in (".jpg", ".jpeg")]
@@ -63,7 +69,9 @@ def test_compatible_jpeg_should_import(tmp_path: Path) -> None:
 
     # Check action
     jpeg = jpeg_media[0]
-    assert jpeg.action == "import", f"JPEG should have action='import', got: {jpeg.action}"
+    assert jpeg.action == "import", (
+        f"JPEG should have action='import', got: {jpeg.action}"
+    )
     assert jpeg.compatible is True, "JPEG should be marked compatible"
     assert jpeg.requires_processing is False, "JPEG should not require processing"
 
@@ -82,7 +90,13 @@ def test_compatible_png_should_import(tmp_path: Path) -> None:
 
     stats = RunStatistics()
     skip_logger = SkipLogger(tmp_path / "skip.log")
-    media_files = gather_media_files(source_dir, recursive=False, follow_symlinks=False, skip_logger=skip_logger, stats=stats)
+    media_files = gather_media_files(
+        source_dir,
+        recursive=False,
+        follow_symlinks=False,
+        skip_logger=skip_logger,
+        stats=stats,
+    )
 
     assert len(media_files) >= 1, "PNG file should be detected"
     png_media = [m for m in media_files if m.extension == ".png"]
@@ -108,7 +122,13 @@ def test_webp_should_convert_to_png(tmp_path: Path) -> None:
 
     stats = RunStatistics()
     skip_logger = SkipLogger(tmp_path / "skip.log")
-    media_files = gather_media_files(source_dir, recursive=False, follow_symlinks=False, skip_logger=skip_logger, stats=stats)
+    media_files = gather_media_files(
+        source_dir,
+        recursive=False,
+        follow_symlinks=False,
+        skip_logger=skip_logger,
+        stats=stats,
+    )
 
     assert len(media_files) >= 1, "WebP file should be detected"
     webp_media = [m for m in media_files if m.extension == ".webp"]
@@ -116,7 +136,9 @@ def test_webp_should_convert_to_png(tmp_path: Path) -> None:
 
     webp = webp_media[0]
     # Empirical evidence: WebP imports directly into Apple Photos with 100% success rate
-    assert webp.action == "import", f"WebP should have action='import', got: {webp.action}"
+    assert webp.action == "import", (
+        f"WebP should have action='import', got: {webp.action}"
+    )
     assert webp.compatible is True, "WebP should be marked compatible"
     assert webp.requires_processing is False, "WebP should not require processing"
 
@@ -135,13 +157,21 @@ def test_pdf_should_be_skipped(tmp_path: Path) -> None:
 
     stats = RunStatistics()
     skip_logger = SkipLogger(tmp_path / "skip.log")
-    media_files = gather_media_files(source_dir, recursive=False, follow_symlinks=False, skip_logger=skip_logger, stats=stats)
+    media_files = gather_media_files(
+        source_dir,
+        recursive=False,
+        follow_symlinks=False,
+        skip_logger=skip_logger,
+        stats=stats,
+    )
 
     # PDFs should be detected but skipped
     pdf_media = [m for m in media_files if m.extension == ".pdf"]
     if pdf_media:
         pdf = pdf_media[0]
-        assert pdf.action == "skip_vector", f"PDF should have action='skip_vector', got: {pdf.action}"
+        assert pdf.action == "skip_vector", (
+            f"PDF should have action='skip_vector', got: {pdf.action}"
+        )
 
 
 def test_svg_should_be_skipped(tmp_path: Path) -> None:
@@ -158,13 +188,21 @@ def test_svg_should_be_skipped(tmp_path: Path) -> None:
 
     stats = RunStatistics()
     skip_logger = SkipLogger(tmp_path / "skip.log")
-    media_files = gather_media_files(source_dir, recursive=False, follow_symlinks=False, skip_logger=skip_logger, stats=stats)
+    media_files = gather_media_files(
+        source_dir,
+        recursive=False,
+        follow_symlinks=False,
+        skip_logger=skip_logger,
+        stats=stats,
+    )
 
     # SVGs should be detected but skipped
     svg_media = [m for m in media_files if m.extension == ".svg"]
     if svg_media:
         svg = svg_media[0]
-        assert svg.action in ("skip_vector", "skip_unknown"), f"SVG should be skipped, got action: {svg.action}"
+        assert svg.action in ("skip_vector", "skip_unknown"), (
+            f"SVG should be skipped, got action: {svg.action}"
+        )
 
 
 def test_non_media_files_skipped(tmp_path: Path) -> None:
@@ -185,10 +223,18 @@ def test_non_media_files_skipped(tmp_path: Path) -> None:
 
     stats = RunStatistics()
     skip_logger = SkipLogger(tmp_path / "skip.log")
-    media_files = gather_media_files(source_dir, recursive=False, follow_symlinks=False, skip_logger=skip_logger, stats=stats)
+    media_files = gather_media_files(
+        source_dir,
+        recursive=False,
+        follow_symlinks=False,
+        skip_logger=skip_logger,
+        stats=stats,
+    )
 
     # Non-media files should not appear in media_files list
-    assert all(m.extension not in (".docx", ".html", ".log", ".txt") for m in media_files), "Non-media files should be skipped"
+    assert all(
+        m.extension not in (".docx", ".html", ".log", ".txt") for m in media_files
+    ), "Non-media files should be skipped"
 
 
 def test_mp4_video_detection(tmp_path: Path) -> None:
@@ -206,7 +252,13 @@ def test_mp4_video_detection(tmp_path: Path) -> None:
 
     stats = RunStatistics()
     skip_logger = SkipLogger(tmp_path / "skip.log")
-    media_files = gather_media_files(source_dir, recursive=False, follow_symlinks=False, skip_logger=skip_logger, stats=stats)
+    media_files = gather_media_files(
+        source_dir,
+        recursive=False,
+        follow_symlinks=False,
+        skip_logger=skip_logger,
+        stats=stats,
+    )
 
     assert len(media_files) >= 1, "MP4 file should be detected"
     mp4_media = [m for m in media_files if m.extension == ".mp4"]
@@ -214,8 +266,17 @@ def test_mp4_video_detection(tmp_path: Path) -> None:
 
     mp4 = mp4_media[0]
     # MP4 action depends on codec - should be one of these
-    valid_actions = {"import", "rewrap_to_mp4", "rewrap_or_transcode_to_mp4", "transcode_to_hevc_mp4", "transcode_video_to_lossless_hevc", "transcode_audio_to_aac_or_eac3"}
-    assert mp4.action in valid_actions, f"MP4 should have valid action, got: {mp4.action}"
+    valid_actions = {
+        "import",
+        "rewrap_to_mp4",
+        "rewrap_or_transcode_to_mp4",
+        "transcode_to_hevc_mp4",
+        "transcode_video_to_lossless_hevc",
+        "transcode_audio_to_aac_or_eac3",
+    }
+    assert mp4.action in valid_actions, (
+        f"MP4 should have valid action, got: {mp4.action}"
+    )
     assert mp4.kind == "video", "MP4 should be detected as video"
     assert mp4.extension == ".mp4", "MP4 file should keep .mp4 extension"
 
@@ -234,7 +295,13 @@ def test_mkv_video_detection(tmp_path: Path) -> None:
 
     stats = RunStatistics()
     skip_logger = SkipLogger(tmp_path / "skip.log")
-    media_files = gather_media_files(source_dir, recursive=False, follow_symlinks=False, skip_logger=skip_logger, stats=stats)
+    media_files = gather_media_files(
+        source_dir,
+        recursive=False,
+        follow_symlinks=False,
+        skip_logger=skip_logger,
+        stats=stats,
+    )
 
     assert len(media_files) >= 1, "MKV file should be detected"
     mkv_media = [m for m in media_files if m.extension == ".mkv"]
@@ -242,7 +309,12 @@ def test_mkv_video_detection(tmp_path: Path) -> None:
 
     mkv = mkv_media[0]
     # MKV needs container change - should rewrap or transcode
-    valid_actions = {"rewrap_to_mp4", "transcode_to_hevc_mp4", "transcode_video_to_lossless_hevc", "rewrap_or_transcode_to_mp4"}
+    valid_actions = {
+        "rewrap_to_mp4",
+        "transcode_to_hevc_mp4",
+        "transcode_video_to_lossless_hevc",
+        "rewrap_or_transcode_to_mp4",
+    }
     assert mkv.action in valid_actions, f"MKV should be converted, got: {mkv.action}"
     assert mkv.requires_processing is True, "MKV should require processing"
 
@@ -257,7 +329,9 @@ def test_mixed_media_folder(tmp_path: Path) -> None:
     for pattern in ["*.jpg", "*.png", "*.webp", "*.mp4"]:
         samples = list(SAMPLES_DIR.glob(pattern))
         if samples and copied < 10:  # Limit to 10 files for speed
-            shutil.copy(samples[0], source_dir / f"test{copied}{Path(samples[0]).suffix}")
+            shutil.copy(
+                samples[0], source_dir / f"test{copied}{Path(samples[0]).suffix}"
+            )
             copied += 1
 
     if copied == 0:
@@ -265,15 +339,27 @@ def test_mixed_media_folder(tmp_path: Path) -> None:
 
     stats = RunStatistics()
     skip_logger = SkipLogger(tmp_path / "skip.log")
-    media_files = gather_media_files(source_dir, recursive=False, follow_symlinks=False, skip_logger=skip_logger, stats=stats)
+    media_files = gather_media_files(
+        source_dir,
+        recursive=False,
+        follow_symlinks=False,
+        skip_logger=skip_logger,
+        stats=stats,
+    )
 
     assert len(media_files) >= 1, "Should detect at least one media file"
 
     # Check that each file has a valid action
     for media in media_files:
-        assert media.action is not None, f"File {media.source.name} should have an action assigned"
-        assert media.extension is not None, f"File {media.source.name} should have an extension"
-        assert media.format_name is not None, f"File {media.source.name} should have a format_name"
+        assert media.action is not None, (
+            f"File {media.source.name} should have an action assigned"
+        )
+        assert media.extension is not None, (
+            f"File {media.source.name} should have an extension"
+        )
+        assert media.format_name is not None, (
+            f"File {media.source.name} should have a format_name"
+        )
 
 
 def test_staging_moves_files(tmp_path: Path) -> None:
@@ -295,7 +381,13 @@ def test_staging_moves_files(tmp_path: Path) -> None:
     # Scan and stage
     stats = RunStatistics()
     skip_logger = SkipLogger(tmp_path / "skip.log")
-    media_files = gather_media_files(source_dir, recursive=False, follow_symlinks=False, skip_logger=skip_logger, stats=stats)
+    media_files = gather_media_files(
+        source_dir,
+        recursive=False,
+        follow_symlinks=False,
+        skip_logger=skip_logger,
+        stats=stats,
+    )
 
     assert len(media_files) >= 1
     stage_media(media_files, staging_dir)
@@ -306,7 +398,9 @@ def test_staging_moves_files(tmp_path: Path) -> None:
     # Staged file should exist with same extension and size
     staged_files = list(staging_dir.glob("*.jpg"))
     assert len(staged_files) >= 1, "Staged .jpg file should exist"
-    assert staged_files[0].stat().st_size == original_size, "Staged file should be same size"
+    assert staged_files[0].stat().st_size == original_size, (
+        "Staged file should be same size"
+    )
 
 
 def test_recursive_scanning(tmp_path: Path) -> None:
@@ -334,14 +428,28 @@ def test_recursive_scanning(tmp_path: Path) -> None:
     # Test non-recursive
     stats = RunStatistics()
     skip_logger = SkipLogger(tmp_path / "skip.log")
-    media_files_flat = gather_media_files(source_dir, recursive=False, follow_symlinks=False, skip_logger=skip_logger, stats=stats)
+    media_files_flat = gather_media_files(
+        source_dir,
+        recursive=False,
+        follow_symlinks=False,
+        skip_logger=skip_logger,
+        stats=stats,
+    )
 
     # Should only find root.jpg
     assert len(media_files_flat) == 1, "Non-recursive should only find files in root"
 
     # Test recursive
     stats = RunStatistics()
-    media_files_recursive = gather_media_files(source_dir, recursive=True, follow_symlinks=False, skip_logger=skip_logger, stats=stats)
+    media_files_recursive = gather_media_files(
+        source_dir,
+        recursive=True,
+        follow_symlinks=False,
+        skip_logger=skip_logger,
+        stats=stats,
+    )
 
     # Should find all files
-    assert len(media_files_recursive) >= 2, "Recursive should find files in subdirectories"
+    assert len(media_files_recursive) >= 2, (
+        "Recursive should find files in subdirectories"
+    )
