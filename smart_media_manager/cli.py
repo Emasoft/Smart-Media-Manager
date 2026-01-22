@@ -903,6 +903,74 @@ class RunStatistics:
         LOG.info("=" * 80)
 
 
+def print_dry_run_summary(media_files: list, stats: RunStatistics) -> None:
+    """Print a summary of what would happen in a real run (dry-run mode)."""
+    # ANSI color codes
+    BOLD = "\033[1m"
+    GREEN = "\033[92m"
+    YELLOW = "\033[93m"
+    BLUE = "\033[94m"
+    CYAN = "\033[96m"
+    RESET = "\033[0m"
+
+    print(f"\n{BOLD}{'=' * 80}{RESET}")
+    print(f"{BOLD}{CYAN}DRY RUN - Simulation Results{RESET}")
+    print(f"{BOLD}{'=' * 80}{RESET}\n")
+
+    # Detection summary
+    print(f"{BOLD}{BLUE}Would detect:{RESET}")
+    print(f"  Total files scanned:        {stats.total_files_scanned:>6}")
+    print(f"  Media files detected:       {stats.total_media_detected:>6}")
+    print(f"  Compatible (no conversion): {GREEN}{stats.media_compatible:>6}{RESET}")
+    print(
+        f"  Need conversion:            {YELLOW}{stats.media_incompatible:>6}{RESET}\n"
+    )
+
+    # Group by action
+    actions_summary: dict[str, list] = {}
+    for media in media_files:
+        action = media.action or "import"
+        if action not in actions_summary:
+            actions_summary[action] = []
+        actions_summary[action].append(media)
+
+    print(f"{BOLD}{BLUE}Planned actions:{RESET}")
+    for action, files in sorted(actions_summary.items()):
+        action_label = {
+            "import": "Direct import (compatible)",
+            "convert_to_tiff": "Convert to TIFF",
+            "convert_to_heic_lossless": "Convert to HEIC (lossless)",
+            "convert_animation_to_hevc_mp4": "Convert animation to HEVC MP4",
+            "rewrap_to_mp4": "Rewrap to MP4 (same codecs)",
+            "transcode_to_hevc_mp4": "Transcode to HEVC MP4",
+            "transcode_audio_to_supported": "Transcode audio only",
+            "skip": "Skip (unsupported)",
+        }.get(action, action)
+        print(f"  {action_label}: {len(files):>4} file(s)")
+
+    print()
+
+    # Sample files by action (show first 3 of each)
+    if len(media_files) <= 20:
+        print(f"{BOLD}{BLUE}Files to process:{RESET}")
+        for media in media_files:
+            status = "✓" if media.compatible else "⚠"
+            action_short = (media.action or "import")[:20]
+            print(f"  {status} {media.source.name[:50]:<50} → {action_short}")
+    else:
+        print(f"{BOLD}{BLUE}Sample files (showing up to 5 per action):{RESET}")
+        for action, files in sorted(actions_summary.items())[:5]:
+            print(f"  {action}:")
+            for media in files[:5]:
+                print(f"    • {media.source.name[:60]}")
+            if len(files) > 5:
+                print(f"    ... and {len(files) - 5} more")
+
+    print(f"\n{BOLD}{'=' * 80}{RESET}")
+    print(f"{BOLD}{CYAN}No files were moved, converted, or imported.{RESET}")
+    print(f"{BOLD}{'=' * 80}{RESET}\n")
+
+
 @dataclass
 class FormatVote:
     tool: str
@@ -2349,6 +2417,14 @@ Examples:
         action="version",
         version=f"%(prog)s {__version__}",
         help="Show the smart-media-manager version and exit.",
+    )
+    parser.add_argument(
+        "-n",
+        "--dry-run",
+        dest="dry_run",
+        action="store_true",
+        help="Simulate the scan and conversion without moving files or importing. "
+        "Shows what would happen: detected media, needed conversions, and import plan.",
     )
 
     args = parser.parse_args()
@@ -5443,6 +5519,20 @@ def main() -> int:
                 skip_log.unlink()
             return ExitCode.SUCCESS
         ensure_raw_dependencies_for_files(media_files)
+
+        # DRY RUN: Print summary and exit without modifying files
+        if args.dry_run:
+            LOG.info("Dry run mode - no files will be modified")
+            print_dry_run_summary(media_files, stats)
+            # Clean up skip log if empty (no entries yet in dry run)
+            if (
+                skip_log
+                and skip_log.exists()
+                and skip_logger
+                and not skip_logger.has_entries()
+            ):
+                skip_log.unlink()
+            return ExitCode.SUCCESS
 
         # Create staging directory in output directory (scan root or parent of single file)
         staging_root = output_dir / f"FOUND_MEDIA_FILES_{run_ts}"
