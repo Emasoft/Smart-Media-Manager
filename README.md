@@ -4,14 +4,12 @@
 ┗┛┛ ┗┛┗┛┗ ┻   ┛ ┗┗┛┻┛┻┛┗  ┛ ┗┛┗┛┗┛┗┗┛┗┛┛┗
 ```
 
-# Smart Media Manager (ALPHA)
+# Smart Media Manager
 
 > [!WARNING]
 > **⚠ Alpha Software - Do Not Use in Production**
 >
 > This project is currently in **alpha stage** and under active development. It may contain bugs, incomplete features, or unexpected behavior. **Do not use this tool on your only copy of important media files.** Always maintain backups before running this software.
-
-Status: **Alpha (pre-release)** — breaking changes and data loss risks are possible.
 
 <p align="center">
   <strong>A macOS-first CLI that audits folders of photos and videos, fixes mismatched extensions, stages compatible media, and imports everything into Apple Photos without manual clicking.</strong>
