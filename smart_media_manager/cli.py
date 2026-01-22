@@ -623,6 +623,130 @@ class SkipLogger:
         return self.entries > 0
 
 
+@dataclass
+class StagingState:
+    """Tracks the state of a staging folder for resume capability.
+
+    State is persisted to .smm_state.json in the staging folder.
+    """
+
+    phase: str  # "staged", "converted", "importing", "completed"
+    staging_root: str  # Absolute path to staging folder
+    originals_root: str  # Absolute path to originals folder
+    output_dir: str  # Absolute path to output directory
+    run_ts: str  # Timestamp of the run
+    album_name: str  # Target album name for Photos import
+    files: list[dict[str, Any]]  # MediaFile data as dicts
+    completed: list[str] = field(default_factory=list)  # Paths of completed files
+    failed: list[tuple[str, str]] = field(
+        default_factory=list
+    )  # (path, reason) of failed files
+
+    STATE_FILENAME = ".smm_state.json"
+
+    def save(self, staging_dir: Path) -> None:
+        """Save state to .smm_state.json in staging directory."""
+        state_file = staging_dir / self.STATE_FILENAME
+        state_dict = {
+            "phase": self.phase,
+            "staging_root": self.staging_root,
+            "originals_root": self.originals_root,
+            "output_dir": self.output_dir,
+            "run_ts": self.run_ts,
+            "album_name": self.album_name,
+            "files": self.files,
+            "completed": self.completed,
+            "failed": self.failed,
+        }
+        with state_file.open("w", encoding="utf-8") as f:
+            json.dump(state_dict, f, indent=2)
+        LOG.debug("Saved staging state to %s (phase=%s)", state_file, self.phase)
+
+    @classmethod
+    def load(cls, staging_dir: Path) -> "StagingState":
+        """Load state from .smm_state.json in staging directory."""
+        state_file = staging_dir / cls.STATE_FILENAME
+        with state_file.open("r", encoding="utf-8") as f:
+            data = json.load(f)
+        LOG.info("Loaded staging state from %s (phase=%s)", state_file, data["phase"])
+        # Convert failed list of lists back to list of tuples
+        failed_raw = data.get("failed", [])
+        failed_tuples = [(item[0], item[1]) for item in failed_raw]
+        return cls(
+            phase=data["phase"],
+            staging_root=data["staging_root"],
+            originals_root=data["originals_root"],
+            output_dir=data["output_dir"],
+            run_ts=data["run_ts"],
+            album_name=data["album_name"],
+            files=data["files"],
+            completed=data.get("completed", []),
+            failed=failed_tuples,
+        )
+
+    def media_file_to_dict(self, media: "MediaFile") -> dict[str, Any]:
+        """Convert MediaFile to dict for JSON serialization."""
+        return {
+            "source": str(media.source),
+            "kind": media.kind,
+            "extension": media.extension,
+            "format_name": media.format_name,
+            "stage_path": str(media.stage_path) if media.stage_path else None,
+            "compatible": media.compatible,
+            "video_codec": media.video_codec,
+            "audio_codec": media.audio_codec,
+            "audio_sample_rate": media.audio_sample_rate,
+            "audio_sample_fmt": media.audio_sample_fmt,
+            "original_suffix": media.original_suffix,
+            "rule_id": media.rule_id,
+            "action": media.action,
+            "requires_processing": media.requires_processing,
+            "notes": media.notes,
+            "was_converted": media.was_converted,
+            "metadata": media.metadata,
+            "detected_compatible": media.detected_compatible,
+        }
+
+    def dict_to_media_file(self, data: dict[str, Any]) -> "MediaFile":
+        """Convert dict back to MediaFile."""
+        return MediaFile(
+            source=Path(data["source"]),
+            kind=data["kind"],
+            extension=data["extension"],
+            format_name=data["format_name"],
+            stage_path=Path(data["stage_path"]) if data.get("stage_path") else None,
+            compatible=data.get("compatible", False),
+            video_codec=data.get("video_codec"),
+            audio_codec=data.get("audio_codec"),
+            audio_sample_rate=data.get("audio_sample_rate"),
+            audio_sample_fmt=data.get("audio_sample_fmt"),
+            original_suffix=data.get("original_suffix", ""),
+            rule_id=data.get("rule_id", ""),
+            action=data.get("action", "import"),
+            requires_processing=data.get("requires_processing", False),
+            notes=data.get("notes", ""),
+            was_converted=data.get("was_converted", False),
+            metadata=data.get("metadata", {}),
+            detected_compatible=data.get("detected_compatible", False),
+        )
+
+    def mark_completed(self, media: "MediaFile") -> None:
+        """Mark a file as completed."""
+        path = str(media.stage_path or media.source)
+        if path not in self.completed:
+            self.completed.append(path)
+
+    def mark_failed(self, media: "MediaFile", reason: str) -> None:
+        """Mark a file as failed."""
+        path = str(media.stage_path or media.source)
+        self.failed.append((path, reason))
+
+    def is_completed(self, media: "MediaFile") -> bool:
+        """Check if a file was already completed."""
+        path = str(media.stage_path or media.source)
+        return path in self.completed
+
+
 class UnknownMappingCollector:
     """Collects missing format UUID mappings and emits an update JSON.
 
@@ -2444,6 +2568,16 @@ Examples:
         action="store_true",
         help="Suppress all output except errors. Disables progress bars.",
     )
+    parser.add_argument(
+        "--resume",
+        dest="resume_staging",
+        type=Path,
+        default=None,
+        metavar="STAGING_DIR",
+        help="Resume a previous interrupted import from the specified staging directory "
+        "(FOUND_MEDIA_FILES_<timestamp>). Loads state from .smm_state.json and continues "
+        "from where it stopped. Incompatible with PATH argument.",
+    )
 
     args = parser.parse_args()
 
@@ -2463,8 +2597,27 @@ Examples:
         else:
             args.max_image_pixels = None
 
+    # Validate --resume flag
+    if args.resume_staging is not None:
+        # --resume is incompatible with PATH argument
+        if args.path is not None:
+            parser.error("--resume cannot be used with PATH argument")
+        # Staging directory must exist
+        if not args.resume_staging.is_dir():
+            parser.error(
+                f"Resume staging directory does not exist: {args.resume_staging}"
+            )
+        # State file must exist
+        state_file = args.resume_staging / ".smm_state.json"
+        if not state_file.exists():
+            parser.error(
+                f"State file not found: {state_file}\n"
+                "The staging directory does not appear to have been created by smart-media-manager, "
+                "or the import was never started."
+            )
+
     # Handle default path (current directory) if no path provided
-    if args.path is None:
+    if args.path is None and args.resume_staging is None:
         args.path = Path.cwd()
 
     # In copy mode the user likely wants to keep originals; implicit yes to prompt if flag set
@@ -5512,116 +5665,218 @@ def main() -> int:
     skip_log: Optional[Path] = None
     skip_logger: Optional[SkipLogger] = None
     stats = RunStatistics()
+    state: Optional[StagingState] = None
     try:
-        # Auto-detect if path is a file or directory
-        is_single_file = args.path.is_file()
+        # Handle resume mode - load existing state and skip to appropriate phase
+        if args.resume_staging is not None:
+            LOG.info("Resuming from staging directory: %s", args.resume_staging)
+            print(f"Resuming from: {args.resume_staging}")
+            state = StagingState.load(args.resume_staging)
+            staging_root = Path(state.staging_root)
+            originals_root = Path(state.originals_root)
+            output_dir = Path(state.output_dir)
+            run_ts = state.run_ts
 
-        # Warn if --recursive is used with a single file (it will be ignored)
-        if is_single_file and args.recursive:
-            LOG.warning("--recursive flag ignored when processing a single file")
-            print("Warning: --recursive flag ignored when processing a single file")
+            # Create skip logger for this session
+            skip_log = output_dir / f"smm_skipped_files_{run_ts}_resume.log"
+            skip_logger = SkipLogger(skip_log)
 
-        root = validate_root(args.path, allow_file=is_single_file)
-        run_ts = timestamp()
+            # Attach file logger
+            log_path = attach_file_logger(output_dir, run_ts)
+            configure_pillow_max_image_pixels(args.max_image_pixels)
 
-        # For single file mode, use parent directory for outputs; otherwise use scan root
-        output_dir = root.parent if is_single_file else root
+            # Ensure dependencies
+            for dependency in ("ffprobe", "ffmpeg", "osascript"):
+                ensure_dependency(dependency)
 
-        if not confirm_scan(root, output_dir, args.assume_yes):
-            return ExitCode.SUCCESS
-
-        # Check write permissions for both CWD (logs) and output_dir (skip logs, staging)
-        try:
-            check_write_permission(Path.cwd(), "create logs")
-        except (PermissionError, OSError) as e:
-            print(f"ERROR: {e}", file=sys.stderr)
-            return ExitCode.PERMISSION_DENIED
-
-        try:
-            check_write_permission(output_dir, "create skip logs and staging directory")
-        except (PermissionError, OSError) as e:
-            print(f"ERROR: {e}", file=sys.stderr)
-            return ExitCode.PERMISSION_DENIED
-
-        log_path = attach_file_logger(
-            root, run_ts
-        )  # root arg kept for compatibility, not used for log location
-        configure_pillow_max_image_pixels(args.max_image_pixels)
-
-        for dependency in ("ffprobe", "ffmpeg", "osascript"):
-            ensure_dependency(dependency)
-        LOG.info("Scanning %s for media files...", root)
-        print(f"Scanning {root}...")
-
-        # Skip log goes in output directory (scan root or parent of single file)
-        skip_log = output_dir / f"smm_skipped_files_{run_ts}.log"
-        if skip_log.exists():
-            skip_log.unlink()
-        skip_logger = SkipLogger(skip_log)
-
-        # Handle single file mode
-        if is_single_file:
-            media, reject_reason = detect_media(root, args.skip_compatibility_check)
-            if media:
-                media_files = [media]
-                stats.total_files_scanned = 1
-                stats.total_binary_files = 1
-                stats.total_media_detected = 1
-                if media.compatible:
-                    stats.media_compatible = 1
-                else:
-                    stats.media_incompatible = 1
-            elif reject_reason:
-                skip_logger.log(root, reject_reason)
-                LOG.debug("File rejected: %s", reject_reason)
-                return ExitCode.SUCCESS
-            else:
-                LOG.debug("File is not a supported media format.")
-                return ExitCode.SUCCESS
-        else:
-            media_files = gather_media_files(
-                root,
-                args.recursive,
-                args.follow_symlinks,
-                skip_logger,
-                stats,
-                args.skip_compatibility_check,
+            # Reconstruct media_files from state
+            media_files = [state.dict_to_media_file(mf) for mf in state.files]
+            LOG.info(
+                "Loaded %d file(s) from state, phase: %s", len(media_files), state.phase
             )
-        if not media_files:
-            LOG.warning("No media files detected.")
-            if skip_logger and not skip_logger.has_entries() and skip_log.exists():
+            print(f"Loaded {len(media_files)} file(s), phase: {state.phase}")
+
+            # Count completed and failed
+            completed_count = len(state.completed)
+            failed_count = len(state.failed)
+            if completed_count > 0 or failed_count > 0:
+                LOG.info(
+                    "Previously completed: %d, failed: %d",
+                    completed_count,
+                    failed_count,
+                )
+                print(
+                    f"Previously completed: {completed_count}, failed: {failed_count}"
+                )
+
+            # Jump to appropriate phase based on saved state
+            if state.phase == "staged":
+                # Continue from conversion phase
+                LOG.info("Continuing from conversion phase...")
+                print("Continuing from conversion phase...")
+                ensure_compatibility(media_files, skip_logger, stats, args.skip_convert)
+                state.phase = "converted"
+                state.save(staging_root)
+            elif state.phase == "converted":
+                LOG.info("Conversion already complete, continuing to import...")
+                print("Conversion already complete, continuing to import...")
+            elif state.phase == "importing":
+                LOG.info("Import was interrupted, retrying import...")
+                print("Import was interrupted, retrying import...")
+            elif state.phase == "completed":
+                LOG.info("Import already completed for this staging folder.")
+                print("Import already completed. Nothing to do.")
+                return ExitCode.SUCCESS
+
+            # Filter out completed files from media_files
+            media_files = [mf for mf in media_files if not state.is_completed(mf)]
+            if not media_files:
+                LOG.info("All files already processed.")
+                print("All files already processed. Nothing to do.")
+                return ExitCode.SUCCESS
+            LOG.info("Continuing with %d remaining file(s)...", len(media_files))
+            print(f"Continuing with {len(media_files)} remaining file(s)...")
+
+            # Now proceed to import phase (skip to after staging/conversion)
+            # Jump directly to import section below
+        else:
+            # Normal mode - scan path and create staging
+            # Auto-detect if path is a file or directory
+            is_single_file = args.path.is_file()
+
+            # Warn if --recursive is used with a single file (it will be ignored)
+            if is_single_file and args.recursive:
+                LOG.warning("--recursive flag ignored when processing a single file")
+                print("Warning: --recursive flag ignored when processing a single file")
+
+            root = validate_root(args.path, allow_file=is_single_file)
+            run_ts = timestamp()
+
+            # For single file mode, use parent directory for outputs; otherwise use scan root
+            output_dir = root.parent if is_single_file else root
+
+            if not confirm_scan(root, output_dir, args.assume_yes):
+                return ExitCode.SUCCESS
+
+            # Check write permissions for both CWD (logs) and output_dir (skip logs, staging)
+            try:
+                check_write_permission(Path.cwd(), "create logs")
+            except (PermissionError, OSError) as e:
+                print(f"ERROR: {e}", file=sys.stderr)
+                return ExitCode.PERMISSION_DENIED
+
+            try:
+                check_write_permission(
+                    output_dir, "create skip logs and staging directory"
+                )
+            except (PermissionError, OSError) as e:
+                print(f"ERROR: {e}", file=sys.stderr)
+                return ExitCode.PERMISSION_DENIED
+
+            log_path = attach_file_logger(
+                root, run_ts
+            )  # root arg kept for compatibility, not used for log location
+            configure_pillow_max_image_pixels(args.max_image_pixels)
+
+            for dependency in ("ffprobe", "ffmpeg", "osascript"):
+                ensure_dependency(dependency)
+            LOG.info("Scanning %s for media files...", root)
+            print(f"Scanning {root}...")
+
+            # Skip log goes in output directory (scan root or parent of single file)
+            skip_log = output_dir / f"smm_skipped_files_{run_ts}.log"
+            if skip_log.exists():
                 skip_log.unlink()
-            return ExitCode.SUCCESS
-        ensure_raw_dependencies_for_files(media_files)
+            skip_logger = SkipLogger(skip_log)
 
-        # DRY RUN: Print summary and exit without modifying files
-        if args.dry_run:
-            LOG.info("Dry run mode - no files will be modified")
-            print_dry_run_summary(media_files, stats)
-            # Clean up skip log if empty (no entries yet in dry run)
-            if (
-                skip_log
-                and skip_log.exists()
-                and skip_logger
-                and not skip_logger.has_entries()
-            ):
-                skip_log.unlink()
-            return ExitCode.SUCCESS
+            # Handle single file mode
+            if is_single_file:
+                media, reject_reason = detect_media(root, args.skip_compatibility_check)
+                if media:
+                    media_files = [media]
+                    stats.total_files_scanned = 1
+                    stats.total_binary_files = 1
+                    stats.total_media_detected = 1
+                    if media.compatible:
+                        stats.media_compatible = 1
+                    else:
+                        stats.media_incompatible = 1
+                elif reject_reason:
+                    skip_logger.log(root, reject_reason)
+                    LOG.debug("File rejected: %s", reject_reason)
+                    return ExitCode.SUCCESS
+                else:
+                    LOG.debug("File is not a supported media format.")
+                    return ExitCode.SUCCESS
+            else:
+                media_files = gather_media_files(
+                    root,
+                    args.recursive,
+                    args.follow_symlinks,
+                    skip_logger,
+                    stats,
+                    args.skip_compatibility_check,
+                )
+            if not media_files:
+                LOG.warning("No media files detected.")
+                if skip_logger and not skip_logger.has_entries() and skip_log.exists():
+                    skip_log.unlink()
+                return ExitCode.SUCCESS
+            ensure_raw_dependencies_for_files(media_files)
 
-        # Create staging directory in output directory (scan root or parent of single file)
-        staging_root = output_dir / f"FOUND_MEDIA_FILES_{run_ts}"
-        staging_root.mkdir(parents=True, exist_ok=False)
+            # DRY RUN: Print summary and exit without modifying files
+            if args.dry_run:
+                LOG.info("Dry run mode - no files will be modified")
+                print_dry_run_summary(media_files, stats)
+                # Clean up skip log if empty (no entries yet in dry run)
+                if (
+                    skip_log
+                    and skip_log.exists()
+                    and skip_logger
+                    and not skip_logger.has_entries()
+                ):
+                    skip_log.unlink()
+                return ExitCode.SUCCESS
 
-        # Create originals directory OUTSIDE staging folder (sibling directory)
-        # CRITICAL: Must NOT be inside staging_root or Photos will try to import incompatible original files!
-        originals_root = output_dir / f"ORIGINALS_{run_ts}"
+            # Create staging directory in output directory (scan root or parent of single file)
+            staging_root = output_dir / f"FOUND_MEDIA_FILES_{run_ts}"
+            staging_root.mkdir(parents=True, exist_ok=False)
 
-        move_to_staging(
-            media_files, staging_root, originals_root, copy_files=args.copy_mode
-        )
-        ensure_compatibility(media_files, skip_logger, stats, args.skip_convert)
-        # No sanitization needed - sequential suffix already ensures uniqueness
-        update_stats_after_compatibility(stats, media_files)
+            # Create originals directory OUTSIDE staging folder (sibling directory)
+            # CRITICAL: Must NOT be inside staging_root or Photos will try to import incompatible original files!
+            originals_root = output_dir / f"ORIGINALS_{run_ts}"
+
+            move_to_staging(
+                media_files, staging_root, originals_root, copy_files=args.copy_mode
+            )
+
+            # Save state after staging (for --resume support)
+            state = StagingState(
+                phase="staged",
+                staging_root=str(staging_root),
+                originals_root=str(originals_root),
+                output_dir=str(output_dir),
+                run_ts=run_ts,
+                album_name=args.album or "",
+                files=[],  # Will be populated below
+            )
+            for mf in media_files:
+                state.files.append(state.media_file_to_dict(mf))
+            state.save(staging_root)
+            LOG.debug("State saved after staging: %d files", len(media_files))
+
+            ensure_compatibility(media_files, skip_logger, stats, args.skip_convert)
+
+            # Update state after conversion
+            state.phase = "converted"
+            state.files = [state.media_file_to_dict(mf) for mf in media_files]
+            state.save(staging_root)
+            LOG.debug("State saved after conversion")
+
+            # No sanitization needed - sequential suffix already ensures uniqueness
+            update_stats_after_compatibility(stats, media_files)
+
+        # Both resume and normal mode converge here for import phase
 
         missing_media: list[MediaFile] = [
             media
@@ -5649,6 +5904,12 @@ def main() -> int:
             "Importing %d file(s) into Apple Photos via folder import...", staged_count
         )
         print(f"Importing {staged_count} file(s) into Apple Photos...")
+
+        # Update state to importing phase (for --resume support)
+        if state is not None:
+            state.phase = "importing"
+            state.save(staging_root)
+            LOG.debug("State saved: importing phase")
 
         # DEBUG: Timestamp when folder import is about to be called
         current_timestamp = dt.datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
@@ -5766,6 +6027,12 @@ def main() -> int:
                 stats.print_summary()
                 stats.log_summary()
 
+        # Update state to completed (for --resume support)
+        if state is not None:
+            state.phase = "completed"
+            state.save(staging_root)
+            LOG.debug("State saved: completed phase")
+
         LOG.info(
             "Successfully imported %d media file(s) into Apple Photos.",
             imported_count,
@@ -5806,7 +6073,7 @@ def main() -> int:
         # Preserve staging folder for potential resume - don't revert
         if staging_root and staging_root.exists():
             print(f"Staging folder preserved: {staging_root}")
-            print("(Files can be manually imported or removed)")
+            print(f"To resume: smart-media-manager --resume {staging_root}")
         print("=" * 60)
         return ExitCode.INTERRUPTED
     except Exception as exc:  # noqa: BLE001
