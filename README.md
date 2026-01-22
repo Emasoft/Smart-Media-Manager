@@ -28,19 +28,36 @@
 
 Smart Media Manager normalizes filenames, validates files via multiple signature detectors, auto-installs transcode dependencies, and keeps a skip log so nothing silently disappears.
 
+## ✦ Workflow Modes
+
+**Fully Automated** — Run with `-y` flag to scan, convert, and import in one step:
+```bash
+smart-media-manager ~/Pictures/Inbox --recursive -y
+```
+
+**Two-Step Review** — Stage files first, review them, then import:
+```bash
+# Step 1: Scan and stage (creates FOUND_MEDIA_FILES_<timestamp> folder)
+smart-media-manager ~/Pictures/Inbox --recursive
+# Review the staged files, remove any you don't want imported
+# Step 2: Resume and import the staged folder
+smart-media-manager --resume FOUND_MEDIA_FILES_<timestamp>
+```
+
 ## ✦ Highlights
 
-- **Deterministic detection pipeline** — Powered by libmagic, PureMagic, PyFSig, binwalk, and ffprobe consensus voting plus RAW refinement
-- **Fail-fast conversions** — Direct source→target conversion with automatic cleanup on failure (v0.4.0: backup system removed for simplicity)
-- **Extension preservation** — File extensions are never changed unless the detected format differs (v0.4.0: fixes .mp4 → .mov renaming bug)
-- **Dependency bootstrapper** — Installs Homebrew formulas (`ffmpeg`, `libheif`, `imagemagick`, etc.) and RAW codecs only when the current camera family needs them
-- **Apple Photos automation** — Batched AppleScript commands with rate-limiting and retry logic, metadata preservation using `exiftool`
-- **Comprehensive statistics** — Color-coded summary with detailed metrics for scanned, converted, imported, and skipped files
-- **Interactive retry** — Prompt to retry failed imports without re-running the entire pipeline
-- **Transparent skip logging** — Corrupt files, archives, vector artwork, and unsupported assets are called out with remediation guidance
+- **Deterministic detection pipeline** — Consensus voting from libmagic, PureMagic, PyFSig, binwalk, and ffprobe with RAW format refinement
+- **Fail-fast conversions** — Direct source→target conversion with automatic cleanup on failure
+- **Extension correction** — Fixes mismatched extensions based on actual file content
+- **Dependency bootstrapper** — Auto-installs Homebrew formulas (`ffmpeg`, `libheif`, `imagemagick`, etc.) and RAW codecs on demand
+- **Apple Photos automation** — Batched AppleScript imports with rate-limiting, retry logic, and metadata preservation via `exiftool`
+- **Comprehensive statistics** — Color-coded summary with metrics for scanned, converted, imported, and skipped files
+- **Interactive retry** — Retry failed imports without re-running the entire pipeline
+- **Transparent skip logging** — Corrupt files, archives, and unsupported assets logged with remediation guidance
 - **Progress tracking** — Real-time progress bars with ETA for each pipeline stage
-- **Corrupt video detection** — Validates video files before staging to avoid wasted time
-- **Smart conversions** — PNG preferred for images (faster, smaller), remuxing for compatible codecs
+- **Corrupt media detection** — Validates images and videos before staging
+- **Smart conversions** — Remuxing for compatible codecs, transcoding only when necessary
+- **Dry-run mode** — Preview what would happen without making changes (`--dry-run`)
 
 ## ▣ Requirements
 
