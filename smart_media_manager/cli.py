@@ -1051,7 +1051,8 @@ def refine_image_media(media: MediaFile, skip_compatibility_check: bool = False)
     # FAST CHECK: Format-specific validation (very quick!)
     path = media.source
 
-    # JPEG: Check SOI and EOI markers (2 reads, <1ms)
+    # JPEG: Check SOI marker only (EOI may not be at file end due to trailing metadata)
+    # Note: Pillow's img.load() below catches actual truncation more reliably
     if media.extension in (".jpg", ".jpeg"):
         try:
             with open(path, "rb") as f:
@@ -1059,17 +1060,13 @@ def refine_image_media(media: MediaFile, skip_compatibility_check: bool = False)
                 soi = f.read(2)
                 if soi != b"\xff\xd8":
                     return None, "invalid JPEG: missing SOI marker (FFD8)"
-
-                # Check End of Image marker (FFD9)
-                if path.stat().st_size >= 4:  # Must have at least SOI + EOI
-                    f.seek(-2, 2)
-                    eoi = f.read()
-                    if eoi != b"\xff\xd9":
-                        return None, "truncated JPEG: missing EOI marker (FFD9)"
+                # Note: We don't check EOI at file end because valid JPEGs can have
+                # trailing metadata (EXIF appendages, Samsung SEFT, etc.) after FFD9
         except OSError as e:
             return None, f"cannot read JPEG markers: {e}"
 
-    # PNG: Check signature and IEND chunk (2 reads, <1ms)
+    # PNG: Check signature only (IEND may not be at file end due to trailing metadata)
+    # Note: Pillow's img.load() below catches actual truncation more reliably
     elif media.extension == ".png":
         try:
             with open(path, "rb") as f:
@@ -1077,14 +1074,8 @@ def refine_image_media(media: MediaFile, skip_compatibility_check: bool = False)
                 sig = f.read(8)
                 if sig != b"\x89PNG\r\n\x1a\n":
                     return None, "invalid PNG: missing signature"
-
-                # Check for IEND chunk at end (last 12 bytes)
-                file_size = path.stat().st_size
-                if file_size >= 20:  # Minimum valid PNG size
-                    f.seek(-12, 2)
-                    chunk_data = f.read(12)
-                    if b"IEND" not in chunk_data:
-                        return None, "truncated PNG: missing IEND chunk"
+                # Note: We don't check IEND at file end because valid PNGs can have
+                # trailing metadata (Samsung SEFT, etc.) after the IEND chunk
         except OSError as e:
             return None, f"cannot read PNG chunks: {e}"
 
@@ -1223,12 +1214,9 @@ def refine_video_media(media: MediaFile, skip_compatibility_check: bool = False)
             "Dolby Vision HEVC not compatible with Photos (requires standard HEVC transcode)",
         )
 
-    # Check for 10-bit color depth
-    if "10le" in output_lower or "10be" in output_lower:
-        return (
-            None,
-            "10-bit color depth not fully compatible with Photos (requires 8-bit transcode)",
-        )
+    # Note: 10-bit color depth check removed - Apple Photos on modern macOS supports
+    # HEVC Main 10 profile, and the format detection system handles transcoding via
+    # the action field. Rejecting here was causing false-positive rejections of valid videos.
 
     # === AUDIO STREAM VALIDATION ===
 
