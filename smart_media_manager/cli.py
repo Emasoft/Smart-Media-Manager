@@ -2860,6 +2860,12 @@ Examples:
         action="store_true",
         help="Skip files that have wrong extensions (mismatched with actual content). These files will be logged but not renamed or imported.",
     )
+    parser.add_argument(
+        "--skip-file-format-verification",
+        dest="skip_format_verification",
+        action="store_true",
+        help="Trust file extensions instead of analyzing file content to detect format. Only files with compatible extensions will be processed. Video/audio codec detection (ffprobe) still runs to determine if conversion is needed.",
+    )
 
     args = parser.parse_args()
 
@@ -5874,6 +5880,7 @@ def main() -> int:
                 args.skip_import = state.options.get("skip_import", args.skip_import)
                 args.no_conversions = state.options.get("no_conversions", args.no_conversions)
                 args.skip_renaming = state.options.get("skip_renaming", args.skip_renaming)
+                args.skip_format_verification = state.options.get("skip_format_verification", args.skip_format_verification)
 
             # Create skip logger for this session
             skip_log = output_dir / f"smm_skipped_files_{run_ts}_resume.log"
@@ -6077,6 +6084,7 @@ def main() -> int:
                 "skip_import": args.skip_import,
                 "no_conversions": args.no_conversions,
                 "skip_renaming": args.skip_renaming,
+                "skip_format_verification": args.skip_format_verification,
             }
             state = StagingState(
                 phase="staged",
