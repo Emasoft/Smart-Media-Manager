@@ -249,8 +249,8 @@ class TestRefineImageMedia:
         assert media_out is None
         assert "missing signature" in error
 
-    def test_refine_image_media_rejects_cmyk_psd(self, tmp_path):
-        """Test refine_image_media rejects CMYK PSD files."""
+    def test_refine_image_media_flags_cmyk_psd_for_conversion(self, tmp_path):
+        """Test refine_image_media flags CMYK PSD files for TIFF conversion instead of rejecting."""
         from smart_media_manager.cli import refine_image_media, MediaFile
 
         psd_file = tmp_path / "test.psd"
@@ -266,8 +266,13 @@ class TestRefineImageMedia:
 
         media_out, error = refine_image_media(media)
 
-        assert media_out is None
-        assert "CMYK PSD not supported" in error
+        # Should flag for conversion, not reject
+        assert media_out is not None
+        assert error is None
+        assert media_out.action == "convert_to_tiff"
+        assert media_out.requires_processing is True
+        assert media_out.compatible is False
+        assert "CMYK PSD not supported" in media_out.notes
 
 
 class TestRefineVideoMedia:
@@ -294,8 +299,8 @@ class TestRefineVideoMedia:
 
     @patch("smart_media_manager.cli.subprocess.run")
     @patch("smart_media_manager.cli.shutil.which")
-    def test_refine_video_media_rejects_avc3_codec_tag(self, mock_which, mock_run, tmp_path):
-        """Test refine_video_media rejects avc3 codec tag."""
+    def test_refine_video_media_flags_avc3_for_remux(self, mock_which, mock_run, tmp_path):
+        """Test refine_video_media flags avc3 codec tag for remuxing instead of rejecting."""
         from smart_media_manager.cli import refine_video_media, MediaFile
 
         vid_file = tmp_path / "test.mp4"
@@ -316,14 +321,18 @@ class TestRefineVideoMedia:
 
         media_out, error = refine_video_media(media)
 
-        assert media_out is None
-        assert "avc3" in error
-        assert "requires avc1" in error
+        # Should flag for remux, not reject
+        assert media_out is not None
+        assert error is None
+        assert media_out.action == "rewrap_to_mp4"
+        assert media_out.requires_processing is True
+        assert media_out.compatible is False
+        assert "avc3" in media_out.notes
 
     @patch("smart_media_manager.cli.subprocess.run")
     @patch("smart_media_manager.cli.shutil.which")
-    def test_refine_video_media_rejects_dolby_vision(self, mock_which, mock_run, tmp_path):
-        """Test refine_video_media rejects Dolby Vision."""
+    def test_refine_video_media_flags_dolby_vision_for_transcode(self, mock_which, mock_run, tmp_path):
+        """Test refine_video_media flags Dolby Vision for transcoding instead of rejecting."""
         from smart_media_manager.cli import refine_video_media, MediaFile
 
         vid_file = tmp_path / "test.mp4"
@@ -344,8 +353,13 @@ class TestRefineVideoMedia:
 
         media_out, error = refine_video_media(media)
 
-        assert media_out is None
-        assert "Dolby Vision" in error
+        # Should flag for transcode, not reject
+        assert media_out is not None
+        assert error is None
+        assert media_out.action == "transcode_to_hevc_mp4"
+        assert media_out.requires_processing is True
+        assert media_out.compatible is False
+        assert "Dolby Vision" in media_out.notes
 
     @patch("smart_media_manager.cli.subprocess.run")
     @patch("smart_media_manager.cli.shutil.which")
@@ -382,8 +396,8 @@ class TestRefineVideoMedia:
 
     @patch("smart_media_manager.cli.subprocess.run")
     @patch("smart_media_manager.cli.shutil.which")
-    def test_refine_video_media_rejects_opus_audio(self, mock_which, mock_run, tmp_path):
-        """Test refine_video_media rejects Opus audio."""
+    def test_refine_video_media_flags_opus_audio_for_transcode(self, mock_which, mock_run, tmp_path):
+        """Test refine_video_media flags Opus audio for transcoding instead of rejecting."""
         from smart_media_manager.cli import refine_video_media, MediaFile
 
         vid_file = tmp_path / "test.mp4"
@@ -407,5 +421,10 @@ class TestRefineVideoMedia:
 
         media_out, error = refine_video_media(media)
 
-        assert media_out is None
-        assert "Opus audio" in error
+        # Should flag for audio transcode, not reject
+        assert media_out is not None
+        assert error is None
+        assert media_out.action == "transcode_audio_to_aac_or_eac3"
+        assert media_out.requires_processing is True
+        assert media_out.compatible is False
+        assert "Opus audio" in media_out.notes

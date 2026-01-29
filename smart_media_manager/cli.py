@@ -1524,15 +1524,24 @@ def refine_image_media(media: MediaFile, skip_compatibility_check: bool = False)
     if media.extension == ".psd":
         psd_color_mode = media.metadata.get("psd_color_mode", "unknown")
         if psd_color_mode == "cmyk":
-            return (
-                None,
-                "CMYK PSD not supported by Photos (requires RGB TIFF conversion)",
-            )
+            # BUG FIX: Flag for conversion instead of rejection
+            media.action = "convert_to_tiff"
+            media.compatible = False
+            media.requires_processing = True
+            media.notes = "CMYK PSD not supported by Photos (will convert to RGB TIFF)"
+            LOG.info("PSD CMYK->TIFF conversion needed for %s", media.source.name)
+            # Return early - skip Pillow validation since ImageMagick will handle the conversion
+            # Pillow may not handle CMYK PSD correctly anyway
+            return media, None
         elif psd_color_mode in ("lab", "multichannel", "duotone"):
-            return (
-                None,
-                f"{psd_color_mode.upper()} PSD not supported by Photos (requires RGB TIFF conversion)",
-            )
+            # BUG FIX: Flag for conversion instead of rejection
+            media.action = "convert_to_tiff"
+            media.compatible = False
+            media.requires_processing = True
+            media.notes = f"{psd_color_mode.upper()} PSD not supported by Photos (will convert to RGB TIFF)"
+            LOG.info("PSD %s->TIFF conversion needed for %s", psd_color_mode.upper(), media.source.name)
+            # Return early - skip Pillow validation since ImageMagick will handle the conversion
+            return media, None
 
     # COMPREHENSIVE CHECK: Actually decode the image (catches all corruption)
     # This is still fast (<10ms for most images) but thorough
@@ -1763,10 +1772,14 @@ def refine_video_media(media: MediaFile, skip_compatibility_check: bool = False)
             }
 
             if sample_rate not in standard_rates:
-                return (
-                    None,
-                    f"Unsupported audio sample rate {sample_rate} Hz (requires resampling to 48000 Hz)",
-                )
+                # BUG FIX: Flag for transcoding instead of rejection
+                # Audio transcoding to AAC will resample to 48000 Hz automatically
+                if not media.action or media.action == "import":  # Don't override if already set
+                    media.action = "transcode_audio_to_aac_or_eac3"
+                    media.compatible = False
+                    media.requires_processing = True
+                    media.notes = f"Unsupported audio sample rate {sample_rate} Hz (will resample to 48000 Hz)"
+                    LOG.info("Audio resample needed for %s: %s Hz -> 48000 Hz", media.source.name, sample_rate)
 
     return media, None
 
