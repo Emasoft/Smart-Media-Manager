@@ -237,18 +237,39 @@ jobs:
     steps:
     - uses: actions/checkout@v4
       with:
-        fetch-depth: 0  # Full history needed for gitleaks commit comparison
+        fetch-depth: 0  # Full history for commit range scanning
 
-    - name: Run gitleaks
-      uses: gitleaks/gitleaks-action@v2
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
 
-    - name: Security scan summary
-      if: always()
+    - name: Run secrets scanner
+      id: secrets-scan
       run: |
-        echo "## Security Scan Completed" >> $GITHUB_STEP_SUMMARY
-        echo "Check the Actions tab for detailed results" >> $GITHUB_STEP_SUMMARY
+        echo "## Secrets Scan Results" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+
+        # Run custom secrets scanner with GitHub annotations
+        if python scripts/secrets_scan.py --github 2>&1 | tee secrets-scan.txt; then
+          echo "No secrets detected" >> $GITHUB_STEP_SUMMARY
+          echo "scan_status=clean" >> $GITHUB_OUTPUT
+        else
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          cat secrets-scan.txt >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "scan_status=found" >> $GITHUB_OUTPUT
+          exit 1
+        fi
+
+    - name: Upload scan results
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: secrets-scan-results
+        path: secrets-scan.txt
+        retention-days: 30
+        if-no-files-found: ignore
 
   build:
     name: Build Package
