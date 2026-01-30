@@ -1,6 +1,14 @@
 # Changelog
 All notable changes to this project will be documented here, following [Keep a Changelog](https://keepachangelog.com/) and Semantic Versioning (pre-release identifiers included).
 
+## [0.5.45] - 2026-01-30
+### Fixed
+- Documentation updates for new CLI options
+
+### Added
+- Use case examples in CLI help screen for --include-staged, --save-formats-report, --resume, and other options
+- Added --include-staged and --save-formats-report to README
+
 ## [0.5.44] - 2026-01-30
 ### Fixed
 - **Bug #9**: Fixed `--recursive` not detecting all files in nested folders
