@@ -2600,9 +2600,27 @@ Exit Codes:
   130 Interrupted - user cancelled (Ctrl+C)
 
 Examples:
+  # Basic usage
   %(prog)s /path/to/media --recursive
   %(prog)s /path/to/image.jpg
-  %(prog)s  # scans current directory""",
+  %(prog)s  # scans current directory
+
+  # Resume a previously interrupted import
+  %(prog)s --resume last
+  %(prog)s --resume /path/to/FOUND_MEDIA_FILES_20260130
+
+  # Re-process files that were already staged (e.g., after fixing conversion issues)
+  %(prog)s /path/to/FOUND_MEDIA_FILES_20260130 --include-staged
+
+  # Developer: generate format mapping report for unknown file types
+  %(prog)s /path/to/media --recursive --save-formats-report
+
+  # Filter by media type
+  %(prog)s /path/to/media --images-only
+  %(prog)s /path/to/media --videos-only --recursive
+
+  # Skip files that need conversion (import only already-compatible files)
+  %(prog)s /path/to/media --no-conversions --recursive""",
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     parser.add_argument(
