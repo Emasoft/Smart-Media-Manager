@@ -104,7 +104,7 @@ def parse_video_uuid(uuid: str) -> dict:
     """
     parts = uuid.split("-")
 
-    result = {"base_uuid": None, "bit_depth": None, "pix_fmt": None, "profile": None}
+    result: dict[str, str | int | None] = {"base_uuid": None, "bit_depth": None, "pix_fmt": None, "profile": None}
 
     # Extract base UUID (first 5 parts: xxxx-xxxx-xxxx-xxxx-xxxx)
     if len(parts) >= 5:

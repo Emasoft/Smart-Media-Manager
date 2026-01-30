@@ -62,6 +62,8 @@ SKIP_PATTERNS = [
     r"scripts_dev/",
     r"samples_dev/",
     r"\.DS_Store$",
+    # Skip self (contains regex patterns that look like secrets)
+    r"scripts/secrets_scan\.py$",
     # Binary files
     r"\.(png|jpg|jpeg|gif|ico|webp|mp4|mov|avi|mkv|mp3|wav|pdf|zip|gz|tar|bz2)$",
 ]

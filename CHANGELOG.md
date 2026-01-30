@@ -1,6 +1,49 @@
 # Changelog
 All notable changes to this project will be documented here, following [Keep a Changelog](https://keepachangelog.com/) and Semantic Versioning (pre-release identifiers included).
 
+## [0.5.44] - 2026-01-30
+### Fixed
+- **Bug #9**: Fixed `--recursive` not detecting all files in nested folders
+  - Added `onerror` callback to `os.walk()` to log permission errors instead of silently skipping directories
+  - Added debug logging for directory traversal progress
+
+- **Bug #10**: Fixed files rejected by Apple Photos due to codec verification issues
+  - Changed `refine_video_media()` to flag incompatible codecs for transcoding instead of rejecting
+  - Incompatible video tags (avc3, hev1, dvhe) now flag for remux/transcode
+  - Dolby Vision content now flags for standard HEVC transcode
+  - Unsupported audio codecs (FLAC, Opus, DTS, Vorbis, TrueHD) now flag for AAC transcode
+  - Fixed `is_already_photos_compatible()` overriding UUID-based transcode decisions
+
+- **Bug #13**: Fixed Photos dialogs not being auto-dismissed during import
+  - Added `dismiss_photos_dialog()` function using System Events AppleScript
+  - Automatically clicks Import, Import All, OK, Allow, Continue, Done, Skip buttons
+  - Falls back to user prompt only if System Events automation fails
+
+- **Audit**: Fixed remaining rejection patterns in refinement functions
+  - Audio sample rate check now flags for transcode (AAC resamples to 48kHz)
+  - PSD CMYK/LAB/multichannel/duotone modes now flag for TIFF conversion instead of rejection
+
+### Added
+- **Feature #11**: Added `--include-staged` option to include previously staged files and FOUND_MEDIA_FILES_* directories in scan
+- **Feature #12**: Added `--save-formats-report` option to control saving unknown format mappings JSON (now opt-in)
+- Custom secrets scanner (`scripts/secrets_scan.py`) replacing gitleaks
+  - 20+ detection patterns for API keys, tokens, private keys, database URLs
+  - Project-specific allowlist for public GitHub user info
+  - Entropy-based detection for base64-encoded secrets
+  - Supports `--staged`, `--commits`, `--files` modes
+  - GitHub Actions annotations for inline error display
+
+### Changed
+- Replaced gitleaks-action with custom secrets scanner in CI (fixes issue_comment event failures)
+
+**Note**: This release includes all changes from 0.5.44a1, 0.5.44a2, and 0.5.44a3 alpha versions:
+- AppleScript 24-hour timeout for Photos dialogs
+- Graceful Ctrl+C handling with log preservation
+- Fail-fast imports for pyfsig/rawpy (removed lazy loading)
+- VP8 codec support in format compatibility database
+- Fixed import statistics miscounting converted files
+- ORIGINALS folder moved outside staging to prevent Photos importing source files
+
 ## [0.5.43a2] - 2025-01-05
 ### Fixed
 - Fixed 6 failing tests:
@@ -22,107 +65,6 @@ All notable changes to this project will be documented here, following [Keep a C
 ### Removed
 - Moved obsolete dev docs to docs_dev/ (TODO.md, COOLDOWN_FIX.md, etc.)
 - Removed format_analysis/ (moved to docs_dev/)
-
-## [Unreleased]
-### Fixed
-- **IMPORTANT**: Fixed AppleScript timeout error (-1712) when Photos shows dialogs during import
-  - Root cause: AppleScript used default timeout which was too short when Photos displayed user dialogs
-  - Symptom: "AppleEvent timed out" error causing import to crash instead of waiting
-  - Fix:
-    - Added `with timeout of 86400 seconds` (24 hours) in AppleScript tell block
-    - Added retry loop (10 retries) for error -1712 with user interaction prompt
-    - User can press Enter to retry after closing dialog, or type 'abort' to cancel
-    - Removed subprocess timeout (letting AppleScript handle it internally)
-  - Result: Photos import waits for user to close dialogs instead of crashing
-
-- **IMPORTANT**: Added graceful Ctrl+C handling
-  - Root cause: Pressing Ctrl+C caused ugly Python traceback and potential data loss
-  - Fix:
-    - Added `except KeyboardInterrupt` handler in main() function
-    - Clean exit with visual separator and status message
-    - Saves skip log if it has entries
-    - Points to detailed log file
-    - Preserves staging folder for manual recovery
-    - Returns exit code 130 (standard for SIGINT: 128 + 2)
-  - Result: Ctrl+C now exits gracefully with logs preserved
-
-### Changed
-- **IMPORTANT**: Removed lazy/deferred loading for Python package dependencies (pyfsig, rawpy)
-  - Root cause: Lazy imports with try/except blocks made pyfsig and rawpy appear optional when they're required dependencies
-  - This violated fail-fast principles and made dependency errors harder to diagnose
-  - Changes:
-    - Removed try/except ImportError block for `pyfsig` - now imported directly: `from pyfsig import interface as pyfsig_interface`
-    - Removed `get_rawpy()` lazy loading function and `_RAWPY_MODULE`/`_RAWPY_IMPORT_ERROR` globals
-    - Rawpy now imported directly at module top: `import rawpy`
-    - Removed None check in `classify_with_pyfsig()`
-    - Updated `refine_raw_media()` to use `rawpy` directly instead of calling `get_rawpy()`
-  - Exception: python-magic still lazy-loaded (requires libmagic system library installed via Homebrew during bootstrap)
-  - Result: Script fails fast if pyfsig/rawpy missing; can still start without libmagic to run bootstrap
-  - Impact: Minimal - pyfsig and rawpy were already required dependencies (pyproject.toml lines 12, 14)
-
-### Fixed
-- **IMPORTANT**: Added VP8 codec to format compatibility database
-  - Root cause: VP8 codec was defined in format_registry.json but missing from format_compatibility.json
-  - Script warned "No UUID mapping found for ffprobe codec 'vp8'" when processing WEBM files with VP8 video
-  - Fix:
-    - Added VP8 to format_names section with UUID `d91b7c22-6d8b-52a9-b17a-6eda5c3aedac-V`
-    - Added VP8 to needs_transcode_video (Apple Photos doesn't support VP8)
-    - Added VP8 to tool_mappings.ffprobe ("vp8" → UUID)
-  - Result: VP8 WEBM files now detected and transcoded to HEVC MP4 without warnings
-
-- **IMPORTANT**: Fixed import statistics miscounting all files as "imported direct" instead of "imported after conversion"
-  - Root cause: `requires_processing` flag was cleared to `False` after successful conversion
-  - Stats calculation checked `requires_processing`, so all files (converted and direct) had `False`, causing 100% "direct" count
-  - Example broken output: "Imported (after conversion): 0, Imported (direct): 40" when 10 MKV→MP4 conversions occurred
-  - Fix:
-    - Added `was_converted: bool` field to MediaFile dataclass
-    - Set `was_converted = True` after each successful conversion in ensure_compatibility()
-    - Updated stats calculation to check `was_converted` instead of `requires_processing`
-  - Result: Stats now correctly show "Imported (after conversion): 10, Imported (direct): 30" when 10 conversions occur
-
-### Fixed
-- **CRITICAL**: Moved ORIGINALS folder outside staging directory to prevent Photos.app from importing incompatible source files
-  - Root cause: ORIGINALS folder was created INSIDE staging folder (FOUND_MEDIA_FILES_*/ORIGINALS/)
-  - When Photos.app imports folder, it recursively scans ALL subdirectories
-  - This caused Photos to find and reject incompatible original files (MKV, WEBM, etc.) even after successful conversion
-  - Photos showed error dialog: "The following files could not be imported: [list of MKV files]"
-  - Meanwhile, converted MP4 files WERE successfully imported (100% success rate for converted files)
-  - Fix:
-    - Created ORIGINALS_{timestamp} as SIBLING to FOUND_MEDIA_FILES_{timestamp}, not subdirectory
-    - Updated move_to_staging() to accept originals_dir as parameter
-    - Added critical comment warning against nesting ORIGINALS inside staging
-  - Result: Photos.app now only sees converted, compatible files - no error dialogs
-  - Example structure BEFORE (broken):
-    ```
-    /scan_root/FOUND_MEDIA_FILES_20251031234954/
-      ├── file1 (1).mp4  ← Converted, imported ✓
-      ├── file2 (2).jpg  ← Direct, imported ✓
-      └── ORIGINALS/
-          ├── file1.mkv  ← Photos scans this and shows error! ✗
-          └── file2.cr3  ← Photos scans this too ✗
-    ```
-  - Example structure AFTER (fixed):
-    ```
-    /scan_root/
-      ├── FOUND_MEDIA_FILES_20251031234954/
-      │   ├── file1 (1).mp4  ← Converted, imported ✓
-      │   └── file2 (2).jpg  ← Direct, imported ✓
-      └── ORIGINALS_20251031234954/  ← Photos never sees this ✓
-          ├── file1.mkv
-          └── file2.cr3
-    ```
-
-- **IMPORTANT**: Added detailed logging for all conversion operations in ensure_compatibility phase
-  - Root cause: Conversions were happening silently - progress bars shown on console but no logs written to log file
-  - This caused confusion: user couldn't verify what conversions happened by reviewing the log file
-  - Previous behavior: MKV files converted to MP4 successfully, but no log entries showing "Rewrapping MKV to MP4"
-  - Fix: Added LOG.info() calls before and after each conversion action
-  - Now logs:
-    - Before: "Rewrapping mkv (h264/aac) to MP4 container: /path/to/file.mkv"
-    - After: "Successfully rewrapped to MP4: /path/to/file.mp4"
-  - Applies to all conversion types: PNG, TIFF, HEIC, HEVC MP4, animated conversions, rewraps, transcodes, audio transcodes
-  - Log entries include format name and codecs (for video) to provide context on what's being converted
-  - Result: Log files now provide complete audit trail of all conversion operations
 
 ## [0.5.40a2] - 2025-12-22
 ### Changed

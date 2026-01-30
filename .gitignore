@@ -43,3 +43,4 @@ format_tests_results/
 tests/samples/use-database.ts
 format_registry_updates_*.json
 samples_dev/
+.claude/
