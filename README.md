@@ -275,6 +275,7 @@ smart-media-manager ~/Pictures/Vacation --recursive --album "Summer 2024" -y
 | `--min-size SIZE` | Skip files smaller than SIZE (e.g., 100KB, 1MB, 500B) |
 | `--max-size SIZE` | Skip files larger than SIZE (e.g., 4GB, 100MB) |
 | `--exclude-pattern PATTERN` | Skip files matching glob pattern (can be repeated) |
+| `--include-staged` | Include previously staged files and FOUND_MEDIA_FILES_* directories in scan |
 
 #### Conversion Options
 
@@ -299,6 +300,7 @@ smart-media-manager ~/Pictures/Vacation --recursive --album "Summer 2024" -y
 | `--log-file PATH` | Write detailed log to custom file path |
 | `--log-format FORMAT` | Log format: text (default), json |
 | `--no-progress` | Disable progress bars (useful for CI/scripting) |
+| `--save-formats-report` | Save JSON report of unknown format mappings (for developers extending format support) |
 
 #### Safety & Verification Options
 
